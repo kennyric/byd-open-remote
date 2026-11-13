@@ -1,4 +1,5 @@
 .superpowers/
+*.apk
 *.apkm
 android-companion/.gradle/
 android-companion/**/build/
