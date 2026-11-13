@@ -55,6 +55,14 @@ public class WearEngineBridge {
         this.repository = repository;
         this.transport = transport;
 
+        if (!transport.isAvailable()) {
+            this.connectionState = ConnectionState.UNAVAILABLE;
+        } else if (!transport.hasPermission()) {
+            this.connectionState = ConnectionState.PERMISSION_NEEDED;
+        } else {
+            this.connectionState = ConnectionState.DISCONNECTED;
+        }
+
         this.transport.setTransportStateListener(new PeerTransport.TransportStateListener() {
             @Override
             public void onAvailabilityChanged(boolean available, String reason) {
@@ -187,16 +195,16 @@ public class WearEngineBridge {
     }
 
     private synchronized void evaluateState() {
-        if (!isRunning) {
-            setConnectionState(ConnectionState.DISCONNECTED);
-            return;
-        }
         if (!transport.isAvailable()) {
             setConnectionState(ConnectionState.UNAVAILABLE);
             return;
         }
         if (!transport.hasPermission()) {
             setConnectionState(ConnectionState.PERMISSION_NEEDED);
+            return;
+        }
+        if (!isRunning) {
+            setConnectionState(ConnectionState.DISCONNECTED);
             return;
         }
         if (transport.isListening()) {

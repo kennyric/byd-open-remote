@@ -26,6 +26,7 @@ import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.Shadows;
 import org.robolectric.android.controller.ActivityController;
+import org.robolectric.android.controller.ServiceController;
 import org.robolectric.annotation.Config;
 import org.robolectric.shadows.ShadowActivity;
 import org.robolectric.shadows.ShadowApplication;
@@ -386,6 +387,11 @@ public class MainActivityTest {
         }
         configStore.clear();
 
+        WearEngineBridgeTest.FakePeerTransport readyTransport = new WearEngineBridgeTest.FakePeerTransport();
+        readyTransport.permissionGranted = true;
+        WearEngineBridge readyBridge = new WearEngineBridge(repository, readyTransport);
+        BydWatchApp.setTestWearDependencies(new WearEngineConfig(), readyTransport, readyBridge);
+
         controller = Robolectric.buildActivity(MainActivity.class).setup();
         MainActivity newActivity = controller.get();
         TextView watchStatus = newActivity.findViewById(R.id.tvWatchStatus);
@@ -436,6 +442,7 @@ public class MainActivityTest {
         assertTrue(btnAuth.isEnabled());
         assertEquals(newActivity.getString(R.string.btn_start_service), btnToggle.getText().toString());
         assertEquals(newActivity.getString(R.string.service_status_stopped), tvService.getText().toString());
+        assertEquals(newActivity.getString(R.string.status_health_needed), tvWatch.getText().toString());
 
         // 1. Test Health authorization request
         btnAuth.performClick();
@@ -445,6 +452,7 @@ public class MainActivityTest {
         fakeTransport.simulatePermissionConsent();
         ShadowLooper.idleMainLooper();
         assertTrue(btnAuth.isEnabled());
+        assertEquals(newActivity.getString(R.string.watch_status_ready), tvWatch.getText().toString());
 
         // 2. Test Battery optimization button click
         btnBattery.performClick();
@@ -475,11 +483,13 @@ public class MainActivityTest {
         assertEquals(WearBridgeService.ACTION_START, startedServiceIntent.getAction());
 
         // Simulate service running
-        WearBridgeService service = Robolectric.buildService(WearBridgeService.class).create().get();
+        ServiceController<WearBridgeService> serviceController = Robolectric.buildService(WearBridgeService.class, startedServiceIntent).create().startCommand(0, 0);
+        WearBridgeService service = serviceController.get();
         ShadowLooper.idleMainLooper();
 
         assertEquals(newActivity.getString(R.string.service_status_running), tvService.getText().toString());
         assertEquals(newActivity.getString(R.string.btn_stop_service), btnToggle.getText().toString());
+        assertEquals(newActivity.getString(R.string.status_bridge_listening), tvWatch.getText().toString());
 
         // 5. Test toggling the service off
         btnToggle.performClick();
@@ -488,6 +498,8 @@ public class MainActivityTest {
         Intent stopServiceIntent = shadowApp.getNextStartedService();
         assertNotNull(stopServiceIntent);
         assertEquals(WearBridgeService.ACTION_STOP, stopServiceIntent.getAction());
+
+        serviceController.destroy();
     }
 
     @Test
