@@ -48,16 +48,20 @@ public final class BydCloudConfig {
         if (countryCode != null && !countryCode.isEmpty()) {
             this.countryCode = countryCode;
         }
-        if (language != null && !language.isEmpty()) {
-            this.language = language;
-        }
+        this.language = (language != null && !language.trim().isEmpty()) ? language.trim() : "en";
     }
 
     public void setRegion(String region) {
+        setRegion(region, false);
+    }
+
+    public void setRegion(String region, boolean updateLanguage) {
         String normalizedRegion = BydCloudRegionCatalog.normalizeRegion(region);
         this.region = normalizedRegion;
         this.countryCode = BydCloudRegionCatalog.defaultCountryForRegion(normalizedRegion);
-        this.language = BydCloudRegionCatalog.languageForCountryCode(this.countryCode);
+        if (updateLanguage || this.language == null || this.language.isEmpty()) {
+            this.language = BydCloudRegionCatalog.languageForCountryCode(this.countryCode);
+        }
         if (BydCloudRegionCatalog.isChinaRegion(this.region)) {
             this.appInnerVersion = CN_APP_INNER_VERSION;
             this.appVersion = CN_APP_VERSION;

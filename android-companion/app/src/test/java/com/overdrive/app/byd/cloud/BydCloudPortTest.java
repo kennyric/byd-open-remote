@@ -1,5 +1,9 @@
 package com.overdrive.app.byd.cloud;
 
+import com.overdrive.app.byd.cloud.crypto.BydCryptoUtils;
+import com.overdrive.app.byd.cloud.crypto.EnvelopeCodec;
+import com.overdrive.app.byd.cloud.crypto.EnvelopeCodecFactory;
+
 import org.json.JSONObject;
 import org.junit.Test;
 
@@ -15,6 +19,16 @@ public class BydCloudPortTest {
     public void indonesiaRegionResolvesToIdAndUsesBangcle() {
         assertEquals("ID", BydCloudRegionCatalog.defaultCountryForRegion("id"));
         assertFalse(BydCloudRegionCatalog.isChinaRegion("id"));
+    }
+
+    @Test
+    public void configPreservesConfiguredLanguageWhenRegionUpdated() {
+        BydCloudConfig cfg = new BydCloudConfig();
+        cfg.setLanguage("en");
+        cfg.setRegion("id");
+        assertEquals("id", cfg.region);
+        assertEquals("ID", cfg.countryCode);
+        assertEquals("en", cfg.language);
     }
 
     @Test
@@ -35,5 +49,33 @@ public class BydCloudPortTest {
             client.init(in);
             assertTrue(client.isReady());
         }
+    }
+
+    @Test
+    public void bangcleCodecEncryptsAndDecryptsPayloadRoundtrip() throws Exception {
+        EnvelopeCodec codec = EnvelopeCodecFactory.createCodec(false);
+        try (InputStream in = getClass().getClassLoader().getResourceAsStream("byd/bangcle_tables.bin")) {
+            assertNotNull("bangcle_tables.bin must be on test classpath via assets", in);
+            codec.loadTables(in);
+            assertTrue(codec.isReady());
+
+            String sampleJson = "{\"test\":\"value\",\"number\":123}";
+            String envelope = codec.encodeEnvelope(sampleJson);
+            assertNotNull(envelope);
+            assertTrue(envelope.startsWith("F"));
+
+            String decrypted = codec.decodeEnvelope(envelope);
+            assertEquals(sampleJson, decrypted);
+        }
+    }
+
+    @Test
+    public void checkcodeCalculationComputesExpectedFormat() throws Exception {
+        JSONObject payload = new JSONObject();
+        payload.put("action", "test");
+        payload.put("timestamp", "123456789");
+        String checkcode = BydCryptoUtils.computeCheckcode(payload);
+        assertNotNull(checkcode);
+        assertEquals(32, checkcode.length());
     }
 }
