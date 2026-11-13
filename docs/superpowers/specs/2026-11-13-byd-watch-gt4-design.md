@@ -108,17 +108,19 @@ Because the Watch GT 4 runs HarmonyOS **Lite Wearable** (LiteOS JS/HML/CSS) rath
    - Root `466×466` dark OLED container (`#000000` background for battery & bezel blending).
    - Full-screen `<list id="mainList">` bound with `rotation({ focus: true })` in `onShow()` / `onReady()` so the physical rotating crown scrolls smoothly between cards:
      - **Card 1 — Hero Status & Primary Lock (`list-item` `466×466`):**
-       - Perimeter battery ring (`<progress type="arc">` or `<canvas>` arc) running right along the outermost edge of the round `466×466` screen.
-       - Inside the ring: `BYD ATTO 1` header, lock/cabin summary (`Locked • 27°C`), large SoC `%` (`78%`) + range (`290 km`), and primary pill button (**Unlock Car** when locked / **Lock Car** when unlocked).
+       - Perimeter battery ring (`<progress type="arc">` or `<canvas>` arc) flush against the outermost edge of the `466×466` round screen (`0px` outer padding/margin so its outer stroke touches the display edge directly, matching Huawei Activity Rings).
+       - Inside the ring: Official BYD wordmark (`byd_logo.png`) + `ATTO 1` header, BYD lock icon + lock/cabin summary (`Locked • 27°C`), large SoC `%` (`78%`) + range (`290 km`), and primary pill button with official lock/unlock PNG (**Unlock Car** when locked / **Lock Car** when unlocked).
        - Subtle scroll hint (`▾ Turn crown`) just inside the bottom arc.
-     - **Card 2 — Quick Controls (`list-item`):**
-       - **Flash Lights** button (`lights`)
-       - **Horn / Locate** button (`horn`)
-       - **Refresh Status** button (`status`) + last synced timestamp (`2m ago`) + phone link indicator (`Phone Ready` / `No Phone`).
-     - **Card 3 — Climate Control (`list-item`):**
+     - **Card 2 — Quick Controls Diamond (`list-item` `466×466`):**
+       - 2×2 **diamond arrangement** (Top / Left / Right / Bottom) of four large circular icon buttons with minimal 1-word labels and large **official BYD PNG icons** extracted from the BYD APK (`com.byd.bydautolink` v3.6.0, pre-tinted for `#000000` OLED) — zero generic emojis:
+         - **Top:** **AC** (`ac_cool.png` — `ac_on` / `ac_off`, showing active state & preset `17°C`)
+         - **Left:** **Lights** (`lights.png` — `lights`)
+         - **Right:** **Horn** (`horn.png` — `horn`)
+         - **Bottom:** **Sync** (`refresh.png` — `status`)
+     - **Card 3 — Climate & Link Status (`list-item`):**
        - **AC On / Off** toggle button (`ac_on` / `ac_off`), showing active/off state.
-       - Target temperature row: `−` **`17°C`** `+` (clamped `17–31°C` by default, or `15–31°C` if confirmed; **17°C default**).
-       - *(Conditional)* Fan speed row only if BYD Cloud protocol verification confirms `OPENAIR` supports a fan-speed field.
+       - Target temperature row: `−` **`17°C`** `+` (clamped `17–31°C` by default; **17°C default**; fan speed omitted per `OPENAIR` audit).
+       - Last synced timestamp (`2m ago`) + phone link indicator (`Phone Ready` / `No Phone`).
    - **Unlock Confirmation Overlay:** When tapping **Unlock Car**, display a clean modal/overlay card (`Unlock BYD Atto 1?` -> `[Confirm]` / `[Cancel]`) so sleeve taps never unlock the car unintentionally.
    - **Pending / Feedback State:** Disable/debounce duplicate command taps while a command is in flight (`Sending...`), show short toast/status banner (`Locked ✓`, `AC 17°C On ✓`, `Phone offline`, `PIN/Auth error`), and auto-update UI from phone response.
    - **State Persistence:** Cache last known vehicle status and target AC temperature locally (or fetch fresh on launch via `status` command) so the screen is immediately readable before Bluetooth round-trip completes.

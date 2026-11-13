@@ -386,17 +386,18 @@ git commit -m "feat(watch): scaffold Lite Wearable project and car state module"
 - Create: `E:\Kenny\Huawei\watch-gt4\entry\src\main\js\default\pages\index\index.hml`
 - Create: `E:\Kenny\Huawei\watch-gt4\entry\src\main\js\default\pages\index\index.css`
 - Create: `E:\Kenny\Huawei\watch-gt4\entry\src\main\js\default\pages\index\index.js`
+- Create: `E:\Kenny\Huawei\watch-gt4\entry\src\main\js\default\common\icons\{byd_logo,lock,unlock,ac_cool,lights,horn,refresh}.png` (pre-tinted official icons extracted from `com.byd.bydautolink` v3.6.0 APK)
 
 **Interfaces:**
 - Consumes: `carState.js` (Task 6) and `wearengine.js` (`P2pClient`, `Message`, `Builder`).
-- Produces: Full `466×466` crown-scrollable UI matching the approved Watch GT 4 Hero v2 spec.
+- Produces: Full `466×466` crown-scrollable UI matching the approved Watch GT 4 Hero v2 spec with official BYD icons.
 
 - [ ] **Step 1: Build `index.hml` & `index.css` for `466×466` round OLED**
 
 Structure root `<div class="root">` (`466px × 466px`, `#000000`) containing `<list id="mainList" class="main-list">`:
-- `<list-item>` 1 (`466×466`): Outer-edge `<progress type="arc" percent="{{socPercent}}">` hugging the perimeter, centered `BYD ATTO 1`, lock & cabin temp line, large SoC `%` + range (`km`), primary Lock/Unlock pill button, and `▾ Turn crown` hint.
-- `<list-item>` 2: Quick Controls card (`Flash Lights`, `Horn / Find`, `Refresh`, last synced + phone link status).
-- `<list-item>` 3: Climate card (`AC On/Off` toggle + `−` `{{targetTempC}}°C` `+` row; add fan speed only if Task 1 proved cloud support).
+- `<list-item>` 1 (`466×466`): Flush outer-edge `<progress type="arc" percent="{{socPercent}}">` (`466×466`, `0px` outer padding/margin so the outer ring edge touches the circular screen edge directly), centered official `byd_logo.png` + `ATTO 1`, lock icon + cabin temp line, large SoC `%` + range (`km`), primary Lock/Unlock pill button with `lock.png`/`unlock.png`, and `▾ Turn crown` hint.
+- `<list-item>` 2 (`466×466`): 2×2 **diamond-arranged circular buttons** (Top / Left / Right / Bottom) with large official BYD PNG `<image>` icons (no emojis) and minimal 1-word labels — Top: `AC` (`ac_cool.png`), Left: `Lights` (`lights.png`), Right: `Horn` (`horn.png`), Bottom: `Sync` (`refresh.png` -> `status`).
+- `<list-item>` 3: Climate & status card (`AC On/Off` toggle + `−` `{{targetTempC}}°C` `+` row, plus last synced timestamp & phone link indicator; fan speed omitted per Task 1 audit).
 - Conditional overlay `div` (`if="{{confirmUnlock}}"`) for 1-tap Unlock confirmation (`Unlock BYD Atto 1?` -> `Confirm` / `Cancel`) and status toast banner.
 
 - [ ] **Step 2: Implement `index.js` lifecycle, crown focus, and Wear Engine P2P**
