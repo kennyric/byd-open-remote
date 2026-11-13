@@ -21,7 +21,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * Port of: pyBYD/src/pybyd/client.py (BydClient)
  * Also matches: Niek/BYD-re/client.js (login, remote control flow)
  */
-public final class BydCloudClient {
+public class BydCloudClient {
 
     private static final String TAG = "BydCloudClient";
     private static final CloudLog logger = CloudLog.getInstance(TAG);

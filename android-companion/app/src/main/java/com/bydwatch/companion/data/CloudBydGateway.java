@@ -9,63 +9,100 @@ import com.overdrive.app.byd.cloud.crypto.BydCryptoUtils;
 
 import org.json.JSONObject;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.SocketTimeoutException;
+import java.util.Objects;
 
 /**
  * Implementation of BydGateway wrapping the ported BydCloudClient.
  */
 public class CloudBydGateway implements BydGateway {
 
-    private final BydCloudClient client;
-    private final BydCloudConfig config;
+    public interface ClientFactory {
+        BydCloudClient createClient(BydCloudConfig config) throws Exception;
+    }
+
     private final ConfigStore configStore;
+    private final ClientFactory clientFactory;
+    private final byte[] tablesBytes;
+
+    private BydCloudClient client;
+    private BydCloudConfig config;
+
+    private String lastUsername;
+    private String lastPassword;
+    private String lastPin;
+    private String lastRegion;
 
     public CloudBydGateway(Context context, ConfigStore configStore) throws IOException {
         this.configStore = configStore;
-        this.config = new BydCloudConfig();
-        if (configStore != null) {
-            this.config.setRegion(configStore.getRegion());
-        }
-        this.client = new BydCloudClient(config);
+        this.clientFactory = null;
         try (InputStream in = context.getAssets().open("byd/bangcle_tables.bin")) {
-            this.client.init(in);
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            byte[] buf = new byte[8192];
+            int n;
+            while ((n = in.read(buf)) != -1) {
+                baos.write(buf, 0, n);
+            }
+            this.tablesBytes = baos.toByteArray();
         }
+        syncConfigToClient();
+    }
+
+    public CloudBydGateway(ConfigStore configStore, ClientFactory clientFactory) {
+        this.configStore = configStore;
+        this.clientFactory = clientFactory;
+        this.tablesBytes = null;
+        syncConfigToClient();
     }
 
     public CloudBydGateway(BydCloudClient client, BydCloudConfig config, ConfigStore configStore) {
         this.client = client;
         this.config = config;
         this.configStore = configStore;
+        this.clientFactory = null;
+        this.tablesBytes = null;
+        snapshotCredentials();
     }
 
     public CloudBydGateway(BydCloudClient client, ConfigStore configStore) {
         this(client, null, configStore);
     }
 
-    public BydCloudClient getClient() {
+    public synchronized BydCloudClient getClient() {
         return client;
     }
 
-    public BydCloudConfig getConfig() {
+    public synchronized BydCloudConfig getConfig() {
         return config;
     }
 
     @Override
-    public void login() throws Exception {
+    public synchronized void login() throws Exception {
         syncConfigToClient();
-        client.login();
+        if (client != null) {
+            client.login();
+        }
     }
 
     @Override
-    public void verifyControlPassword(String vin) throws Exception {
+    public synchronized void verifyControlPassword(String vin) throws Exception {
         syncConfigToClient();
-        client.verifyControlPassword(vin);
+        if (client != null) {
+            client.verifyControlPassword(vin);
+        }
     }
 
     @Override
-    public VehicleStatus fetchVehicleRealtime(String vin) throws Exception {
+    public synchronized VehicleStatus fetchVehicleRealtime(String vin) throws Exception {
         syncConfigToClient();
+        if (client == null) {
+            throw new IOException("BYD client not initialized");
+        }
+
         JSONObject vi = client.fetchVehicleRealtime(vin);
         if (vi == null) {
             throw new IOException("CAR_OFFLINE: Failed to fetch vehicle realtime data");
@@ -75,73 +112,138 @@ public class CloudBydGateway implements BydGateway {
             throw new IOException("CAR_OFFLINE: Vehicle T-Box is offline");
         }
 
+        if (!hasTelemetry(vi)) {
+            throw new SocketTimeoutException("Vehicle realtime telemetry unavailable");
+        }
+
         return parseVehicleStatus(vi);
     }
 
     @Override
-    public boolean lock(String vin) throws Exception {
+    public synchronized boolean lock(String vin) throws Exception {
         syncConfigToClient();
-        return client.lock(vin);
+        return client != null && client.lock(vin);
     }
 
     @Override
-    public boolean unlock(String vin) throws Exception {
+    public synchronized boolean unlock(String vin) throws Exception {
         syncConfigToClient();
-        return client.unlock(vin);
+        return client != null && client.unlock(vin);
     }
 
     @Override
-    public boolean startClimate(String vin, double tempCelsius) throws Exception {
+    public synchronized boolean startClimate(String vin, double tempCelsius) throws Exception {
         syncConfigToClient();
-        return client.startClimate(vin, tempCelsius);
+        return client != null && client.startClimate(vin, tempCelsius);
     }
 
     @Override
-    public boolean stopClimate(String vin) throws Exception {
+    public synchronized boolean stopClimate(String vin) throws Exception {
         syncConfigToClient();
-        return client.stopClimate(vin);
+        return client != null && client.stopClimate(vin);
     }
 
     @Override
-    public boolean flashLights(String vin) throws Exception {
+    public synchronized boolean flashLights(String vin) throws Exception {
         syncConfigToClient();
-        return client.flashLights(vin);
+        return client != null && client.flashLights(vin);
     }
 
     @Override
-    public boolean findCar(String vin) throws Exception {
+    public synchronized boolean findCar(String vin) throws Exception {
         syncConfigToClient();
-        return client.findCar(vin);
+        return client != null && client.findCar(vin);
     }
 
-    private void syncConfigToClient() {
-        if (config == null || configStore == null) return;
-        String username = configStore.getUsername();
-        String password = configStore.getPassword();
-        String pin = configStore.getPin();
-        String region = configStore.getRegion();
-        String vin = configStore.getVin();
+    public synchronized void syncConfigToClient() {
+        if (configStore == null) return;
 
+        String currentUsername = configStore.getUsername();
+        String currentPassword = configStore.getPassword();
+        String currentPin = configStore.getPin();
+        String currentRegion = configStore.getRegion();
+        String currentVin = configStore.getVin();
+
+        boolean credsChanged = !Objects.equals(lastUsername, currentUsername)
+                || !Objects.equals(lastPassword, currentPassword)
+                || !Objects.equals(lastPin, currentPin)
+                || !Objects.equals(lastRegion, currentRegion);
+
+        if (credsChanged || client == null) {
+            BydCloudConfig newConfig = new BydCloudConfig();
+            applyConfig(newConfig, currentUsername, currentPassword, currentPin, currentRegion, currentVin);
+
+            try {
+                if (clientFactory != null) {
+                    this.client = clientFactory.createClient(newConfig);
+                    this.config = newConfig;
+                } else if (tablesBytes != null) {
+                    BydCloudClient newClient = new BydCloudClient(newConfig);
+                    newClient.init(new ByteArrayInputStream(tablesBytes));
+                    this.client = newClient;
+                    this.config = newConfig;
+                } else if (client != null && config != null) {
+                    applyConfig(config, currentUsername, currentPassword, currentPin, currentRegion, currentVin);
+                }
+            } catch (Exception e) {
+                // If recreation fails, keep what we had or propagate as unchecked
+                throw new RuntimeException("Failed to instantiate fresh BydCloudClient on config update", e);
+            }
+
+            snapshotCredentials();
+        } else if (config != null) {
+            if (currentVin != null && !currentVin.equals(config.vin)) {
+                config.setVin(currentVin);
+            }
+        }
+    }
+
+    private void snapshotCredentials() {
+        if (configStore == null) return;
+        this.lastUsername = configStore.getUsername();
+        this.lastPassword = configStore.getPassword();
+        this.lastPin = configStore.getPin();
+        this.lastRegion = configStore.getRegion();
+    }
+
+    private static void applyConfig(
+            BydCloudConfig cfg,
+            String username,
+            String password,
+            String pin,
+            String region,
+            String vin) {
         if (username != null && !username.trim().isEmpty()) {
-            config.setUsername(username.trim());
+            cfg.setUsername(username.trim());
         }
         if (password != null && !password.trim().isEmpty()) {
-            config.setRawPassword(password);
-            config.setLoginKey(BydCryptoUtils.pwdLoginKey(password));
-            config.setSignPassword(BydCryptoUtils.md5Hex(password));
+            cfg.setRawPassword(password);
+            cfg.setLoginKey(BydCryptoUtils.pwdLoginKey(password));
+            cfg.setSignPassword(BydCryptoUtils.md5Hex(password));
         }
         if (pin != null && !pin.trim().isEmpty()) {
-            config.setCommandPwd(pin.trim());
+            cfg.setCommandPwd(pin.trim());
         }
         if (region != null && !region.trim().isEmpty()) {
-            config.setRegion(region.trim());
+            cfg.setRegion(region.trim());
         }
         if (vin != null && !vin.trim().isEmpty()) {
-            config.setVin(vin.trim());
+            cfg.setVin(vin.trim());
         }
     }
 
-    private VehicleStatus parseVehicleStatus(JSONObject vi) {
+    public static boolean hasTelemetry(JSONObject vi) {
+        if (vi == null) return false;
+        return vi.has("elecPercent")
+                || vi.has("soc")
+                || vi.has("enduranceMileage")
+                || vi.has("enduranceMileageV2")
+                || vi.has("leftFrontDoorLock")
+                || vi.has("tempInCar")
+                || vi.has("time");
+    }
+
+    public VehicleStatus parseVehicleStatus(JSONObject vi) {
         int soc = vi.optInt("soc", (int) Math.round(vi.optDouble("elecPercent", 0.0)));
         int rangeV2 = vi.optInt("enduranceMileageV2", -1);
         int rangeKm = vi.optInt("rangeKm", rangeV2 != -1 ? rangeV2 : vi.optInt("enduranceMileage", 0));
@@ -170,7 +272,7 @@ public class CloudBydGateway implements BydGateway {
             cabinTempC = vi.optInt("cabinTempC");
         } else if (vi.has("tempInCar") && !vi.isNull("tempInCar")) {
             double tempInCar = vi.optDouble("tempInCar", -129.0);
-            if (tempInCar > -40.0 && tempInCar < 80.0) {
+            if (tempInCar >= -40.0 && tempInCar <= 80.0) {
                 cabinTempC = (int) Math.round(tempInCar);
             }
         }

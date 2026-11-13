@@ -1,6 +1,7 @@
 package com.bydwatch.companion.data;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -18,10 +19,11 @@ public class SecureConfigStoreTest {
     private SecureConfigStore store;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         Context context = RuntimeEnvironment.getApplication();
-        store = new SecureConfigStore(context);
-        store.clear();
+        SharedPreferences testPrefs = context.getSharedPreferences("test_secure_prefs", Context.MODE_PRIVATE);
+        testPrefs.edit().clear().commit();
+        store = new SecureConfigStore(testPrefs);
     }
 
     @Test
@@ -52,5 +54,11 @@ public class SecureConfigStoreTest {
         assertFalse(store.isConfigured());
         assertEquals("id", store.getRegion());
         assertEquals(17, store.getDefaultTempC());
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void contextConstructorFailsWithoutAndroidKeyStoreInJvm() {
+        // Must reject without silent plaintext fallback when hardware KeyStore is absent
+        new SecureConfigStore(RuntimeEnvironment.getApplication());
     }
 }

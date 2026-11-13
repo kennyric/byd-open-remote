@@ -73,7 +73,7 @@ public final class WatchResponse {
         boolean ok = json.optBoolean("ok", false);
         String action = json.optString("action", "unknown");
         String msg = json.optString("msg", "");
-        String err = json.optString("err", null);
+        String err = json.isNull("err") ? null : json.optString("err", null);
         JSONObject stateObj = json.optJSONObject("state");
         VehicleStatus state = stateObj != null ? VehicleStatus.fromJson(stateObj) : null;
         return new WatchResponse(id, ok, action, msg, state, err);

@@ -7,12 +7,16 @@ import com.bydwatch.companion.protocol.WatchProtocol;
 import org.json.JSONObject;
 
 import java.io.InterruptedIOException;
+import java.net.ConnectException;
+import java.net.NoRouteToHostException;
 import java.net.SocketTimeoutException;
+import java.net.UnknownHostException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Pattern;
 
 /**
  * Repository coordinating serialized BYD vehicle commands and state caching.
@@ -22,6 +26,9 @@ public class BydRepository {
     public interface Callback {
         void onResponse(String responseJson);
     }
+
+    private static final Pattern PIN_PATTERN =
+            Pattern.compile("(?i)(?:\\bpin\\b|control pin|commandpwd|pin_invalid)");
 
     private final BydGateway gateway;
     private final ConfigStore configStore;
@@ -107,7 +114,7 @@ public class BydRepository {
                 }
                 case WatchProtocol.ACTION_AC_ON: {
                     gateway.verifyControlPassword(vin);
-                    int temp = cmd.tempC > 0 ? cmd.tempC : configStore.getDefaultTempC();
+                    int temp = cmd.tempC;
                     boolean ok = gateway.startClimate(vin, temp);
                     if (!ok) {
                         return WatchProtocol.error(cmd.id, cmd.action, "ERROR", "Failed to start AC");
@@ -170,20 +177,25 @@ public class BydRepository {
     private String classifyErrorCode(Exception e) {
         String msg = e.getMessage() != null ? e.getMessage() : "";
 
+        // Immediate offline-phone transport failures or read timeouts
         if (e instanceof SocketTimeoutException
                 || e instanceof InterruptedIOException
                 || e instanceof TimeoutException
+                || e instanceof UnknownHostException
+                || e instanceof ConnectException
+                || e instanceof NoRouteToHostException
                 || msg.contains("TIMEOUT")
                 || msg.contains("timed out")
-                || msg.contains("timeout")) {
+                || msg.contains("timeout")
+                || msg.contains("UnknownHostException")
+                || msg.contains("ConnectException")
+                || msg.contains("NoRouteToHostException")
+                || msg.contains("Network unreachable")) {
             return "TIMEOUT";
         }
 
-        if (msg.contains("PIN")
-                || msg.contains("pin")
-                || msg.contains("commandPwd")
-                || msg.contains("PIN_INVALID")
-                || msg.contains("Control PIN")) {
+        // Specific PIN invalidity matching (avoid false matches on ping, mapping, etc.)
+        if (PIN_PATTERN.matcher(msg).find()) {
             return "PIN_INVALID";
         }
 

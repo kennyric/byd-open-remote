@@ -9,14 +9,14 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.net.SocketTimeoutException;
+import java.net.UnknownHostException;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 public class BydRepositoryTest {
@@ -155,6 +155,27 @@ public class BydRepositoryTest {
     }
 
     @Test
+    public void mapsOfflinePhoneTransportExceptionsToTimeout() throws Exception {
+        fakeGateway.transportError = new UnknownHostException("dilinkappoversea-id.byd.auto");
+
+        JSONObject resp = executeCommand("{\"id\":\"34\",\"action\":\"status\"}");
+
+        assertFalse(resp.getBoolean("ok"));
+        assertEquals("TIMEOUT", resp.getString("err"));
+    }
+
+    @Test
+    public void doesNotMisclassifyWordsContainingPinSubstring() throws Exception {
+        fakeGateway.genericError = "stopping motor failed due to spinning tires";
+
+        JSONObject resp = executeCommand("{\"id\":\"35\",\"action\":\"status\"}");
+
+        assertFalse(resp.getBoolean("ok"));
+        assertNotEquals("PIN_INVALID", resp.getString("err"));
+        assertEquals("ERROR", resp.getString("err"));
+    }
+
+    @Test
     public void statusCommandFetchesTelemetryWithoutCallingMutatingCommands() throws Exception {
         JSONObject resp = executeCommand("{\"id\":\"33\",\"action\":\"status\"}");
 
@@ -181,6 +202,47 @@ public class BydRepositoryTest {
         assertEquals(1, fakeGateway.stopClimateCalls.get());
         // 1 refresh after unlock + 1 refresh after ac_off = 2 total
         assertEquals(2, fakeGateway.fetchRealtimeCalls.get());
+    }
+
+    @Test
+    public void lightsAndHornCommandsExecuteSuccessfully() throws Exception {
+        JSONObject respLights = executeCommand("{\"id\":\"50\",\"action\":\"lights\"}");
+        assertTrue(respLights.getBoolean("ok"));
+        assertEquals("lights", respLights.getString("action"));
+        assertEquals("Lights flashed", respLights.getString("msg"));
+        assertEquals(1, fakeGateway.flashLightsCalls.get());
+
+        JSONObject respHorn = executeCommand("{\"id\":\"51\",\"action\":\"horn\"}");
+        assertTrue(respHorn.getBoolean("ok"));
+        assertEquals("horn", respHorn.getString("action"));
+        assertEquals("Horn sounded", respHorn.getString("msg"));
+        assertEquals(1, fakeGateway.findCarCalls.get());
+    }
+
+    @Test
+    public void propagatesErrorWhenGatewayLockReturnsFalse() throws Exception {
+        fakeGateway.lockResult = false;
+
+        JSONObject resp = executeCommand("{\"id\":\"52\",\"action\":\"lock\"}");
+
+        assertFalse(resp.getBoolean("ok"));
+        assertEquals("ERROR", resp.getString("err"));
+        assertEquals("Failed to lock vehicle", resp.getString("msg"));
+    }
+
+    @Test
+    public void autoRefreshExceptionFallsBackToCachedStatus() throws Exception {
+        VehicleStatus cached = new VehicleStatus(88, 350, true, false, 24, 17, 12345L);
+        repository.setCachedStatus(cached);
+        fakeGateway.failOnFetchAfterMutating = true;
+
+        JSONObject resp = executeCommand("{\"id\":\"53\",\"action\":\"lock\"}");
+
+        assertTrue(resp.getBoolean("ok"));
+        assertEquals("lock", resp.getString("action"));
+        JSONObject state = resp.getJSONObject("state");
+        assertEquals(88, state.getInt("soc"));
+        assertEquals(350, state.getInt("rangeKm"));
     }
 
     // ── Test Fakes ─────────────────────────────────────────────────────────
@@ -248,7 +310,11 @@ public class BydRepositoryTest {
         public volatile boolean authValid = true;
         public volatile boolean carOnline = true;
         public volatile boolean timeout = false;
+        public volatile boolean lockResult = true;
+        public volatile boolean failOnFetchAfterMutating = false;
         public volatile long operationDelayMs = 0;
+        public volatile IOException transportError = null;
+        public volatile String genericError = null;
 
         public volatile VehicleStatus currentStatus =
                 new VehicleStatus(80, 300, false, false, 25, 17, 1700000000L);
@@ -274,6 +340,7 @@ public class BydRepositoryTest {
             enterOp();
             try {
                 loginCalls.incrementAndGet();
+                if (transportError != null) throw transportError;
                 if (!authValid) {
                     throw new IOException("Login failed: code=1001 invalid username or password");
                 }
@@ -287,6 +354,7 @@ public class BydRepositoryTest {
             enterOp();
             try {
                 verifyPinCalls.incrementAndGet();
+                if (transportError != null) throw transportError;
                 if (!authValid) {
                     throw new IOException("Login failed: code=1001 unauthorized");
                 }
@@ -303,6 +371,13 @@ public class BydRepositoryTest {
             enterOp();
             try {
                 fetchRealtimeCalls.incrementAndGet();
+                if (failOnFetchAfterMutating) {
+                    throw new IOException("Auto-refresh failed");
+                }
+                if (transportError != null) throw transportError;
+                if (genericError != null) {
+                    throw new IOException(genericError);
+                }
                 if (timeout) {
                     throw new SocketTimeoutException("Read timed out");
                 }
@@ -323,6 +398,7 @@ public class BydRepositoryTest {
             enterOp();
             try {
                 lockCalls.incrementAndGet();
+                if (!lockResult) return false;
                 currentStatus = new VehicleStatus(currentStatus.soc, currentStatus.rangeKm,
                         true, currentStatus.acOn, currentStatus.cabinTempC, currentStatus.targetTempC, System.currentTimeMillis());
                 return true;

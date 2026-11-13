@@ -6,9 +6,6 @@ import android.content.SharedPreferences;
 import androidx.security.crypto.EncryptedSharedPreferences;
 import androidx.security.crypto.MasterKey;
 
-import java.io.IOException;
-import java.security.GeneralSecurityException;
-
 /**
  * Keystore-backed encrypted storage for BYD user credentials and app settings.
  */
@@ -28,12 +25,11 @@ public class SecureConfigStore implements ConfigStore {
     private final SharedPreferences prefs;
 
     public SecureConfigStore(Context context) {
-        SharedPreferences p;
         try {
             MasterKey masterKey = new MasterKey.Builder(context)
                     .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
                     .build();
-            p = EncryptedSharedPreferences.create(
+            this.prefs = EncryptedSharedPreferences.create(
                     context,
                     PREFS_FILE,
                     masterKey,
@@ -41,10 +37,8 @@ public class SecureConfigStore implements ConfigStore {
                     EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
             );
         } catch (Exception e) {
-            // Fallback for JVM/Robolectric test environments where AndroidKeyStore is absent
-            p = context.getSharedPreferences(PREFS_FILE, Context.MODE_PRIVATE);
+            throw new IllegalStateException("Failed to initialize encrypted config store", e);
         }
-        this.prefs = p;
     }
 
     public SecureConfigStore(SharedPreferences prefs) {
