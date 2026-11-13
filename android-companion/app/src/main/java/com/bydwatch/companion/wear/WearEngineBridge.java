@@ -1,5 +1,7 @@
 package com.bydwatch.companion.wear;
 
+import android.app.Activity;
+
 import com.bydwatch.companion.data.BydRepository;
 import com.bydwatch.companion.protocol.WatchProtocol;
 
@@ -21,6 +23,7 @@ public class WearEngineBridge {
     public enum ConnectionState {
         UNAVAILABLE,
         PERMISSION_NEEDED,
+        CONNECTING,
         DISCONNECTED,
         LISTENING,
         ERROR
@@ -51,6 +54,39 @@ public class WearEngineBridge {
         }
         this.repository = repository;
         this.transport = transport;
+
+        this.transport.setTransportStateListener(new PeerTransport.TransportStateListener() {
+            @Override
+            public void onAvailabilityChanged(boolean available, String reason) {
+                if (!available) {
+                    setConnectionState(ConnectionState.UNAVAILABLE);
+                } else {
+                    evaluateState();
+                }
+            }
+
+            @Override
+            public void onPermissionChanged(boolean granted) {
+                if (granted && isRunning && !transport.isListening()) {
+                    transport.startListening(WearEngineBridge.this::onIncomingBytes);
+                }
+                evaluateState();
+            }
+
+            @Override
+            public void onReceiverStateChanged(boolean listening, String statusDetail) {
+                if (listening) {
+                    setConnectionState(ConnectionState.LISTENING);
+                } else {
+                    evaluateState();
+                }
+            }
+
+            @Override
+            public void onError(int errorCode, String message) {
+                setConnectionState(ConnectionState.ERROR);
+            }
+        });
     }
 
     public synchronized void start() {
@@ -65,8 +101,13 @@ public class WearEngineBridge {
             return;
         }
 
+        if (transport.isListening()) {
+            setConnectionState(ConnectionState.LISTENING);
+        } else {
+            setConnectionState(ConnectionState.CONNECTING);
+        }
+
         transport.startListening(this::onIncomingBytes);
-        setConnectionState(ConnectionState.LISTENING);
     }
 
     public synchronized void stop() {
@@ -75,14 +116,16 @@ public class WearEngineBridge {
         setConnectionState(ConnectionState.DISCONNECTED);
     }
 
-    public synchronized void requestHealthPermission(Callback callback) {
-        transport.requestPermission(new PeerTransport.AuthCallback() {
+    public synchronized void requestHealthPermission(Activity activity, Callback callback) {
+        transport.requestPermission(activity, new PeerTransport.AuthCallback() {
             @Override
             public void onSuccess() {
                 synchronized (WearEngineBridge.this) {
                     if (isRunning) {
+                        setConnectionState(ConnectionState.CONNECTING);
                         transport.startListening(WearEngineBridge.this::onIncomingBytes);
-                        setConnectionState(ConnectionState.LISTENING);
+                    } else {
+                        setConnectionState(ConnectionState.DISCONNECTED);
                     }
                 }
                 if (callback != null) {
@@ -92,11 +135,24 @@ public class WearEngineBridge {
 
             @Override
             public void onError(String error) {
+                synchronized (WearEngineBridge.this) {
+                    if (!transport.isAvailable()) {
+                        setConnectionState(ConnectionState.UNAVAILABLE);
+                    } else if (!transport.hasPermission()) {
+                        setConnectionState(ConnectionState.PERMISSION_NEEDED);
+                    } else {
+                        setConnectionState(ConnectionState.ERROR);
+                    }
+                }
                 if (callback != null) {
                     callback.onError(error);
                 }
             }
         });
+    }
+
+    public void requestHealthPermission(Callback callback) {
+        requestHealthPermission(null, callback);
     }
 
     public void onIncomingBytes(byte[] payload) {
@@ -127,6 +183,26 @@ public class WearEngineBridge {
     public void removeStateListener(StateListener listener) {
         if (listener != null) {
             stateListeners.remove(listener);
+        }
+    }
+
+    private synchronized void evaluateState() {
+        if (!isRunning) {
+            setConnectionState(ConnectionState.DISCONNECTED);
+            return;
+        }
+        if (!transport.isAvailable()) {
+            setConnectionState(ConnectionState.UNAVAILABLE);
+            return;
+        }
+        if (!transport.hasPermission()) {
+            setConnectionState(ConnectionState.PERMISSION_NEEDED);
+            return;
+        }
+        if (transport.isListening()) {
+            setConnectionState(ConnectionState.LISTENING);
+        } else {
+            setConnectionState(ConnectionState.CONNECTING);
         }
     }
 

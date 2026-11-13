@@ -9,7 +9,9 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ServiceInfo;
 import android.os.Build;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
 import android.util.Log;
 
 import androidx.core.app.NotificationCompat;
@@ -17,6 +19,9 @@ import androidx.core.app.NotificationCompat;
 import com.bydwatch.companion.BydWatchApp;
 import com.bydwatch.companion.R;
 import com.bydwatch.companion.ui.MainActivity;
+
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * Foreground service hosting WearEngineBridge so watch commands continue to be received
@@ -32,10 +37,39 @@ public class WearBridgeService extends Service {
     public static final String CHANNEL_ID = "byd_watch_bridge_channel";
     public static final int NOTIFICATION_ID = 2001;
 
+    public interface ServiceStateListener {
+        void onServiceStateChanged(boolean running);
+    }
+
+    private static final List<ServiceStateListener> stateListeners = new CopyOnWriteArrayList<>();
     private static volatile boolean running = false;
 
     public static boolean isRunning() {
         return running;
+    }
+
+    public static void addStateListener(ServiceStateListener listener) {
+        if (listener != null) {
+            stateListeners.add(listener);
+        }
+    }
+
+    public static void removeStateListener(ServiceStateListener listener) {
+        if (listener != null) {
+            stateListeners.remove(listener);
+        }
+    }
+
+    private static void setRunning(boolean isRunning) {
+        running = isRunning;
+        new Handler(Looper.getMainLooper()).post(() -> {
+            for (ServiceStateListener listener : stateListeners) {
+                try {
+                    listener.onServiceStateChanged(isRunning);
+                } catch (Exception ignored) {
+                }
+            }
+        });
     }
 
     public static void start(Context context) {
@@ -61,17 +95,25 @@ public class WearBridgeService extends Service {
         super.onCreate();
         createNotificationChannel();
         Notification notification = buildNotification();
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE);
-        } else {
-            startForeground(NOTIFICATION_ID, notification);
+
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE);
+            } else {
+                startForeground(NOTIFICATION_ID, notification);
+            }
+        } catch (SecurityException se) {
+            Log.e(TAG, "SecurityException starting foreground service (missing BLUETOOTH_CONNECT or POST_NOTIFICATIONS): " + se.getMessage(), se);
+            setRunning(false);
+            stopSelf();
+            return;
         }
 
         BydWatchApp app = BydWatchApp.getInstance();
         if (app != null) {
             bridge = app.getWearEngineBridge();
         }
-        running = true;
+        setRunning(true);
         Log.i(TAG, "WearBridgeService created and started in foreground");
     }
 
@@ -84,6 +126,7 @@ public class WearBridgeService extends Service {
             } else {
                 stopForeground(true);
             }
+            setRunning(false);
             stopSelf();
             return START_NOT_STICKY;
         }
@@ -107,7 +150,7 @@ public class WearBridgeService extends Service {
     @Override
     public void onDestroy() {
         stopBridge();
-        running = false;
+        setRunning(false);
         Log.i(TAG, "WearBridgeService destroyed");
         super.onDestroy();
     }

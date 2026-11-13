@@ -1,5 +1,9 @@
 package com.bydwatch.companion.ui;
 
+import android.Manifest;
+import android.app.Application;
+import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -20,7 +24,11 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
+import org.robolectric.Shadows;
 import org.robolectric.android.controller.ActivityController;
+import org.robolectric.annotation.Config;
+import org.robolectric.shadows.ShadowActivity;
+import org.robolectric.shadows.ShadowApplication;
 import org.robolectric.shadows.ShadowLooper;
 
 import java.util.concurrent.TimeUnit;
@@ -401,6 +409,7 @@ public class MainActivityTest {
     }
 
     @Test
+    @Config(sdk = 34)
     public void bridgeCardControlsInteractCorrectly() {
         if (controller != null) {
             controller.destroy();
@@ -424,20 +433,109 @@ public class MainActivityTest {
         assertNotNull(btnAuth);
         assertNotNull(btnToggle);
         assertNotNull(btnBattery);
+        assertTrue(btnAuth.isEnabled());
         assertEquals(newActivity.getString(R.string.btn_start_service), btnToggle.getText().toString());
+        assertEquals(newActivity.getString(R.string.service_status_stopped), tvService.getText().toString());
 
-        // Test Health authorization click
+        // 1. Test Health authorization request
         btnAuth.performClick();
         ShadowLooper.idleMainLooper();
+        assertFalse(btnAuth.isEnabled());
+
         fakeTransport.simulatePermissionConsent();
         ShadowLooper.idleMainLooper();
+        assertTrue(btnAuth.isEnabled());
 
-        // Test Battery optimization button click (should not crash)
+        // 2. Test Battery optimization button click
         btnBattery.performClick();
         ShadowLooper.idleMainLooper();
 
-        // Test Service toggle button click
+        // 3. Test Service toggle button click on API 34 without BLUETOOTH_CONNECT
+        ShadowActivity shadowActivity = Shadows.shadowOf(newActivity);
+        ShadowApplication shadowApp = Shadows.shadowOf((Application) newActivity.getApplication());
+
         btnToggle.performClick();
         ShadowLooper.idleMainLooper();
+
+        ShadowActivity.PermissionsRequest req = shadowActivity.getLastRequestedPermission();
+        assertNotNull(req);
+        assertTrue(java.util.Arrays.asList(req.requestedPermissions).contains(Manifest.permission.BLUETOOTH_CONNECT));
+
+        // 4. Simulate user granting BLUETOOTH_CONNECT
+        newActivity.onRequestPermissionsResult(
+                1001,
+                new String[]{Manifest.permission.BLUETOOTH_CONNECT},
+                new int[]{PackageManager.PERMISSION_GRANTED}
+        );
+        ShadowLooper.idleMainLooper();
+
+        Intent startedServiceIntent = shadowApp.getNextStartedService();
+        assertNotNull(startedServiceIntent);
+        assertEquals(WearBridgeService.class.getName(), startedServiceIntent.getComponent().getClassName());
+        assertEquals(WearBridgeService.ACTION_START, startedServiceIntent.getAction());
+
+        // Simulate service running
+        WearBridgeService service = Robolectric.buildService(WearBridgeService.class).create().get();
+        ShadowLooper.idleMainLooper();
+
+        assertEquals(newActivity.getString(R.string.service_status_running), tvService.getText().toString());
+        assertEquals(newActivity.getString(R.string.btn_stop_service), btnToggle.getText().toString());
+
+        // 5. Test toggling the service off
+        btnToggle.performClick();
+        ShadowLooper.idleMainLooper();
+
+        Intent stopServiceIntent = shadowApp.getNextStartedService();
+        assertNotNull(stopServiceIntent);
+        assertEquals(WearBridgeService.ACTION_STOP, stopServiceIntent.getAction());
+    }
+
+    @Test
+    public void apkWorksStandaloneWithoutWatchIntegration() throws Exception {
+        BydWatchApp.setTestWearDependencies(new WearEngineConfig(), null, null);
+
+        if (controller != null) {
+            controller.destroy();
+            controller = null;
+        }
+
+        controller = Robolectric.buildActivity(MainActivity.class).setup();
+        MainActivity newActivity = controller.get();
+
+        Button btnRefresh = newActivity.findViewById(R.id.btnRefresh);
+        Button btnLock = newActivity.findViewById(R.id.btnLock);
+        Button btnUnlock = newActivity.findViewById(R.id.btnUnlock);
+        Button btnAcOn = newActivity.findViewById(R.id.btnAcOn);
+        Button btnAcOff = newActivity.findViewById(R.id.btnAcOff);
+        Button btnLights = newActivity.findViewById(R.id.btnLights);
+        Button btnHorn = newActivity.findViewById(R.id.btnHorn);
+
+        btnRefresh.performClick();
+        awaitAsyncWork();
+        assertEquals(1, fakeGateway.fetchRealtimeCalls.get());
+
+        btnLock.performClick();
+        awaitAsyncWork();
+        assertEquals(1, fakeGateway.lockCalls.get());
+
+        btnUnlock.performClick();
+        awaitAsyncWork();
+        assertEquals(1, fakeGateway.unlockCalls.get());
+
+        btnAcOn.performClick();
+        awaitAsyncWork();
+        assertEquals(1, fakeGateway.startClimateCalls.get());
+
+        btnAcOff.performClick();
+        awaitAsyncWork();
+        assertEquals(1, fakeGateway.stopClimateCalls.get());
+
+        btnLights.performClick();
+        awaitAsyncWork();
+        assertEquals(1, fakeGateway.flashLightsCalls.get());
+
+        btnHorn.performClick();
+        awaitAsyncWork();
+        assertEquals(1, fakeGateway.findCarCalls.get());
     }
 }

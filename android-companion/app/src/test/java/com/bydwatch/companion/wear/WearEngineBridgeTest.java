@@ -1,5 +1,7 @@
 package com.bydwatch.companion.wear;
 
+import android.app.Activity;
+
 import com.bydwatch.companion.data.BydRepository;
 import com.bydwatch.companion.data.BydRepositoryTest;
 import com.bydwatch.companion.protocol.WatchResponse;
@@ -146,12 +148,45 @@ public class WearEngineBridgeTest {
         assertFalse("Transport should stop listening", fakeTransport.listening.get());
     }
 
+    @Test
+    public void notifiesListeningWhenAsyncCheckPermissionResolves() {
+        fakeTransport.permissionGranted = false;
+
+        bridge.start();
+        assertEquals(WearEngineBridge.ConnectionState.PERMISSION_NEEDED, bridge.getConnectionState());
+
+        // Simulate background permission check resolving to granted
+        fakeTransport.simulatePermissionConsent();
+        assertEquals(WearEngineBridge.ConnectionState.LISTENING, bridge.getConnectionState());
+    }
+
+    @Test
+    public void transitionsToUnavailableWhenHuaweiHealthAbsent() {
+        fakeTransport.permissionGranted = true;
+        bridge.start();
+        assertEquals(WearEngineBridge.ConnectionState.LISTENING, bridge.getConnectionState());
+
+        fakeTransport.simulateHealthUnavailable();
+        assertEquals(WearEngineBridge.ConnectionState.UNAVAILABLE, bridge.getConnectionState());
+    }
+
+    @Test
+    public void transitionsToErrorOnReceiverRegistrationFailure() {
+        fakeTransport.permissionGranted = true;
+        bridge.start();
+        assertEquals(WearEngineBridge.ConnectionState.LISTENING, bridge.getConnectionState());
+
+        fakeTransport.simulateRegistrationFailure("P2p register failed");
+        assertEquals(WearEngineBridge.ConnectionState.ERROR, bridge.getConnectionState());
+    }
+
     public static class FakePeerTransport implements PeerTransport {
         public boolean available = true;
         public boolean permissionGranted = false;
         public final AtomicBoolean listening = new AtomicBoolean(false);
         public MessageListener messageListener;
         public AuthCallback pendingAuthCallback;
+        public TransportStateListener stateListener;
         public final BlockingQueue<byte[]> sentPayloads = new LinkedBlockingQueue<>();
 
         @Override
@@ -165,7 +200,17 @@ public class WearEngineBridgeTest {
         }
 
         @Override
-        public void requestPermission(AuthCallback callback) {
+        public boolean isListening() {
+            return listening.get();
+        }
+
+        @Override
+        public void setTransportStateListener(TransportStateListener listener) {
+            this.stateListener = listener;
+        }
+
+        @Override
+        public void requestPermission(Activity activity, AuthCallback callback) {
             this.pendingAuthCallback = callback;
             if (permissionGranted && callback != null) {
                 callback.onSuccess();
@@ -174,8 +219,33 @@ public class WearEngineBridgeTest {
 
         public void simulatePermissionConsent() {
             this.permissionGranted = true;
+            if (messageListener != null) {
+                listening.set(true);
+            }
+            if (stateListener != null) {
+                stateListener.onPermissionChanged(true);
+                if (listening.get()) {
+                    stateListener.onReceiverStateChanged(true, "Listening");
+                }
+            }
             if (pendingAuthCallback != null) {
                 pendingAuthCallback.onSuccess();
+            }
+        }
+
+        public void simulateHealthUnavailable() {
+            this.available = false;
+            this.listening.set(false);
+            if (stateListener != null) {
+                stateListener.onAvailabilityChanged(false, "Health uninstalled");
+            }
+        }
+
+        public void simulateRegistrationFailure(String reason) {
+            this.listening.set(false);
+            if (stateListener != null) {
+                stateListener.onReceiverStateChanged(false, reason);
+                stateListener.onError(-1, reason);
             }
         }
 
@@ -184,6 +254,14 @@ public class WearEngineBridgeTest {
             this.messageListener = listener;
             if (permissionGranted) {
                 listening.set(true);
+                if (stateListener != null) {
+                    stateListener.onReceiverStateChanged(true, "Listening");
+                }
+            } else {
+                listening.set(false);
+                if (stateListener != null) {
+                    stateListener.onReceiverStateChanged(false, "No permission");
+                }
             }
         }
 
@@ -191,6 +269,9 @@ public class WearEngineBridgeTest {
         public void stopListening() {
             this.listening.set(false);
             this.messageListener = null;
+            if (stateListener != null) {
+                stateListener.onReceiverStateChanged(false, "Stopped");
+            }
         }
 
         @Override

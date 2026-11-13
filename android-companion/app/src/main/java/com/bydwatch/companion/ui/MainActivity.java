@@ -1,7 +1,9 @@
 package com.bydwatch.companion.ui;
 
+import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -13,7 +15,10 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
 import com.bydwatch.companion.BydWatchApp;
 import com.bydwatch.companion.R;
@@ -31,7 +36,9 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 
 /**
@@ -46,6 +53,9 @@ public class MainActivity extends AppCompatActivity {
     private BydRepository repository;
     private WearEngineBridge bridge;
     private WearEngineBridge.StateListener stateListener;
+    private WearBridgeService.ServiceStateListener serviceStateListener;
+
+    private static final int RC_PERMISSIONS = 1001;
 
     private int targetTempC = WatchProtocol.DEFAULT_TEMP_C;
 
@@ -105,6 +115,9 @@ public class MainActivity extends AppCompatActivity {
             stateListener = state -> runOnUiThread(this::updateWatchStatus);
             bridge.addStateListener(stateListener);
         }
+
+        serviceStateListener = running -> runOnUiThread(this::updateWatchStatus);
+        WearBridgeService.addStateListener(serviceStateListener);
     }
 
     @Override
@@ -117,6 +130,9 @@ public class MainActivity extends AppCompatActivity {
     protected void onDestroy() {
         if (bridge != null && stateListener != null) {
             bridge.removeStateListener(stateListener);
+        }
+        if (serviceStateListener != null) {
+            WearBridgeService.removeStateListener(serviceStateListener);
         }
         super.onDestroy();
     }
@@ -187,18 +203,22 @@ public class MainActivity extends AppCompatActivity {
 
     private void updateWatchStatus() {
         if (tvWatchStatus != null) {
-            if (configStore == null || !configStore.isConfigured()) {
-                tvWatchStatus.setText(R.string.watch_status_unconfigured);
-                tvWatchStatus.setTextColor(0xFFE67E22);
-            } else if (bridge != null && bridge.getConnectionState() == WearEngineBridge.ConnectionState.LISTENING) {
-                tvWatchStatus.setText(R.string.status_bridge_listening);
+            if (bridge != null && bridge.getConnectionState() == WearEngineBridge.ConnectionState.LISTENING) {
+                tvWatchStatus.setText(configStore != null && configStore.isConfigured()
+                        ? getString(R.string.status_bridge_listening)
+                        : "BYD unconfigured — " + getString(R.string.status_bridge_listening));
                 tvWatchStatus.setTextColor(0xFF27AE60);
             } else if (bridge != null && bridge.getConnectionState() == WearEngineBridge.ConnectionState.PERMISSION_NEEDED) {
-                tvWatchStatus.setText(R.string.status_health_needed);
+                tvWatchStatus.setText(configStore != null && configStore.isConfigured()
+                        ? getString(R.string.status_health_needed)
+                        : "BYD unconfigured — " + getString(R.string.status_health_needed));
                 tvWatchStatus.setTextColor(0xFFC0392B);
             } else if (bridge != null && bridge.getConnectionState() == WearEngineBridge.ConnectionState.UNAVAILABLE) {
-                tvWatchStatus.setText(R.string.status_bridge_unavailable);
+                tvWatchStatus.setText(getString(R.string.status_bridge_unavailable));
                 tvWatchStatus.setTextColor(0xFF7F8C8D);
+            } else if (configStore == null || !configStore.isConfigured()) {
+                tvWatchStatus.setText(R.string.watch_status_unconfigured);
+                tvWatchStatus.setTextColor(0xFFE67E22);
             } else {
                 tvWatchStatus.setText(R.string.watch_status_ready);
                 tvWatchStatus.setTextColor(0xFF27AE60);
@@ -261,7 +281,7 @@ public class MainActivity extends AppCompatActivity {
         }
         logMessage("Requesting Huawei Health authorization (DEVICE_MANAGER)...");
         btnAuthHealth.setEnabled(false);
-        bridge.requestHealthPermission(new WearEngineBridge.Callback() {
+        bridge.requestHealthPermission(this, new WearEngineBridge.Callback() {
             @Override
             public void onSuccess() {
                 runOnUiThread(() -> {
@@ -282,13 +302,57 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    private boolean checkAndRequestBridgePermissions() {
+        List<String> needed = new ArrayList<>();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                needed.add(Manifest.permission.BLUETOOTH_CONNECT);
+            }
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                needed.add(Manifest.permission.POST_NOTIFICATIONS);
+            }
+        }
+        if (!needed.isEmpty()) {
+            logMessage("Requesting permissions: " + needed);
+            ActivityCompat.requestPermissions(this, needed.toArray(new String[0]), RC_PERMISSIONS);
+            return false;
+        }
+        return true;
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == RC_PERMISSIONS) {
+            boolean bluetoothGranted = true;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                for (int i = 0; i < permissions.length; i++) {
+                    if (Manifest.permission.BLUETOOTH_CONNECT.equals(permissions[i])) {
+                        bluetoothGranted = (grantResults[i] == PackageManager.PERMISSION_GRANTED);
+                    }
+                }
+            }
+            if (bluetoothGranted) {
+                logMessage("Permissions granted. Starting WearBridgeService...");
+                WearBridgeService.start(this);
+            } else {
+                logMessage("BLUETOOTH_CONNECT permission denied. Cannot start foreground service.");
+            }
+            updateWatchStatus();
+        }
+    }
+
     private void toggleBridgeService() {
         if (WearBridgeService.isRunning()) {
             WearBridgeService.stop(this);
-            logMessage("Bridge service stopped.");
+            logMessage("Stopping bridge service...");
         } else {
-            WearBridgeService.start(this);
-            logMessage("Starting bridge service in foreground...");
+            if (checkAndRequestBridgePermissions()) {
+                WearBridgeService.start(this);
+                logMessage("Starting bridge service in foreground...");
+            }
         }
         updateWatchStatus();
     }
