@@ -1,6 +1,8 @@
 package com.bydwatch.companion.ui;
 
 import android.os.Bundle;
+import android.os.Looper;
+import android.text.method.ScrollingMovementMethod;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -28,6 +30,8 @@ import java.util.Locale;
  * Standalone Android Activity for BYD login, VIN fetch, live telemetry, and vehicle control.
  */
 public class MainActivity extends AppCompatActivity {
+
+    private final SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm:ss", Locale.getDefault());
 
     private ConfigStore configStore;
     private BydGateway gateway;
@@ -112,6 +116,7 @@ public class MainActivity extends AppCompatActivity {
 
         tvWatchStatus = findViewById(R.id.tvWatchStatus);
         tvStatusLog = findViewById(R.id.tvStatusLog);
+        tvStatusLog.setMovementMethod(new ScrollingMovementMethod());
     }
 
     private void initValues() {
@@ -137,6 +142,18 @@ public class MainActivity extends AppCompatActivity {
 
         if (repository != null && repository.getCachedStatus() != null) {
             updateTelemetryUi(repository.getCachedStatus());
+        }
+
+        updateWatchStatus();
+    }
+
+    private void updateWatchStatus() {
+        if (tvWatchStatus != null) {
+            if (configStore != null && configStore.isConfigured()) {
+                tvWatchStatus.setText(R.string.watch_status_ready);
+            } else {
+                tvWatchStatus.setText(R.string.watch_status_unconfigured);
+            }
         }
     }
 
@@ -173,7 +190,36 @@ public class MainActivity extends AppCompatActivity {
         btnHorn.setOnClickListener(v -> executeWatchAction(WatchProtocol.ACTION_HORN, -1));
     }
 
+    private boolean validateInputs(boolean requireVin) {
+        String u = etUsername.getText().toString().trim();
+        String p = etPassword.getText().toString().trim();
+        String pin = etPin.getText().toString().trim();
+        String vin = etVin.getText().toString().trim();
+
+        if (u.isEmpty()) {
+            logMessage("Validation error: Username/email cannot be empty.");
+            return false;
+        }
+        if (p.isEmpty()) {
+            logMessage("Validation error: Password cannot be empty.");
+            return false;
+        }
+        if (pin.isEmpty() || !pin.matches("\\d{6}")) {
+            logMessage("Validation error: Control PIN must be exactly 6 numeric digits.");
+            return false;
+        }
+        if (requireVin && vin.isEmpty()) {
+            logMessage("Validation error: VIN cannot be empty.");
+            return false;
+        }
+        return true;
+    }
+
     private void saveCredentials() {
+        if (!validateInputs(false)) {
+            return;
+        }
+
         String u = etUsername.getText().toString().trim();
         String p = etPassword.getText().toString().trim();
         String pin = etPin.getText().toString().trim();
@@ -183,41 +229,60 @@ public class MainActivity extends AppCompatActivity {
             configStore.setUsername(u);
             configStore.setPassword(p);
             configStore.setPin(pin);
-            configStore.setVin(vin);
+            if (!vin.isEmpty()) {
+                configStore.setVin(vin);
+            }
             configStore.setRegion(SecureConfigStore.DEFAULT_REGION);
             configStore.setDefaultTempC(targetTempC);
         }
 
+        updateWatchStatus();
         logMessage("Credentials saved successfully.");
     }
 
     private void fetchVinAndTestLogin() {
-        saveCredentials();
-        logMessage("Logging in and fetching VIN...");
-        BydWatchApp app = (BydWatchApp) getApplication();
-        if (app == null) {
-            app = BydWatchApp.getInstance();
+        if (!validateInputs(false)) {
+            return;
         }
 
-        app.getAsyncExecutor().execute(() -> {
-            try {
-                gateway.login();
-                String vin = gateway.fetchFirstVin();
-                if (vin != null && !vin.trim().isEmpty()) {
-                    if (configStore != null) {
-                        configStore.setVin(vin);
-                    }
-                    runOnUiThread(() -> {
-                        etVin.setText(vin);
-                        logMessage("Login successful. Found VIN: " + vin);
-                    });
+        // Persist entered credentials first so repository can use them
+        String u = etUsername.getText().toString().trim();
+        String p = etPassword.getText().toString().trim();
+        String pin = etPin.getText().toString().trim();
+        String vin = etVin.getText().toString().trim();
+
+        if (configStore != null) {
+            configStore.setUsername(u);
+            configStore.setPassword(p);
+            configStore.setPin(pin);
+            if (!vin.isEmpty()) {
+                configStore.setVin(vin);
+            }
+            configStore.setRegion(SecureConfigStore.DEFAULT_REGION);
+            configStore.setDefaultTempC(targetTempC);
+        }
+
+        btnFetchVin.setEnabled(false);
+        logMessage("Logging in and fetching VIN...");
+
+        repository.fetchFirstVin(new BydRepository.VinCallback() {
+            @Override
+            public void onSuccess(String fetchedVin) {
+                runOnUiThread(() -> {
+                    btnFetchVin.setEnabled(true);
+                    etVin.setText(fetchedVin);
+                    logMessage("Login successful. Found VIN: " + fetchedVin);
+                    updateWatchStatus();
                     executeWatchAction(WatchProtocol.ACTION_STATUS, -1);
-                } else {
-                    runOnUiThread(() -> logMessage("Login successful, but no vehicles found."));
-                }
-            } catch (Exception e) {
-                String err = e.getMessage() != null ? e.getMessage() : e.toString();
-                runOnUiThread(() -> logMessage("Login & Fetch VIN failed: " + err));
+                });
+            }
+
+            @Override
+            public void onError(String error) {
+                runOnUiThread(() -> {
+                    btnFetchVin.setEnabled(true);
+                    logMessage("Login & Fetch VIN failed: " + error);
+                });
             }
         });
     }
@@ -236,7 +301,10 @@ public class MainActivity extends AppCompatActivity {
             if (WatchProtocol.ACTION_AC_ON.equals(action)) {
                 json.put("tempC", tempC >= WatchProtocol.MIN_TEMP_C ? tempC : targetTempC);
             }
-        } catch (JSONException ignored) {}
+        } catch (JSONException e) {
+            logMessage("Failed to build command payload for " + action + ": " + e.getMessage());
+            return;
+        }
 
         logMessage("Sending " + action + "...");
         repository.handleWatchJson(json.toString(), responseJson -> {
@@ -276,18 +344,32 @@ public class MainActivity extends AppCompatActivity {
         }
         tvAcState.setText(status.acOn ? "AC On" : "AC Off");
         if (status.ts > 0) {
-            SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss", Locale.getDefault());
             long millis = status.ts > 1_000_000_000_000L ? status.ts : status.ts * 1000L;
-            tvLastUpdated.setText(sdf.format(new Date(millis)));
+            tvLastUpdated.setText(timeFormat.format(new Date(millis)));
         } else {
             tvLastUpdated.setText("Now");
         }
     }
 
     private void logMessage(String text) {
-        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss", Locale.getDefault());
-        String time = sdf.format(new Date());
+        if (Looper.myLooper() != Looper.getMainLooper()) {
+            runOnUiThread(() -> logMessage(text));
+            return;
+        }
+        String time = timeFormat.format(new Date());
         String entry = "[" + time + "] " + text + "\n";
         tvStatusLog.append(entry);
+        trimLogIfNeeded();
+    }
+
+    private void trimLogIfNeeded() {
+        CharSequence current = tvStatusLog.getText();
+        if (current != null && current.length() > 5000) {
+            String s = current.toString();
+            int cutIndex = s.indexOf('\n', s.length() - 4000);
+            if (cutIndex >= 0) {
+                tvStatusLog.setText(s.substring(cutIndex + 1));
+            }
+        }
     }
 }

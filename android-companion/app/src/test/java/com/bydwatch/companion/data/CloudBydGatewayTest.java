@@ -207,13 +207,33 @@ public class CloudBydGatewayTest {
         assertEquals("eu", gateway.getConfig().region);
     }
 
+    @Test
+    public void fetchFirstVinSyncsConfigAndDelegatesToClient() throws Exception {
+        FakeClient fakeClient = new FakeClient();
+        fakeClient.firstVinResult = "VIN_DELEGATED_42";
+
+        CloudBydGateway gateway = new CloudBydGateway(fakeClient, new BydCloudConfig(), configStore);
+        configStore.setUsername("freshuser@byd.com");
+
+        String vin = gateway.fetchFirstVin();
+
+        assertEquals("VIN_DELEGATED_42", vin);
+        assertEquals("freshuser@byd.com", gateway.getConfig().username);
+    }
+
     // ── Fake BydCloudClient ───────────────────────────────────────────────
 
     private static class FakeClient extends BydCloudClient {
         JSONObject realtimeResult;
+        String firstVinResult = "VIN_DEFAULT";
 
         FakeClient() {
             super(new BydCloudConfig());
+        }
+
+        @Override
+        public String fetchFirstVin() {
+            return firstVinResult;
         }
 
         @Override

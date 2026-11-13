@@ -19,14 +19,11 @@ import org.robolectric.RobolectricTestRunner;
 import org.robolectric.android.controller.ActivityController;
 import org.robolectric.shadows.ShadowLooper;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.AbstractExecutorService;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -40,6 +37,9 @@ public class MainActivityTest {
         @Override
         public String fetchFirstVin() throws Exception {
             fetchVinCalls.incrementAndGet();
+            if (!authValid) {
+                throw new java.io.IOException("Login failed: unauthorized");
+            }
             return returnedVin;
         }
     }
@@ -49,6 +49,17 @@ public class MainActivityTest {
     private BydRepository repository;
     private ActivityController<MainActivity> controller;
     private MainActivity activity;
+
+    private void awaitAsyncWork() {
+        try {
+            // Drain background work on the repository's real single-thread executor
+            repository.getExecutor().submit(() -> {}).get(5, TimeUnit.SECONDS);
+        } catch (Exception e) {
+            throw new RuntimeException("Async work timed out or failed", e);
+        }
+        // Drain posted runnables on the Robolectric main looper
+        ShadowLooper.idleMainLooper();
+    }
 
     @Before
     public void setUp() {
@@ -62,29 +73,22 @@ public class MainActivityTest {
 
         fakeGateway = new TestGateway();
 
-        // Direct executor so repository handleWatchJson executes synchronously on current thread
-        ExecutorService directExecutor = new AbstractExecutorService() {
-            private boolean shutdown = false;
-            @Override public void shutdown() { shutdown = true; }
-            @Override public List<Runnable> shutdownNow() { shutdown = true; return Collections.emptyList(); }
-            @Override public boolean isShutdown() { return shutdown; }
-            @Override public boolean isTerminated() { return shutdown; }
-            @Override public boolean awaitTermination(long timeout, TimeUnit unit) { return true; }
-            @Override public void execute(Runnable command) { command.run(); }
-        };
-
-        repository = new BydRepository(fakeGateway, configStore, directExecutor);
+        // Use real single-threaded background executor - tests will fail if views are touched off main thread
+        repository = new BydRepository(fakeGateway, configStore);
         BydWatchApp.setTestDependencies(configStore, fakeGateway, repository);
 
         controller = Robolectric.buildActivity(MainActivity.class).setup();
         activity = controller.get();
-        ShadowLooper.idleMainLooper();
+        awaitAsyncWork();
     }
 
     @After
     public void tearDown() {
         if (controller != null) {
-            controller.destroy();
+            try {
+                controller.destroy();
+            } catch (Exception ignored) {}
+            controller = null;
         }
         if (repository != null) {
             repository.shutdown();
@@ -136,7 +140,7 @@ public class MainActivityTest {
     }
 
     @Test
-    public void savesCredentialsToConfigStore() {
+    public void savesCredentialsToConfigStoreWhenValid() {
         EditText etUsername = activity.findViewById(R.id.etUsername);
         EditText etPassword = activity.findViewById(R.id.etPassword);
         EditText etPin = activity.findViewById(R.id.etPin);
@@ -160,6 +164,51 @@ public class MainActivityTest {
     }
 
     @Test
+    public void saveCredentialsRejectsMissingCredentialsOrInvalidPin() {
+        EditText etUsername = activity.findViewById(R.id.etUsername);
+        EditText etPassword = activity.findViewById(R.id.etPassword);
+        EditText etPin = activity.findViewById(R.id.etPin);
+        Button btnSave = activity.findViewById(R.id.btnSaveCredentials);
+        TextView tvLog = activity.findViewById(R.id.tvStatusLog);
+
+        // Test non-6-digit PIN
+        etPin.setText("12345");
+        btnSave.performClick();
+        ShadowLooper.idleMainLooper();
+        assertTrue(tvLog.getText().toString().contains("Validation error"));
+        assertFalse("12345".equals(configStore.getPin()));
+
+        // Test empty username
+        etUsername.setText("");
+        etPin.setText("123456");
+        btnSave.performClick();
+        ShadowLooper.idleMainLooper();
+        assertTrue(tvLog.getText().toString().contains("Validation error"));
+
+        // Test empty password
+        etUsername.setText("valid@user.com");
+        etPassword.setText("");
+        btnSave.performClick();
+        ShadowLooper.idleMainLooper();
+        assertTrue(tvLog.getText().toString().contains("Validation error"));
+    }
+
+    @Test
+    public void fetchVinAndTestLoginRejectsInvalidInputs() {
+        EditText etPin = activity.findViewById(R.id.etPin);
+        Button btnFetchVin = activity.findViewById(R.id.btnFetchVin);
+        TextView tvLog = activity.findViewById(R.id.tvStatusLog);
+
+        etPin.setText("notdigits");
+        btnFetchVin.performClick();
+        ShadowLooper.idleMainLooper();
+
+        assertTrue(btnFetchVin.isEnabled());
+        assertEquals(0, fakeGateway.loginCalls.get());
+        assertTrue(tvLog.getText().toString().contains("Validation error"));
+    }
+
+    @Test
     public void fetchVinAndTestLoginUpdatesVinAndRefreshesStatus() {
         Button btnFetchVin = activity.findViewById(R.id.btnFetchVin);
         EditText etVin = activity.findViewById(R.id.etVin);
@@ -167,8 +216,12 @@ public class MainActivityTest {
         TextView tvLog = activity.findViewById(R.id.tvStatusLog);
 
         btnFetchVin.performClick();
-        ShadowLooper.idleMainLooper();
+        // Stage 1: fetchFirstVin background work + onSuccess post to main looper
+        awaitAsyncWork();
+        // Stage 2: executeWatchAction(status) background work + response post to main looper
+        awaitAsyncWork();
 
+        assertTrue(btnFetchVin.isEnabled());
         assertTrue(fakeGateway.loginCalls.get() >= 1);
         assertTrue(fakeGateway.fetchVinCalls.get() >= 1);
         assertEquals("BYDATTO1TESTVIN99", etVin.getText().toString());
@@ -178,13 +231,27 @@ public class MainActivityTest {
     }
 
     @Test
+    public void fetchVinHandlesLoginOrFetchErrorCleanly() {
+        Button btnFetchVin = activity.findViewById(R.id.btnFetchVin);
+        TextView tvLog = activity.findViewById(R.id.tvStatusLog);
+
+        fakeGateway.authValid = false;
+
+        btnFetchVin.performClick();
+        awaitAsyncWork();
+
+        assertTrue(btnFetchVin.isEnabled());
+        assertTrue(tvLog.getText().toString().contains("failed") || tvLog.getText().toString().contains("Login"));
+    }
+
+    @Test
     public void lockButtonSendsLockCommandAndUpdatesUI() {
         Button btnLock = activity.findViewById(R.id.btnLock);
         TextView tvLockState = activity.findViewById(R.id.tvLockState);
         TextView tvLog = activity.findViewById(R.id.tvStatusLog);
 
         btnLock.performClick();
-        ShadowLooper.idleMainLooper();
+        awaitAsyncWork();
 
         assertEquals(1, fakeGateway.lockCalls.get());
         assertEquals("Locked", tvLockState.getText().toString());
@@ -198,7 +265,7 @@ public class MainActivityTest {
         TextView tvLog = activity.findViewById(R.id.tvStatusLog);
 
         btnUnlock.performClick();
-        ShadowLooper.idleMainLooper();
+        awaitAsyncWork();
 
         assertEquals(1, fakeGateway.unlockCalls.get());
         assertEquals("Unlocked", tvLockState.getText().toString());
@@ -217,7 +284,7 @@ public class MainActivityTest {
         TextView tvLog = activity.findViewById(R.id.tvStatusLog);
 
         btnAcOn.performClick();
-        ShadowLooper.idleMainLooper();
+        awaitAsyncWork();
 
         assertEquals(1, fakeGateway.startClimateCalls.get());
         assertEquals("AC On", tvAcState.getText().toString());
@@ -231,7 +298,7 @@ public class MainActivityTest {
         TextView tvLog = activity.findViewById(R.id.tvStatusLog);
 
         btnAcOff.performClick();
-        ShadowLooper.idleMainLooper();
+        awaitAsyncWork();
 
         assertEquals(1, fakeGateway.stopClimateCalls.get());
         assertEquals("AC Off", tvAcState.getText().toString());
@@ -247,7 +314,7 @@ public class MainActivityTest {
         fakeGateway.currentStatus = new VehicleStatus(95, 380, true, false, 23, 17, System.currentTimeMillis());
 
         btnRefresh.performClick();
-        ShadowLooper.idleMainLooper();
+        awaitAsyncWork();
 
         assertEquals("95%", tvSoc.getText().toString());
         assertEquals("380 km", tvRange.getText().toString());
@@ -260,14 +327,72 @@ public class MainActivityTest {
         TextView tvLog = activity.findViewById(R.id.tvStatusLog);
 
         btnLights.performClick();
-        ShadowLooper.idleMainLooper();
+        awaitAsyncWork();
         assertEquals(1, fakeGateway.flashLightsCalls.get());
 
         btnHorn.performClick();
-        ShadowLooper.idleMainLooper();
+        awaitAsyncWork();
         assertEquals(1, fakeGateway.findCarCalls.get());
 
         assertTrue(tvLog.getText().toString().contains("Lights") || tvLog.getText().toString().contains("flashed"));
         assertTrue(tvLog.getText().toString().contains("Horn") || tvLog.getText().toString().contains("sounded"));
+    }
+
+    @Test
+    public void handlesErrorResponseGracefullyWithoutCrashing() {
+        Button btnLock = activity.findViewById(R.id.btnLock);
+        TextView tvLog = activity.findViewById(R.id.tvStatusLog);
+
+        fakeGateway.pinValid = false;
+
+        btnLock.performClick();
+        awaitAsyncWork();
+
+        assertTrue(tvLog.getText().toString().contains("failed [PIN_INVALID]"));
+    }
+
+    @Test
+    public void clampsOutOfRangePersistedDefaultTempOnStartup() {
+        if (controller != null) {
+            controller.destroy();
+            controller = null;
+        }
+        configStore.setDefaultTempC(50); // Out of range (> 31)
+
+        controller = Robolectric.buildActivity(MainActivity.class).setup();
+        MainActivity newActivity = controller.get();
+
+        TextView tempView = newActivity.findViewById(R.id.tvTargetTemp);
+        assertEquals("17°C", tempView.getText().toString());
+    }
+
+    @Test
+    public void watchStatusReflectsConfigurationState() {
+        if (controller != null) {
+            controller.destroy();
+            controller = null;
+        }
+        configStore.clear();
+
+        controller = Robolectric.buildActivity(MainActivity.class).setup();
+        MainActivity newActivity = controller.get();
+        TextView watchStatus = newActivity.findViewById(R.id.tvWatchStatus);
+        assertEquals(newActivity.getString(R.string.watch_status_unconfigured), watchStatus.getText().toString());
+
+        // Configure credentials and save
+        EditText etUsername = newActivity.findViewById(R.id.etUsername);
+        EditText etPassword = newActivity.findViewById(R.id.etPassword);
+        EditText etPin = newActivity.findViewById(R.id.etPin);
+        EditText etVin = newActivity.findViewById(R.id.etVin);
+        Button btnSave = newActivity.findViewById(R.id.btnSaveCredentials);
+
+        etUsername.setText("configured@byd.id");
+        etPassword.setText("Pass1234");
+        etPin.setText("123456");
+        etVin.setText("VIN12345678");
+        btnSave.performClick();
+        ShadowLooper.idleMainLooper();
+
+        assertEquals(newActivity.getString(R.string.watch_status_ready), watchStatus.getText().toString());
     }
 }

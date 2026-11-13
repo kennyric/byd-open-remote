@@ -412,7 +412,7 @@
                     android:textSize="12sp"
                     android:scrollbars="vertical"
                     android:maxLines="1000"
-                    android:text="System initialized. Ready.\n" />
+                    android:text="@string/status_initialized" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 

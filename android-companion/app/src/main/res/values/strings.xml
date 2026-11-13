@@ -35,5 +35,7 @@
     <string name="btn_horn">Horn</string>
 
     <string name="card_bridge_title">Watch Bridge &amp; Event Log</string>
-    <string name="watch_status_ready">Bridge: Ready (Listening for Huawei Watch GT 4)</string>
+    <string name="watch_status_ready">Config ready — Waiting for Watch bridge...</string>
+    <string name="watch_status_unconfigured">Waiting for BYD configuration...</string>
+    <string name="status_initialized">System initialized. Ready.\n</string>
 </resources>

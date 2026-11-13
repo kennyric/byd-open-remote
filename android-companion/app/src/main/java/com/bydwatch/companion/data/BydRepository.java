@@ -27,6 +27,11 @@ public class BydRepository {
         void onResponse(String responseJson);
     }
 
+    public interface VinCallback {
+        void onSuccess(String vin);
+        void onError(String error);
+    }
+
     private static final Pattern PIN_PATTERN =
             Pattern.compile("(?i)(?:\\bpin\\b|control pin|commandpwd|pin_invalid)");
 
@@ -59,6 +64,49 @@ public class BydRepository {
 
     public ConfigStore getConfigStore() {
         return configStore;
+    }
+
+    public ExecutorService getExecutor() {
+        return executor;
+    }
+
+    /**
+     * Authenticate and discover the first vehicle VIN, saving it to ConfigStore on success.
+     * Serialized through the repository's single-threaded executor.
+     */
+    public void fetchFirstVin(VinCallback cb) {
+        executor.execute(() -> {
+            String username = configStore.getUsername();
+            String password = configStore.getPassword();
+            if (username == null || username.trim().isEmpty()
+                    || password == null || password.trim().isEmpty()) {
+                if (cb != null) {
+                    cb.onError("Username and password must be configured before fetching VIN");
+                }
+                return;
+            }
+
+            try {
+                gateway.login();
+                String vin = gateway.fetchFirstVin();
+                if (vin != null && !vin.trim().isEmpty()) {
+                    String cleanVin = vin.trim();
+                    configStore.setVin(cleanVin);
+                    if (cb != null) {
+                        cb.onSuccess(cleanVin);
+                    }
+                } else {
+                    if (cb != null) {
+                        cb.onError("No vehicles found on BYD account");
+                    }
+                }
+            } catch (Exception e) {
+                String msg = e.getMessage() != null ? e.getMessage() : e.toString();
+                if (cb != null) {
+                    cb.onError(msg);
+                }
+            }
+        });
     }
 
     /**

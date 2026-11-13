@@ -11,8 +11,6 @@ import com.bydwatch.companion.data.ConfigStore;
 import com.bydwatch.companion.data.SecureConfigStore;
 
 import java.io.IOException;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
 
 /**
  * Android Application singleton providing access to repository, gateway, and secure config store.
@@ -24,12 +22,10 @@ public class BydWatchApp extends Application {
     private static ConfigStore testConfigStore;
     private static BydGateway testGateway;
     private static BydRepository testRepository;
-    private static Executor testExecutor;
 
     private ConfigStore configStore;
     private BydGateway gateway;
     private BydRepository repository;
-    private Executor asyncExecutor;
 
     public static BydWatchApp getInstance() {
         return instance;
@@ -78,16 +74,6 @@ public class BydWatchApp extends Application {
         return repository;
     }
 
-    public synchronized Executor getAsyncExecutor() {
-        if (testExecutor != null) {
-            return testExecutor;
-        }
-        if (asyncExecutor == null) {
-            asyncExecutor = Executors.newSingleThreadExecutor();
-        }
-        return asyncExecutor;
-    }
-
     @VisibleForTesting
     public static synchronized void setTestDependencies(ConfigStore configStore, BydRepository repository) {
         setTestDependencies(configStore, repository != null ? repository.getGateway() : null, repository);
@@ -98,12 +84,6 @@ public class BydWatchApp extends Application {
         testConfigStore = configStore;
         testGateway = gateway;
         testRepository = repository;
-        testExecutor = Runnable::run;
-    }
-
-    @VisibleForTesting
-    public static synchronized void setTestExecutor(Executor executor) {
-        testExecutor = executor;
     }
 
     @VisibleForTesting
@@ -111,6 +91,5 @@ public class BydWatchApp extends Application {
         testConfigStore = null;
         testGateway = null;
         testRepository = null;
-        testExecutor = null;
     }
 }
