@@ -1,0 +1,50 @@
+{
+  "app": {
+    "bundleName": "com.bydwatch.watch",
+    "vendor": "bydwatch",
+    "version": {
+      "code": 1000000,
+      "name": "1.0.0"
+    },
+    "apiVersion": {
+      "compatible": 6,
+      "target": 7,
+      "releaseType": "Release"
+    }
+  },
+  "deviceConfig": {
+    "default": {}
+  },
+  "module": {
+    "package": "com.bydwatch.watch",
+    "name": ".default",
+    "deviceType": [
+      "liteWearable"
+    ],
+    "distro": {
+      "deliveryWithInstall": true,
+      "moduleName": "entry",
+      "moduleType": "entry"
+    },
+    "abilities": [
+      {
+        "name": "com.bydwatch.watch.MainAbility",
+        "icon": "$media:icon",
+        "label": "BYD",
+        "type": "page"
+      }
+    ],
+    "js": [
+      {
+        "name": "default",
+        "pages": [
+          "pages/index/index"
+        ],
+        "window": {
+          "designWidth": 466,
+          "autoDesignWidth": false
+        }
+      }
+    ]
+  }
+}
