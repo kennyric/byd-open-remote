@@ -282,4 +282,13 @@ public class CloudBydGateway implements BydGateway {
 
         return new VehicleStatus(soc, rangeKm, locked, acOn, cabinTempC, targetTempC, ts);
     }
+
+    @Override
+    public synchronized String fetchFirstVin() throws Exception {
+        syncConfigToClient();
+        if (client == null) {
+            throw new IOException("BYD client not initialized");
+        }
+        return client.fetchFirstVin();
+    }
 }

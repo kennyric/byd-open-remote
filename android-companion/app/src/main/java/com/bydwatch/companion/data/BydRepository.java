@@ -53,6 +53,14 @@ public class BydRepository {
         cachedStatus.set(status);
     }
 
+    public BydGateway getGateway() {
+        return gateway;
+    }
+
+    public ConfigStore getConfigStore() {
+        return configStore;
+    }
+
     /**
      * Submit an incoming Watch JSON request for serialized execution.
      * Responses are returned via the callback.

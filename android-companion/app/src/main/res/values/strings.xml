@@ -1,0 +1,39 @@
+<resources>
+    <string name="app_name">BYD Watch Companion</string>
+    <string name="auth_notice">Security Notice: We strongly recommend using an Alternate Vehicle Authorization sub-account (created via the official BYD app) with remote vehicle permissions rather than your primary owner account.</string>
+    <string name="card_account_title">BYD Account (Indonesia - id)</string>
+    <string name="hint_username">Email or Phone</string>
+    <string name="hint_password">BYD Password</string>
+    <string name="hint_pin">6-Digit Control PIN</string>
+    <string name="hint_vin">Vehicle Identification Number (VIN)</string>
+    <string name="btn_save_credentials">Save Credentials</string>
+    <string name="btn_fetch_vin">Fetch VIN &amp; Test Login</string>
+
+    <string name="card_controls_title">BYD Atto 1 Status &amp; Controls</string>
+    <string name="label_soc">SoC</string>
+    <string name="label_range">Range</string>
+    <string name="label_doors">Doors</string>
+    <string name="label_cabin_temp">Cabin Temp</string>
+    <string name="label_ac_state">AC</string>
+    <string name="label_last_updated">Updated</string>
+    <string name="default_soc">--%</string>
+    <string name="default_range">-- km</string>
+    <string name="default_doors">Unknown</string>
+    <string name="default_cabin_temp">--°C</string>
+    <string name="default_ac_state">AC Off</string>
+    <string name="default_last_updated">Never</string>
+    <string name="default_target_temp">17°C</string>
+
+    <string name="btn_temp_minus">−</string>
+    <string name="btn_temp_plus">+</string>
+    <string name="btn_refresh">Refresh</string>
+    <string name="btn_lock">Lock</string>
+    <string name="btn_unlock">Unlock</string>
+    <string name="btn_ac_on">AC On</string>
+    <string name="btn_ac_off">AC Off</string>
+    <string name="btn_lights">Flash Lights</string>
+    <string name="btn_horn">Horn</string>
+
+    <string name="card_bridge_title">Watch Bridge &amp; Event Log</string>
+    <string name="watch_status_ready">Bridge: Ready (Listening for Huawei Watch GT 4)</string>
+</resources>

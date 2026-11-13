@@ -24,4 +24,8 @@ public interface BydGateway {
     boolean flashLights(String vin) throws Exception;
 
     boolean findCar(String vin) throws Exception;
+
+    default String fetchFirstVin() throws Exception {
+        return null;
+    }
 }

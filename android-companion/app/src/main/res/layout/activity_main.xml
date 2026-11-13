@@ -1,0 +1,420 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="16dp"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <!-- Card 1: BYD Account (Indonesia - id) -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardAccount"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="2dp"
+            app:contentPadding="16dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/card_account_title"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="8dp" />
+
+                <TextView
+                    android:id="@+id/tvAuthNotice"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/auth_notice"
+                    android:textSize="13sp"
+                    android:textColor="#C0392B"
+                    android:layout_marginBottom="12dp" />
+
+                <EditText
+                    android:id="@+id/etUsername"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="@string/hint_username"
+                    android:inputType="textEmailAddress"
+                    android:layout_marginBottom="8dp" />
+
+                <EditText
+                    android:id="@+id/etPassword"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="@string/hint_password"
+                    android:inputType="textPassword"
+                    android:layout_marginBottom="8dp" />
+
+                <EditText
+                    android:id="@+id/etPin"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="@string/hint_pin"
+                    android:inputType="numberPassword"
+                    android:maxLength="6"
+                    android:layout_marginBottom="8dp" />
+
+                <EditText
+                    android:id="@+id/etVin"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="@string/hint_vin"
+                    android:inputType="textCapCharacters"
+                    android:layout_marginBottom="12dp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <Button
+                        android:id="@+id/btnSaveCredentials"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/btn_save_credentials"
+                        android:layout_marginEnd="8dp" />
+
+                    <Button
+                        android:id="@+id/btnFetchVin"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/btn_fetch_vin" />
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Card 2: BYD Atto 1 Status & Test Controls -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardControls"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="2dp"
+            app:contentPadding="16dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/card_controls_title"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="12dp" />
+
+                <!-- Telemetry Grid -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="8dp">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/label_soc"
+                            android:textSize="12sp"
+                            android:textColor="#7F8C8D" />
+
+                        <TextView
+                            android:id="@+id/tvSoc"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/default_soc"
+                            android:textSize="20sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/label_range"
+                            android:textSize="12sp"
+                            android:textColor="#7F8C8D" />
+
+                        <TextView
+                            android:id="@+id/tvRange"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/default_range"
+                            android:textSize="20sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/label_doors"
+                            android:textSize="12sp"
+                            android:textColor="#7F8C8D" />
+
+                        <TextView
+                            android:id="@+id/tvLockState"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/default_doors"
+                            android:textSize="18sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="12dp">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/label_cabin_temp"
+                            android:textSize="12sp"
+                            android:textColor="#7F8C8D" />
+
+                        <TextView
+                            android:id="@+id/tvCabinTemp"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/default_cabin_temp"
+                            android:textSize="16sp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/label_ac_state"
+                            android:textSize="12sp"
+                            android:textColor="#7F8C8D" />
+
+                        <TextView
+                            android:id="@+id/tvAcState"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/default_ac_state"
+                            android:textSize="16sp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/label_last_updated"
+                            android:textSize="12sp"
+                            android:textColor="#7F8C8D" />
+
+                        <TextView
+                            android:id="@+id/tvLastUpdated"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/default_last_updated"
+                            android:textSize="14sp" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- Action Buttons: Refresh, Lock, Unlock -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="10dp">
+
+                    <Button
+                        android:id="@+id/btnRefresh"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/btn_refresh"
+                        android:layout_marginEnd="4dp" />
+
+                    <Button
+                        android:id="@+id/btnLock"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/btn_lock"
+                        android:layout_marginEnd="4dp" />
+
+                    <Button
+                        android:id="@+id/btnUnlock"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/btn_unlock" />
+                </LinearLayout>
+
+                <!-- Climate Controls: - Temp + & AC On / AC Off -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="10dp">
+
+                    <Button
+                        android:id="@+id/btnTempMinus"
+                        android:layout_width="48dp"
+                        android:layout_height="wrap_content"
+                        android:text="@string/btn_temp_minus"
+                        android:textSize="18sp" />
+
+                    <TextView
+                        android:id="@+id/tvTargetTemp"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:paddingStart="12dp"
+                        android:paddingEnd="12dp"
+                        android:text="@string/default_target_temp"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
+
+                    <Button
+                        android:id="@+id/btnTempPlus"
+                        android:layout_width="48dp"
+                        android:layout_height="wrap_content"
+                        android:text="@string/btn_temp_plus"
+                        android:textSize="18sp"
+                        android:layout_marginEnd="8dp" />
+
+                    <Button
+                        android:id="@+id/btnAcOn"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/btn_ac_on"
+                        android:layout_marginEnd="4dp" />
+
+                    <Button
+                        android:id="@+id/btnAcOff"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/btn_ac_off" />
+                </LinearLayout>
+
+                <!-- Lights & Horn -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <Button
+                        android:id="@+id/btnLights"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/btn_lights"
+                        android:layout_marginEnd="8dp" />
+
+                    <Button
+                        android:id="@+id/btnHorn"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/btn_horn" />
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Card 3: Watch Bridge Status & Log -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardBridge"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="2dp"
+            app:contentPadding="16dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/card_bridge_title"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="8dp" />
+
+                <TextView
+                    android:id="@+id/tvWatchStatus"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/watch_status_ready"
+                    android:textSize="14sp"
+                    android:textStyle="italic"
+                    android:textColor="#27AE60"
+                    android:layout_marginBottom="12dp" />
+
+                <TextView
+                    android:id="@+id/tvStatusLog"
+                    android:layout_width="match_parent"
+                    android:layout_height="180dp"
+                    android:background="#F4F6F6"
+                    android:padding="8dp"
+                    android:fontFamily="monospace"
+                    android:textSize="12sp"
+                    android:scrollbars="vertical"
+                    android:maxLines="1000"
+                    android:text="System initialized. Ready.\n" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+    </LinearLayout>
+</ScrollView>
