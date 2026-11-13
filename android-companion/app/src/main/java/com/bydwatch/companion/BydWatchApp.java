@@ -9,6 +9,10 @@ import com.bydwatch.companion.data.BydRepository;
 import com.bydwatch.companion.data.CloudBydGateway;
 import com.bydwatch.companion.data.ConfigStore;
 import com.bydwatch.companion.data.SecureConfigStore;
+import com.bydwatch.companion.wear.HuaweiWearP2pTransport;
+import com.bydwatch.companion.wear.PeerTransport;
+import com.bydwatch.companion.wear.WearEngineBridge;
+import com.bydwatch.companion.wear.WearEngineConfig;
 
 import java.io.IOException;
 
@@ -22,10 +26,16 @@ public class BydWatchApp extends Application {
     private static ConfigStore testConfigStore;
     private static BydGateway testGateway;
     private static BydRepository testRepository;
+    private static WearEngineConfig testWearEngineConfig;
+    private static PeerTransport testPeerTransport;
+    private static WearEngineBridge testWearEngineBridge;
 
     private ConfigStore configStore;
     private BydGateway gateway;
     private BydRepository repository;
+    private WearEngineConfig wearEngineConfig;
+    private PeerTransport peerTransport;
+    private WearEngineBridge wearEngineBridge;
 
     public static BydWatchApp getInstance() {
         return instance;
@@ -74,6 +84,36 @@ public class BydWatchApp extends Application {
         return repository;
     }
 
+    public synchronized WearEngineConfig getWearEngineConfig() {
+        if (testWearEngineConfig != null) {
+            return testWearEngineConfig;
+        }
+        if (wearEngineConfig == null) {
+            wearEngineConfig = new WearEngineConfig();
+        }
+        return wearEngineConfig;
+    }
+
+    public synchronized PeerTransport getPeerTransport() {
+        if (testPeerTransport != null) {
+            return testPeerTransport;
+        }
+        if (peerTransport == null) {
+            peerTransport = new HuaweiWearP2pTransport(this, getWearEngineConfig());
+        }
+        return peerTransport;
+    }
+
+    public synchronized WearEngineBridge getWearEngineBridge() {
+        if (testWearEngineBridge != null) {
+            return testWearEngineBridge;
+        }
+        if (wearEngineBridge == null) {
+            wearEngineBridge = new WearEngineBridge(getRepository(), getPeerTransport());
+        }
+        return wearEngineBridge;
+    }
+
     @VisibleForTesting
     public static synchronized void setTestDependencies(ConfigStore configStore, BydRepository repository) {
         setTestDependencies(configStore, repository != null ? repository.getGateway() : null, repository);
@@ -87,9 +127,19 @@ public class BydWatchApp extends Application {
     }
 
     @VisibleForTesting
+    public static synchronized void setTestWearDependencies(WearEngineConfig config, PeerTransport transport, WearEngineBridge bridge) {
+        testWearEngineConfig = config;
+        testPeerTransport = transport;
+        testWearEngineBridge = bridge;
+    }
+
+    @VisibleForTesting
     public static synchronized void resetForTesting() {
         testConfigStore = null;
         testGateway = null;
         testRepository = null;
+        testWearEngineConfig = null;
+        testPeerTransport = null;
+        testWearEngineBridge = null;
     }
 }

@@ -38,4 +38,22 @@
     <string name="watch_status_ready">Config ready — Waiting for Watch bridge...</string>
     <string name="watch_status_unconfigured">Waiting for BYD configuration...</string>
     <string name="status_initialized">System initialized. Ready.\n</string>
+
+    <string name="bridge_notification_channel_name">BYD Watch Bridge Service</string>
+    <string name="bridge_notification_channel_desc">Maintains background P2P connection to Huawei Watch GT 4</string>
+    <string name="bridge_notification_title">BYD Watch Bridge Active</string>
+    <string name="bridge_notification_text">Listening for watch commands</string>
+    <string name="btn_auth_health">Authorize Huawei Health</string>
+    <string name="btn_start_service">Start Bridge Service</string>
+    <string name="btn_stop_service">Stop Bridge Service</string>
+    <string name="btn_battery_opt">Disable Battery Optimization</string>
+    <string name="service_status_running">Bridge service running (foreground)</string>
+    <string name="service_status_stopped">Bridge service stopped</string>
+    <string name="status_health_authorized">Huawei Health authorization granted.</string>
+    <string name="status_health_needed">Huawei Health authorization required (DEVICE_MANAGER).</string>
+    <string name="status_bridge_listening">Wear Engine bridge listening for watch commands.</string>
+    <string name="status_bridge_disconnected">Wear Engine bridge disconnected.</string>
+    <string name="status_bridge_unavailable">Huawei Health / Wear Engine unavailable on device.</string>
+    <string name="battery_opt_prompt">Requesting battery optimization exemption...</string>
+    <string name="battery_opt_granted">Battery optimization is already disabled.</string>
 </resources>

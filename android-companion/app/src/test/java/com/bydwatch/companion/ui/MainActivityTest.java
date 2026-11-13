@@ -9,6 +9,10 @@ import com.bydwatch.companion.R;
 import com.bydwatch.companion.data.BydRepository;
 import com.bydwatch.companion.data.BydRepositoryTest;
 import com.bydwatch.companion.model.VehicleStatus;
+import com.bydwatch.companion.wear.WearBridgeService;
+import com.bydwatch.companion.wear.WearEngineBridge;
+import com.bydwatch.companion.wear.WearEngineBridgeTest;
+import com.bydwatch.companion.wear.WearEngineConfig;
 
 import org.junit.After;
 import org.junit.Before;
@@ -394,5 +398,46 @@ public class MainActivityTest {
         ShadowLooper.idleMainLooper();
 
         assertEquals(newActivity.getString(R.string.watch_status_ready), watchStatus.getText().toString());
+    }
+
+    @Test
+    public void bridgeCardControlsInteractCorrectly() {
+        if (controller != null) {
+            controller.destroy();
+            controller = null;
+        }
+
+        WearEngineBridgeTest.FakePeerTransport fakeTransport = new WearEngineBridgeTest.FakePeerTransport();
+        fakeTransport.permissionGranted = false;
+        WearEngineBridge fakeBridge = new WearEngineBridge(repository, fakeTransport);
+        BydWatchApp.setTestWearDependencies(new WearEngineConfig(), fakeTransport, fakeBridge);
+
+        controller = Robolectric.buildActivity(MainActivity.class).setup();
+        MainActivity newActivity = controller.get();
+
+        Button btnAuth = newActivity.findViewById(R.id.btnAuthHealth);
+        Button btnToggle = newActivity.findViewById(R.id.btnToggleService);
+        Button btnBattery = newActivity.findViewById(R.id.btnBatteryOpt);
+        TextView tvWatch = newActivity.findViewById(R.id.tvWatchStatus);
+        TextView tvService = newActivity.findViewById(R.id.tvServiceStatus);
+
+        assertNotNull(btnAuth);
+        assertNotNull(btnToggle);
+        assertNotNull(btnBattery);
+        assertEquals(newActivity.getString(R.string.btn_start_service), btnToggle.getText().toString());
+
+        // Test Health authorization click
+        btnAuth.performClick();
+        ShadowLooper.idleMainLooper();
+        fakeTransport.simulatePermissionConsent();
+        ShadowLooper.idleMainLooper();
+
+        // Test Battery optimization button click (should not crash)
+        btnBattery.performClick();
+        ShadowLooper.idleMainLooper();
+
+        // Test Service toggle button click
+        btnToggle.performClick();
+        ShadowLooper.idleMainLooper();
     }
 }
