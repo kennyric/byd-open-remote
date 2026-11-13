@@ -222,7 +222,7 @@ public class CloudBydGateway implements BydGateway {
             cfg.setSignPassword(BydCryptoUtils.md5Hex(password));
         }
         if (pin != null && !pin.trim().isEmpty()) {
-            cfg.setCommandPwd(pin.trim());
+            cfg.setCommandPwd(BydCryptoUtils.md5Hex(pin.trim()));
         }
         if (region != null && !region.trim().isEmpty()) {
             cfg.setRegion(region.trim());

@@ -3,6 +3,7 @@ package com.bydwatch.companion.data;
 import com.bydwatch.companion.model.VehicleStatus;
 import com.overdrive.app.byd.cloud.BydCloudClient;
 import com.overdrive.app.byd.cloud.BydCloudConfig;
+import com.overdrive.app.byd.cloud.crypto.BydCryptoUtils;
 
 import org.json.JSONObject;
 import org.junit.Before;
@@ -205,6 +206,20 @@ public class CloudBydGatewayTest {
         gateway.login();
         assertEquals(3, clientInstantiations.get());
         assertEquals("eu", gateway.getConfig().region);
+    }
+
+    @Test
+    public void applyConfigHashesControlPinAsUppercaseMd5Hex() throws Exception {
+        CloudBydGateway gateway = new CloudBydGateway(configStore, cfg -> new FakeClient());
+
+        // "654321" -> uppercase MD5 hex expected by BYD verifyControlPassword & remoteControl
+        assertEquals(BydCryptoUtils.md5Hex("654321"), gateway.getConfig().commandPwd);
+        assertEquals("C33367701511B4F6020EC61DED352059", gateway.getConfig().commandPwd);
+
+        // Changing PIN must refresh commandPwd with the new MD5 hash
+        configStore.setPin("123456");
+        gateway.verifyControlPassword("VIN1234567890");
+        assertEquals("E10ADC3949BA59ABBE56E057F20F883E", gateway.getConfig().commandPwd);
     }
 
     @Test
