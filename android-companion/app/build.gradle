@@ -33,6 +33,12 @@ android {
             includeAndroidResources = true
         }
     }
+
+    sourceSets {
+        test {
+            resources.srcDirs += ['src/main/assets']
+        }
+    }
 }
 
 dependencies {
@@ -44,4 +50,5 @@ dependencies {
     testImplementation 'junit:junit:4.13.2'
     testImplementation 'org.robolectric:robolectric:4.13'
     testImplementation 'org.json:json:20240303'
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
 }
