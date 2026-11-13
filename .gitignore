@@ -11,3 +11,4 @@ watch-gt4/**/build/
 *.csr
 *.p7b
 *.keystore
+*.tmp
