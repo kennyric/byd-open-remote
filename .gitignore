@@ -1,0 +1,13 @@
+.superpowers/
+*.apkm
+android-companion/.gradle/
+android-companion/**/build/
+android-companion/local.properties
+watch-gt4/.hvigor/
+watch-gt4/**/build/
+*.jks
+*.p12
+*.cer
+*.csr
+*.p7b
+*.keystore
