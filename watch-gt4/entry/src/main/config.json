@@ -13,7 +13,8 @@
     }
   },
   "deviceConfig": {
-    "default": {}
+    "default": {},
+    "liteWearable": {}
   },
   "module": {
     "package": "com.bydwatch.watch",
@@ -28,10 +29,21 @@
     },
     "abilities": [
       {
-        "name": "com.bydwatch.watch.MainAbility",
+        "name": "default",
         "icon": "$media:icon",
         "label": "BYD",
-        "type": "page"
+        "type": "page",
+        "launchType": "standard",
+        "skills": [
+          {
+            "actions": [
+              "action.system.home"
+            ],
+            "entities": [
+              "entity.system.home"
+            ]
+          }
+        ]
       }
     ],
     "js": [
@@ -43,7 +55,8 @@
         "window": {
           "designWidth": 466,
           "autoDesignWidth": false
-        }
+        },
+        "type": "page"
       }
     ]
   }

@@ -3,7 +3,8 @@
  * Handles local state creation, climate temperature stepping,
  * Phone <-> Watch JSON command serialization, and response parsing.
  *
- * Designed with zero DOM / HarmonyOS globals for clean unit testing under Node.js.
+ * ES5 / JerryScript compatible for HarmonyOS Lite Wearable (Watch GT 4).
+ * Zero DOM / HarmonyOS globals for clean Node.js unit testing.
  */
 
 export const MIN_TEMP_C = 17;
@@ -17,7 +18,52 @@ const ERROR_BANNERS = {
   TIMEOUT: 'Request Timeout'
 };
 
-let commandCounter = 0;
+var commandCounter = 0;
+
+/**
+ * Explicit ES5 shallow clone helper to avoid ES2018 object spread ({ ...obj })
+ * in JerryScript environments without Babel.
+ *
+ * @param {object} src
+ * @returns {object}
+ */
+function cloneObj(src) {
+  var out = {};
+  if (src && typeof src === 'object') {
+    for (var k in src) {
+      if (Object.prototype.hasOwnProperty.call(src, k)) {
+        out[k] = src[k];
+      }
+    }
+  }
+  return out;
+}
+
+/**
+ * Checks if a value is a valid finite number.
+ *
+ * @param {*} val
+ * @returns {boolean}
+ */
+function isFiniteNumber(val) {
+  return typeof val === 'number' && isFinite(val);
+}
+
+/**
+ * Clamps temperature to [MIN_TEMP_C, MAX_TEMP_C].
+ *
+ * @param {number} temp
+ * @returns {number}
+ */
+function clampTemp(temp) {
+  if (temp < MIN_TEMP_C) {
+    return MIN_TEMP_C;
+  }
+  if (temp > MAX_TEMP_C) {
+    return MAX_TEMP_C;
+  }
+  return temp;
+}
 
 /**
  * Creates the initial default vehicle and UI state for the watch.
@@ -48,24 +94,19 @@ export function createInitialState() {
  * @returns {object} New state with adjusted targetTempC.
  */
 export function stepTemp(state, delta) {
-  const current = (state && typeof state.targetTempC === 'number' && !Number.isNaN(state.targetTempC))
-    ? state.targetTempC
+  var current = (state && isFiniteNumber(state.targetTempC))
+    ? clampTemp(state.targetTempC)
     : MIN_TEMP_C;
 
-  if (typeof delta !== 'number' || Number.isNaN(delta)) {
-    return {
-      ...(state || {}),
-      targetTempC: current
-    };
+  var out = cloneObj(state);
+
+  if (!isFiniteNumber(delta)) {
+    out.targetTempC = current;
+    return out;
   }
 
-  const raw = current + delta;
-  const clamped = Math.max(MIN_TEMP_C, Math.min(MAX_TEMP_C, raw));
-
-  return {
-    ...(state || {}),
-    targetTempC: clamped
-  };
+  out.targetTempC = clampTemp(current + delta);
+  return out;
 }
 
 /**
@@ -76,16 +117,18 @@ export function stepTemp(state, delta) {
  * @returns {string} Serialized JSON command string.
  */
 export function buildCommand(action, state) {
-  const id = `${Date.now()}_${++commandCounter}`;
-  const payload = {
-    id,
-    action
+  commandCounter += 1;
+  var id = String(Date.now()) + '_' + String(commandCounter);
+  var payload = {
+    id: id,
+    action: action
   };
 
   if (action === 'ac_on') {
-    const tempC = (state && typeof state.targetTempC === 'number' && !Number.isNaN(state.targetTempC))
-      ? state.targetTempC
-      : MIN_TEMP_C;
+    var tempC = MIN_TEMP_C;
+    if (state && isFiniteNumber(state.targetTempC)) {
+      tempC = clampTemp(state.targetTempC);
+    }
     payload.tempC = tempC;
   }
 
@@ -95,21 +138,22 @@ export function buildCommand(action, state) {
 /**
  * Parses and applies a response payload received from the companion phone.
  * Updates telemetry, clears pending flags, sets user-friendly error banners,
- * and safely ignores malformed or non-object payloads without throwing.
+ * and safely ignores malformed, non-object, or stale (mismatched ID) payloads.
  * Does not mutate the input state.
  *
  * @param {object} state - Current car state.
  * @param {string} rawJson - Raw JSON string from Wear Engine P2P bridge.
+ * @param {string} [expectedId] - Optional command ID to correlate with this response.
  * @returns {object} New updated car state.
  */
-export function applyResponse(state, rawJson) {
-  const currentState = state || createInitialState();
+export function applyResponse(state, rawJson, expectedId) {
+  var currentState = state || createInitialState();
 
   if (!rawJson || typeof rawJson !== 'string') {
     return currentState;
   }
 
-  let parsed;
+  var parsed;
   try {
     parsed = JSON.parse(rawJson);
   } catch (_err) {
@@ -120,17 +164,29 @@ export function applyResponse(state, rawJson) {
     return currentState;
   }
 
-  const nextState = { ...currentState };
+  // Id correlation check: if caller provided an expectedId, reject mismatched responses
+  if (expectedId !== undefined && expectedId !== null) {
+    if (parsed.id !== undefined && parsed.id !== null) {
+      if (String(parsed.id) !== String(expectedId)) {
+        return currentState;
+      }
+    }
+  }
+
+  var nextState = cloneObj(currentState);
   nextState.phoneOnline = true;
   nextState.pending = false;
   nextState.confirmUnlock = false;
 
   if (parsed.ok === false) {
-    if (parsed.err && ERROR_BANNERS[parsed.err]) {
+    if (
+      typeof parsed.err === 'string' &&
+      Object.prototype.hasOwnProperty.call(ERROR_BANNERS, parsed.err)
+    ) {
       nextState.banner = ERROR_BANNERS[parsed.err];
-    } else if (parsed.msg && typeof parsed.msg === 'string') {
+    } else if (typeof parsed.msg === 'string' && parsed.msg.length > 0) {
       nextState.banner = parsed.msg;
-    } else if (parsed.err && typeof parsed.err === 'string') {
+    } else if (typeof parsed.err === 'string' && parsed.err.length > 0) {
       nextState.banner = parsed.err;
     } else {
       nextState.banner = 'Error';
@@ -141,14 +197,14 @@ export function applyResponse(state, rawJson) {
   // ok === true or default success: clear banner
   nextState.banner = '';
 
-  const data = (parsed.state && typeof parsed.state === 'object' && !Array.isArray(parsed.state))
+  var data = (parsed.state && typeof parsed.state === 'object' && !Array.isArray(parsed.state))
     ? parsed.state
     : parsed;
 
-  if (typeof data.soc === 'number' && !Number.isNaN(data.soc)) {
+  if (isFiniteNumber(data.soc)) {
     nextState.soc = data.soc;
   }
-  if (typeof data.rangeKm === 'number' && !Number.isNaN(data.rangeKm)) {
+  if (isFiniteNumber(data.rangeKm)) {
     nextState.rangeKm = data.rangeKm;
   }
   if (typeof data.locked === 'boolean') {
@@ -157,18 +213,24 @@ export function applyResponse(state, rawJson) {
   if (typeof data.acOn === 'boolean') {
     nextState.acOn = data.acOn;
   }
-  if (typeof data.cabinTempC === 'number' && !Number.isNaN(data.cabinTempC)) {
+
+  // Cabin temperature: supports numeric values (including 0 and negative) and explicit null reset
+  if (isFiniteNumber(data.cabinTempC)) {
     nextState.cabinTempC = data.cabinTempC;
+  } else if (data.cabinTempC === null) {
+    nextState.cabinTempC = null;
   }
+
+  // Target temperature: only accept valid numbers within [MIN_TEMP_C, MAX_TEMP_C]; reject out-of-range
   if (
-    typeof data.targetTempC === 'number' &&
-    !Number.isNaN(data.targetTempC) &&
+    isFiniteNumber(data.targetTempC) &&
     data.targetTempC >= MIN_TEMP_C &&
     data.targetTempC <= MAX_TEMP_C
   ) {
     nextState.targetTempC = data.targetTempC;
   }
-  if (typeof data.ts === 'number' && !Number.isNaN(data.ts)) {
+
+  if (isFiniteNumber(data.ts)) {
     nextState.ts = data.ts;
   }
 
