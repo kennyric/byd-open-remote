@@ -333,7 +333,7 @@ public class CloudBydGatewayTest {
     }
 
     @Test
-    public void drivingWithConnectStateOneDoesNotShowPluggedInAndAcReadsHvacFallbacks() throws Exception {
+    public void parkedNonZeroEnumsStayOffWhileSpeedAndStrictAcOneReflectTrueState() throws Exception {
         FakeClient fakeClient = new FakeClient();
         fakeClient.realtimeResult = new JSONObject()
                 .put("elecPercent", 82)
@@ -342,22 +342,35 @@ public class CloudBydGatewayTest {
                 .put("connectState", 1)
                 .put("powerGear", 3)
                 .put("vehicleState", 2)
-                .put("airConditionStatus", 0);
+                .put("speed", 0.0)
+                .put("airConditionStatus", 2)
+                .put("vin", "LC0SECRET123")
+                .put("latitude", -5.4)
+                .put("userToken", "tok_secret");
+        fakeClient.hvacResult = null;
+
+        CloudBydGateway gateway = new CloudBydGateway(configStore, cfg -> fakeClient);
+        VehicleStatus parked = gateway.fetchVehicleRealtime("LGX_ATTO_1");
+        assertFalse(parked.vehicleOn);
+        assertEquals(VehicleStatus.CHARGING_NONE, parked.chargingState);
+        assertFalse(parked.acOn);
+
+        configStore.setVerboseLogsEnabled(true);
+        fakeClient.realtimeResult.put("speed", 45.0);
         fakeClient.hvacResult = new JSONObject()
                 .put("statusNow", new JSONObject()
                         .put("acSwitch", 1)
                         .put("airConditioningMode", 2));
 
-        CloudBydGateway gateway = new CloudBydGateway(configStore, cfg -> fakeClient);
-        VehicleStatus status = gateway.fetchVehicleRealtime("LGX_ATTO_1");
-        assertTrue(status.vehicleOn);
-        assertEquals(VehicleStatus.CHARGING_NONE, status.chargingState);
-        assertTrue(status.acOn);
-
-        JSONObject viDirectMode2 = new JSONObject()
-                .put("elecPercent", 80)
-                .put("airConditionStatus", 2);
-        assertTrue(gateway.parseVehicleStatus(viDirectMode2).acOn);
+        VehicleStatus driving = gateway.fetchVehicleRealtime("LGX_ATTO_1");
+        assertTrue(driving.vehicleOn);
+        assertEquals(VehicleStatus.CHARGING_NONE, driving.chargingState);
+        assertTrue(driving.acOn);
+        assertTrue(driving.diagSummary.contains("hv.sn.acSwitch=1"));
+        assertTrue(driving.diagSummary.contains("powerGear=3"));
+        assertFalse(driving.diagSummary.contains("LC0SECRET123"));
+        assertFalse(driving.diagSummary.contains("tok_secret"));
+        assertFalse(driving.diagSummary.contains("latitude="));
     }
 
     // ── Fake BydCloudClient ───────────────────────────────────────────────

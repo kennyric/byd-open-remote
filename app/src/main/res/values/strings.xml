@@ -78,6 +78,7 @@
     <string name="widget_label">EV Watch Status</string>
     <string name="tile_label">EV Quick Lock</string>
     <string name="label_alerts_toggle">Smart Alerts (Unlocked / Open / Charge Done)</string>
+    <string name="label_verbose_logs_toggle">Extra Telemetry Logs (Raw Status Codes)</string>
     <string name="label_hide_extra_controls">Hide Extra Controls (Win / Heat)</string>
     <string name="label_watch_edition">Watch App Edition:</string>
     <string name="label_widget_sync_freq">Widget Auto-Sync</string>

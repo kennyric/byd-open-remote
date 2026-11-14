@@ -1295,6 +1295,15 @@
                     android:text="@string/label_alerts_toggle"
                     android:textColor="?attr/colorOnSurfaceVariant"
                     android:textSize="12sp" />
+
+                <!-- Extra Telemetry Logs Toggle -->
+                <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/switchVerboseLogs"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/label_verbose_logs_toggle"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:textSize="12sp" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 

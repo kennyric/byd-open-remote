@@ -172,6 +172,7 @@ public class MainActivity extends AppCompatActivity {
     private Button btnSaveCustomModel;
     private SwitchCompat switchHideExtraControls;
     private SwitchCompat switchSmartAlerts;
+    private SwitchCompat switchVerboseLogs;
     private Button btnDisclaimer;
     private Button btnAuthHealth;
     private Button btnToggleService;
@@ -317,6 +318,7 @@ public class MainActivity extends AppCompatActivity {
         btnSaveCustomModel = findViewById(R.id.btnSaveCustomModel);
         switchHideExtraControls = findViewById(R.id.switchHideExtraControls);
         switchSmartAlerts = findViewById(R.id.switchSmartAlerts);
+        switchVerboseLogs = findViewById(R.id.switchVerboseLogs);
         btnDisclaimer = findViewById(R.id.btnDisclaimer);
         btnAuthHealth = findViewById(R.id.btnAuthHealth);
         btnToggleService = findViewById(R.id.btnToggleService);
@@ -374,6 +376,9 @@ public class MainActivity extends AppCompatActivity {
             }
             if (switchSmartAlerts != null) {
                 switchSmartAlerts.setChecked(configStore.isAlertsEnabled());
+            }
+            if (switchVerboseLogs != null) {
+                switchVerboseLogs.setChecked(configStore.isVerboseLogsEnabled());
             }
             if (switchHideExtraControls != null) {
                 switchHideExtraControls.setChecked(configStore.isHideExtraControls());
@@ -703,6 +708,14 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
         }
+        if (switchVerboseLogs != null) {
+            switchVerboseLogs.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                if (configStore != null) {
+                    configStore.setVerboseLogsEnabled(isChecked);
+                    logMessage("Extra telemetry logs " + (isChecked ? "enabled" : "disabled") + ".");
+                }
+            });
+        }
         if (btnDisclaimer != null) {
             btnDisclaimer.setOnClickListener(v -> showDisclaimerDialog());
         }
@@ -994,9 +1007,13 @@ public class MainActivity extends AppCompatActivity {
                     logMessage(resp.action + ": OK (" + (resp.msg.isEmpty() ? "Success" : resp.msg) + ")");
                     if (resp.state != null) {
                         if (WatchProtocol.ACTION_STATUS.equals(resp.action)
-                                && resp.state.diagSummary != null
-                                && !resp.state.diagSummary.isEmpty()) {
-                            logMessage("[diag] " + resp.state.diagSummary);
+                                && configStore != null
+                                && configStore.isVerboseLogsEnabled()
+                                && repository != null) {
+                            String diag = repository.getLastStatusDiag();
+                            if (diag != null && !diag.isEmpty()) {
+                                logMessage("[raw] " + diag);
+                            }
                         }
                         updateTelemetryUi(resp.state);
                     }

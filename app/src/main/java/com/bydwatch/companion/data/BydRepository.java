@@ -56,6 +56,7 @@ public class BydRepository {
     private final ConfigStore configStore;
     private final ExecutorService executor;
     private final AtomicReference<VehicleStatus> cachedStatus = new AtomicReference<>();
+    private volatile String lastStatusDiag = "";
     private final java.util.List<StatusListener> statusListeners = new java.util.concurrent.CopyOnWriteArrayList<>();
     private final Object replayLock = new Object();
     private final Deque<String> recentCommandOrder = new ArrayDeque<>();
@@ -73,6 +74,10 @@ public class BydRepository {
 
     public VehicleStatus getCachedStatus() {
         return cachedStatus.get();
+    }
+
+    public String getLastStatusDiag() {
+        return lastStatusDiag;
     }
 
     public void setCachedStatus(VehicleStatus status) {
@@ -245,6 +250,8 @@ public class BydRepository {
             switch (cmd.action) {
                 case WatchProtocol.ACTION_STATUS: {
                     VehicleStatus fresh = gateway.fetchVehicleRealtime(vin);
+                    this.lastStatusDiag = (fresh != null && fresh.diagSummary != null)
+                            ? fresh.diagSummary : "";
                     if (fresh != null) {
                         fresh = enrichedStatus(fresh);
                         setCachedStatus(fresh);

@@ -69,6 +69,9 @@ public interface ConfigStore {
     default boolean isHideExtraControls() { return false; }
     default void setHideExtraControls(boolean hide) {}
 
+    default boolean isVerboseLogsEnabled() { return false; }
+    default void setVerboseLogsEnabled(boolean enabled) {}
+
     default String getWidgetStatusJson() { return null; }
     default void setWidgetStatusJson(String json) {}
 

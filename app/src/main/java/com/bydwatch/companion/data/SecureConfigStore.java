@@ -38,6 +38,7 @@ public class SecureConfigStore implements ConfigStore {
     private static final String PREF_DISCLAIMER_ACCEPTED = "byd_disclaimer_accepted";
     private static final String PREF_WIDGET_SYNC_MINUTES = "byd_widget_sync_minutes";
     private static final String PREF_HIDE_EXTRA_CONTROLS = "byd_hide_extra_controls";
+    private static final String PREF_VERBOSE_LOGS = "byd_verbose_logs";
     private static final String PREF_WIDGET_STATUS_JSON = "byd_widget_status_json";
     private static final String PREF_WIDGET_LAST_SYNC_MS = "byd_widget_last_sync_ms";
 
@@ -259,6 +260,16 @@ public class SecureConfigStore implements ConfigStore {
     @Override
     public void setHideExtraControls(boolean hide) {
         prefs.edit().putBoolean(PREF_HIDE_EXTRA_CONTROLS, hide).apply();
+    }
+
+    @Override
+    public boolean isVerboseLogsEnabled() {
+        return prefs.getBoolean(PREF_VERBOSE_LOGS, false);
+    }
+
+    @Override
+    public void setVerboseLogsEnabled(boolean enabled) {
+        prefs.edit().putBoolean(PREF_VERBOSE_LOGS, enabled).apply();
     }
 
     @Override

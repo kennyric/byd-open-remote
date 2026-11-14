@@ -966,6 +966,11 @@ public class MainActivityTest {
         assertEquals(tvLog.getText().toString(), cm.getPrimaryClip().getItemAt(0).getText().toString());
         assertEquals("Logs copied to clipboard", ShadowToast.getTextOfLatestToast());
 
+        androidx.appcompat.widget.SwitchCompat switchVerboseLogs = activity.findViewById(R.id.switchVerboseLogs);
+        switchVerboseLogs.setChecked(true);
+        ShadowLooper.idleMainLooper();
+        assertTrue(configStore.isVerboseLogsEnabled());
+
         Button btnRefresh = activity.findViewById(R.id.btnRefresh);
         TextView tvChargingBadge = activity.findViewById(R.id.tvChargingBadge);
         fakeGateway.currentStatus = new VehicleStatus.Builder(82, 234, false, true, 22, 17, 1700000500L)
@@ -973,10 +978,12 @@ public class MainActivityTest {
                 .modelName("Atto 1")
                 .chargingState(VehicleStatus.CHARGING_NONE)
                 .vehicleOn(true)
+                .diagSummary("cs=0 conn=1 gear=3 vs=2")
                 .build();
         btnRefresh.performClick();
         awaitAsyncWork();
         assertEquals("Driving / On", tvChargingBadge.getText().toString());
+        assertTrue(tvLog.getText().toString().contains("[raw] cs=0 conn=1 gear=3 vs=2"));
     }
 
     private static boolean containsTextViewWithText(View view, String target) {

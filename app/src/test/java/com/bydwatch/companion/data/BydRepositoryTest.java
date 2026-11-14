@@ -268,6 +268,7 @@ public class BydRepositoryTest {
         private boolean disclaimerAccepted = false;
         private int widgetSyncIntervalMinutes = DEFAULT_WIDGET_SYNC_MINUTES;
         private boolean hideExtraControls = false;
+        private boolean verboseLogsEnabled = false;
         private String widgetStatusJson = null;
         private long widgetLastSyncMs = 0L;
         private int defaultTempC = 17;
@@ -325,6 +326,9 @@ public class BydRepositoryTest {
 
         @Override public boolean isHideExtraControls() { return hideExtraControls; }
         @Override public void setHideExtraControls(boolean hide) { this.hideExtraControls = hide; }
+
+        @Override public boolean isVerboseLogsEnabled() { return verboseLogsEnabled; }
+        @Override public void setVerboseLogsEnabled(boolean enabled) { this.verboseLogsEnabled = enabled; }
 
         @Override public String getWidgetStatusJson() { return widgetStatusJson; }
         @Override public void setWidgetStatusJson(String json) { this.widgetStatusJson = json; }

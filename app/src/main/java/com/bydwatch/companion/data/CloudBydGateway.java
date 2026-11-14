@@ -23,8 +23,11 @@ import java.io.InputStream;
 import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
+import java.util.TreeSet;
 
 /**
  * Implementation of BydGateway wrapping the ported BydCloudClient.
@@ -507,12 +510,8 @@ public class CloudBydGateway implements BydGateway {
         int targetTempC = vi.optInt("targetTempC", configStore != null ? configStore.getDefaultTempC() : 17);
         long ts = vi.optLong("ts", vi.optLong("time", System.currentTimeMillis() / 1000L));
 
-        int powerGear = vi.optInt("powerGear", -1);
-        int vehicleState = vi.optInt("vehicleState", -1);
         double speed = vi.optDouble("speed", Double.NaN);
         boolean vehicleOn = vi.optBoolean("carOn", false)
-                || powerGear == 3
-                || vehicleState == 2
                 || (!Double.isNaN(speed) && !Double.isInfinite(speed) && speed > 0.5);
 
         int chargingState = vi.has("chargeState")
@@ -615,6 +614,8 @@ public class CloudBydGateway implements BydGateway {
             }
         }
 
+        boolean verboseLogs = configStore != null && configStore.isVerboseLogsEnabled();
+
         return new VehicleStatus.Builder(soc, rangeKm, locked, acOn, cabinTempC, targetTempC, ts)
                 .vin(activeVin)
                 .modelName(resolvedModel)
@@ -622,7 +623,7 @@ public class CloudBydGateway implements BydGateway {
                 .vehicleOn(vehicleOn)
                 .chargeRemainingMinutes(chgMin)
                 .chargePowerKw(chgPowerKw)
-                .diagSummary(buildTelemetryDiag(vi, hvac))
+                .diagSummary(buildTelemetryDiag(vi, hvac, verboseLogs))
                 .doorsOpenCount(doorsOpen)
                 .windowsOpenCount(winsOpen)
                 .trunkOpen(trunkOpen)
@@ -644,7 +645,7 @@ public class CloudBydGateway implements BydGateway {
         if (vi != null && vi.has("acOn") && !vi.isNull("acOn")) {
             return vi.optBoolean("acOn", false);
         }
-        String[] intPositiveKeys = {
+        String[] intOneKeys = {
                 "airConditionStatus",
                 "airConditioner",
                 "airConditionerStatus",
@@ -666,13 +667,13 @@ public class CloudBydGateway implements BydGateway {
         };
         for (JSONObject src : sources) {
             if (src == null) continue;
-            for (String key : intPositiveKeys) {
-                if (src.has(key) && !src.isNull(key) && src.optInt(key, 0) > 0) {
+            for (String key : intOneKeys) {
+                if (src.has(key) && !src.isNull(key) && src.optInt(key, -1) == 1) {
                     return true;
                 }
             }
             if (src.has("isAirConditioning") && !src.isNull("isAirConditioning")) {
-                if (src.optBoolean("isAirConditioning", false) || src.optInt("isAirConditioning", 0) > 0) {
+                if (src.optBoolean("isAirConditioning", false) || src.optInt("isAirConditioning", -1) == 1) {
                     return true;
                 }
             }
@@ -680,7 +681,7 @@ public class CloudBydGateway implements BydGateway {
         return false;
     }
 
-    private static String buildTelemetryDiag(JSONObject vi, JSONObject hvac) {
+    private static String buildTelemetryDiag(JSONObject vi, JSONObject hvac, boolean verbose) {
         if (vi == null) return "";
         StringBuilder sb = new StringBuilder();
         appendIntDiag(sb, vi, "chargeState", "cs");
@@ -702,6 +703,19 @@ public class CloudBydGateway implements BydGateway {
                 hvac != null ? hvac.optJSONObject("statusNow") : null
         };
         String[] prefixes = {"", "sn.", "hv.", "hv.sn."};
+        if (verbose) {
+            for (int i = 0; i < sources.length; i++) {
+                JSONObject src = sources[i];
+                if (src == null) {
+                    if (i == 2) {
+                        sb.append(sb.length() > 0 ? " " : "").append("hv=null");
+                    }
+                    continue;
+                }
+                appendVerboseFields(sb, src, prefixes[i]);
+            }
+            return sb.toString();
+        }
         for (int i = 0; i < sources.length; i++) {
             JSONObject src = sources[i];
             if (src == null) continue;
@@ -713,6 +727,60 @@ public class CloudBydGateway implements BydGateway {
             }
         }
         return sb.toString();
+    }
+
+    private static void appendVerboseFields(StringBuilder sb, JSONObject src, String prefix) {
+        TreeSet<String> keys = new TreeSet<>();
+        Iterator<String> it = src.keys();
+        while (it.hasNext()) {
+            String k = it.next();
+            if (!isSensitiveDiagKey(k)) {
+                keys.add(k);
+            }
+        }
+        for (String k : keys) {
+            if (src.isNull(k)) continue;
+            Object val = src.opt(k);
+            if (val == null || val instanceof JSONObject || val instanceof JSONArray) {
+                continue;
+            }
+            sb.append(sb.length() > 0 ? " " : "")
+                    .append(prefix).append(k).append("=").append(val);
+        }
+    }
+
+    private static boolean isSensitiveDiagKey(String key) {
+        if (key == null) return true;
+        String k = key.toLowerCase(Locale.US);
+        return k.contains("vin")
+                || k.contains("plate")
+                || k.contains("gps")
+                || k.contains("latitude")
+                || k.contains("longitude")
+                || k.equals("lat")
+                || k.equals("lng")
+                || k.equals("lon")
+                || k.contains("coord")
+                || k.contains("user")
+                || k.contains("owner")
+                || k.contains("account")
+                || k.contains("nickname")
+                || k.contains("token")
+                || k.contains("cookie")
+                || k.contains("serial")
+                || k.contains("imei")
+                || k.contains("identifier")
+                || k.contains("mobile")
+                || k.contains("phone")
+                || k.contains("email")
+                || k.contains("pwd")
+                || k.contains("pass")
+                || k.equals("pin")
+                || k.contains("pincode")
+                || k.contains("address")
+                || k.contains("secret")
+                || k.contains("city")
+                || k.contains("province");
     }
 
     private static void appendIntDiag(StringBuilder sb, JSONObject src, String key, String label) {
