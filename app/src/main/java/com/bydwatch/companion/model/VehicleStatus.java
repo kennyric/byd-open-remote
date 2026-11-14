@@ -31,8 +31,10 @@ public final class VehicleStatus {
     public final String vin;
     public final String modelName;
     public final int chargingState;
+    public final boolean vehicleOn;
     public final Integer chargeRemainingMinutes;
     public final Double chargePowerKw;
+    public transient String diagSummary;
     public final int doorsOpenCount;
     public final int windowsOpenCount;
     public final boolean trunkOpen;
@@ -79,8 +81,10 @@ public final class VehicleStatus {
         this.vin = b.vin;
         this.modelName = b.modelName;
         this.chargingState = b.chargingState;
+        this.vehicleOn = b.vehicleOn;
         this.chargeRemainingMinutes = b.chargeRemainingMinutes;
         this.chargePowerKw = b.chargePowerKw;
+        this.diagSummary = b.diagSummary;
         this.doorsOpenCount = b.doorsOpenCount;
         this.windowsOpenCount = b.windowsOpenCount;
         this.trunkOpen = b.trunkOpen;
@@ -147,8 +151,10 @@ public final class VehicleStatus {
                 .vin(vin)
                 .modelName(modelName)
                 .chargingState(chargingState)
+                .vehicleOn(vehicleOn)
                 .chargeRemainingMinutes(chargeRemainingMinutes)
                 .chargePowerKw(chargePowerKw)
+                .diagSummary(diagSummary)
                 .doorsOpenCount(doorsOpenCount)
                 .windowsOpenCount(windowsOpenCount)
                 .trunkOpen(trunkOpen)
@@ -179,6 +185,7 @@ public final class VehicleStatus {
             if (vin != null && !vin.isEmpty()) obj.put("vin", vin);
             if (modelName != null && !modelName.isEmpty()) obj.put("modelName", modelName);
             if (chargingState != CHARGING_UNKNOWN) obj.put("charging", chargingState);
+            if (vehicleOn) obj.put("carOn", true);
             if (chargeRemainingMinutes != null && chargeRemainingMinutes >= 0) {
                 obj.put("chgMin", chargeRemainingMinutes);
             }
@@ -249,6 +256,7 @@ public final class VehicleStatus {
         b.vin(json.optString("vin", ""));
         b.modelName(json.optString("modelName", ""));
         if (json.has("charging")) b.chargingState(json.optInt("charging", CHARGING_UNKNOWN));
+        if (json.optBoolean("carOn", false)) b.vehicleOn(true);
         if (json.has("chgMin") && !json.isNull("chgMin")) b.chargeRemainingMinutes(json.optInt("chgMin"));
         if (json.has("chgKw") && !json.isNull("chgKw")) {
             b.chargePowerKw(json.optDouble("chgKw", Double.NaN));
@@ -315,6 +323,7 @@ public final class VehicleStatus {
                 && targetTempC == that.targetTempC
                 && ts == that.ts
                 && chargingState == that.chargingState
+                && vehicleOn == that.vehicleOn
                 && doorsOpenCount == that.doorsOpenCount
                 && windowsOpenCount == that.windowsOpenCount
                 && trunkOpen == that.trunkOpen
@@ -348,7 +357,7 @@ public final class VehicleStatus {
     @Override
     public int hashCode() {
         return Objects.hash(soc, rangeKm, locked, acOn, cabinTempC, targetTempC, ts,
-                vin, modelName, chargingState, chargeRemainingMinutes, chargePowerKw,
+                vin, modelName, chargingState, vehicleOn, chargeRemainingMinutes, chargePowerKw,
                 doorsOpenCount, windowsOpenCount, trunkOpen, totalMileageKm,
                 outsideTempC, fuelPercent, fuelRangeKm,
                 tireLfKpa, tireRfKpa, tireLrKpa, tireRrKpa,
@@ -381,8 +390,10 @@ public final class VehicleStatus {
         private String vin = "";
         private String modelName = "";
         private int chargingState = CHARGING_UNKNOWN;
+        private boolean vehicleOn;
         private Integer chargeRemainingMinutes;
         private Double chargePowerKw;
+        private String diagSummary;
         private int doorsOpenCount;
         private int windowsOpenCount;
         private boolean trunkOpen;
@@ -421,6 +432,8 @@ public final class VehicleStatus {
         public Builder vin(String vin) { this.vin = vin != null ? vin : ""; return this; }
         public Builder modelName(String modelName) { this.modelName = modelName != null ? modelName : ""; return this; }
         public Builder chargingState(int chargingState) { this.chargingState = chargingState; return this; }
+        public Builder vehicleOn(boolean vehicleOn) { this.vehicleOn = vehicleOn; return this; }
+        public Builder diagSummary(String diagSummary) { this.diagSummary = diagSummary; return this; }
         public Builder chargeRemainingMinutes(Integer mins) { this.chargeRemainingMinutes = mins; return this; }
         public Builder chargePowerKw(Double kw) {
             if (kw != null && !kw.isNaN() && !kw.isInfinite() && kw > 0.0) {

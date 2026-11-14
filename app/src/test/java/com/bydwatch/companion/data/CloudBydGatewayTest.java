@@ -332,15 +332,49 @@ public class CloudBydGatewayTest {
         assertEquals(Double.valueOf(7.2), status.chargePowerKw);
     }
 
+    @Test
+    public void drivingWithConnectStateOneDoesNotShowPluggedInAndAcReadsHvacFallbacks() throws Exception {
+        FakeClient fakeClient = new FakeClient();
+        fakeClient.realtimeResult = new JSONObject()
+                .put("elecPercent", 82)
+                .put("enduranceMileageV2", 234)
+                .put("chargeState", 0)
+                .put("connectState", 1)
+                .put("powerGear", 3)
+                .put("vehicleState", 2)
+                .put("airConditionStatus", 0);
+        fakeClient.hvacResult = new JSONObject()
+                .put("statusNow", new JSONObject()
+                        .put("acSwitch", 1)
+                        .put("airConditioningMode", 2));
+
+        CloudBydGateway gateway = new CloudBydGateway(configStore, cfg -> fakeClient);
+        VehicleStatus status = gateway.fetchVehicleRealtime("LGX_ATTO_1");
+        assertTrue(status.vehicleOn);
+        assertEquals(VehicleStatus.CHARGING_NONE, status.chargingState);
+        assertTrue(status.acOn);
+
+        JSONObject viDirectMode2 = new JSONObject()
+                .put("elecPercent", 80)
+                .put("airConditionStatus", 2);
+        assertTrue(gateway.parseVehicleStatus(viDirectMode2).acOn);
+    }
+
     // ── Fake BydCloudClient ───────────────────────────────────────────────
 
     private static class FakeClient extends BydCloudClient {
         JSONObject realtimeResult;
+        JSONObject hvacResult;
         JSONArray vehicleListResult;
         String firstVinResult = "VIN_DEFAULT";
 
         FakeClient() {
             super(new BydCloudConfig());
+        }
+
+        @Override
+        public JSONObject fetchHvacStatusFast(String vin) {
+            return hvacResult;
         }
 
         @Override

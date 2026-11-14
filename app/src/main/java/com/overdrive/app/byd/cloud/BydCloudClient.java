@@ -1437,6 +1437,33 @@ public class BydCloudClient {
         return fetchGpsInfo(vin, 2, 5_000L);
     }
 
+    /**
+     * Best-effort fast query of BYD /control/getStatusNow for live HVAC / statusNow fields.
+     */
+    public JSONObject fetchHvacStatusFast(String vin) throws IOException {
+        if (vin == null || vin.trim().isEmpty()) {
+            return null;
+        }
+        BydCloudSession s = ensureSession();
+        long nowMs = System.currentTimeMillis();
+        JSONObject inner = buildInner(nowMs);
+        try {
+            inner.put("vin", vin);
+        } catch (Exception e) {
+            throw new IOException("Failed to build statusNow request", e);
+        }
+        TokenEnvelope env = buildTokenOuterEnvelope(nowMs, s, inner);
+        JSONObject response = postRealtimeSecure("/control/getStatusNow", env.outer, 3_500L);
+        if (!"0".equals(response.optString("code", ""))) {
+            return null;
+        }
+        String respondData = response.optString("respondData", "");
+        if (respondData.isEmpty()) {
+            return null;
+        }
+        return BydCloudTransport.decryptRespondData(respondData, env.contentKey);
+    }
+
     private JSONObject fetchGpsInfo(
             String vin,
             int maxPollAttempts,

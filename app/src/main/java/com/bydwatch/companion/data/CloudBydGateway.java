@@ -185,9 +185,18 @@ public class CloudBydGateway implements BydGateway {
             // Best-effort GPS lookup: transient 500s / timeouts must never fail status updates
         }
 
+        JSONObject hvac = null;
+        if (!extractAcOn(vi, null)) {
+            try {
+                hvac = client.fetchHvacStatusFast(vin);
+            } catch (Exception ignored) {
+                // Best-effort HVAC lookup: never fail status refresh if getStatusNow is unavailable
+            }
+        }
+
         ensureVehicleMetadataIfNeeded(vin);
 
-        return parseVehicleStatus(vi, vin, caps, location);
+        return parseVehicleStatus(vi, vin, caps, location, hvac);
     }
 
     private void ensureVehicleMetadataIfNeeded(String activeVin) {
@@ -455,6 +464,11 @@ public class CloudBydGateway implements BydGateway {
 
     public VehicleStatus parseVehicleStatus(JSONObject vi, String activeVin, CloudCapabilities caps,
                                             VehicleLocation location) {
+        return parseVehicleStatus(vi, activeVin, caps, location, null);
+    }
+
+    public VehicleStatus parseVehicleStatus(JSONObject vi, String activeVin, CloudCapabilities caps,
+                                            VehicleLocation location, JSONObject hvac) {
         int soc = vi.optInt("soc", (int) Math.round(vi.optDouble("elecPercent", 0.0)));
         int rangeV2 = vi.optInt("enduranceMileageV2", -1);
         int rangeKm = vi.optInt("rangeKm", rangeV2 != -1 ? rangeV2 : vi.optInt("enduranceMileage", 0));
@@ -470,13 +484,7 @@ public class CloudBydGateway implements BydGateway {
             locked = (lf == 2 && rf == 2 && lr == 2 && rr == 2);
         }
 
-        boolean acOn = vi.optBoolean("acOn",
-                vi.optInt("airConditionStatus", 0) == 1
-                        || vi.optInt("airConditioner", 0) == 1
-                        || vi.optInt("airConditionerStatus", 0) == 1
-                        || vi.optInt("autoAirConditioning", 0) == 1
-                        || vi.optInt("eleAirACSwitch", 0) == 1
-                        || vi.optInt("airState", 0) == 1);
+        boolean acOn = extractAcOn(vi, hvac);
 
         Integer cabinTempC = null;
         if (vi.has("cabinTempC") && !vi.isNull("cabinTempC")) {
@@ -499,12 +507,19 @@ public class CloudBydGateway implements BydGateway {
         int targetTempC = vi.optInt("targetTempC", configStore != null ? configStore.getDefaultTempC() : 17);
         long ts = vi.optLong("ts", vi.optLong("time", System.currentTimeMillis() / 1000L));
 
+        int powerGear = vi.optInt("powerGear", -1);
+        int vehicleState = vi.optInt("vehicleState", -1);
+        double speed = vi.optDouble("speed", Double.NaN);
+        boolean vehicleOn = vi.optBoolean("carOn", false)
+                || powerGear == 3
+                || vehicleState == 2
+                || (!Double.isNaN(speed) && !Double.isInfinite(speed) && speed > 0.5);
+
         int chargingState = vi.has("chargeState")
                 ? vi.optInt("chargeState", VehicleStatus.CHARGING_UNKNOWN)
                 : vi.optInt("chargingState", VehicleStatus.CHARGING_UNKNOWN);
-        if ((chargingState == VehicleStatus.CHARGING_UNKNOWN || chargingState == VehicleStatus.CHARGING_NONE)
-                && vi.optInt("connectState", -1) == 1) {
-            chargingState = VehicleStatus.CHARGING_CONNECTED;
+        if (vehicleOn && chargingState != VehicleStatus.CHARGING_ACTIVE) {
+            chargingState = VehicleStatus.CHARGING_NONE;
         }
         Integer chgMin = null;
         if (chargingState == VehicleStatus.CHARGING_ACTIVE) {
@@ -604,8 +619,10 @@ public class CloudBydGateway implements BydGateway {
                 .vin(activeVin)
                 .modelName(resolvedModel)
                 .chargingState(chargingState)
+                .vehicleOn(vehicleOn)
                 .chargeRemainingMinutes(chgMin)
                 .chargePowerKw(chgPowerKw)
+                .diagSummary(buildTelemetryDiag(vi, hvac))
                 .doorsOpenCount(doorsOpen)
                 .windowsOpenCount(winsOpen)
                 .trunkOpen(trunkOpen)
@@ -621,6 +638,87 @@ public class CloudBydGateway implements BydGateway {
                 .location(lat, lng, gpsTs)
                 .vehicles(cars)
                 .build();
+    }
+
+    private static boolean extractAcOn(JSONObject vi, JSONObject hvac) {
+        if (vi != null && vi.has("acOn") && !vi.isNull("acOn")) {
+            return vi.optBoolean("acOn", false);
+        }
+        String[] intPositiveKeys = {
+                "airConditionStatus",
+                "airConditioner",
+                "airConditionerStatus",
+                "autoAirConditioning",
+                "eleAirACSwitch",
+                "airState",
+                "acSwitch",
+                "airConditioningMode",
+                "airRunState",
+                "airCondition",
+                "acState",
+                "airConditioning"
+        };
+        JSONObject[] sources = new JSONObject[]{
+                vi,
+                vi != null ? vi.optJSONObject("statusNow") : null,
+                hvac,
+                hvac != null ? hvac.optJSONObject("statusNow") : null
+        };
+        for (JSONObject src : sources) {
+            if (src == null) continue;
+            for (String key : intPositiveKeys) {
+                if (src.has(key) && !src.isNull(key) && src.optInt(key, 0) > 0) {
+                    return true;
+                }
+            }
+            if (src.has("isAirConditioning") && !src.isNull("isAirConditioning")) {
+                if (src.optBoolean("isAirConditioning", false) || src.optInt("isAirConditioning", 0) > 0) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static String buildTelemetryDiag(JSONObject vi, JSONObject hvac) {
+        if (vi == null) return "";
+        StringBuilder sb = new StringBuilder();
+        appendIntDiag(sb, vi, "chargeState", "cs");
+        appendIntDiag(sb, vi, "connectState", "conn");
+        appendIntDiag(sb, vi, "powerGear", "gear");
+        appendIntDiag(sb, vi, "vehicleState", "vs");
+        if (vi.has("speed") && !vi.isNull("speed")) {
+            sb.append(sb.length() > 0 ? " " : "").append("spd=").append(vi.optString("speed", ""));
+        }
+        String[] acKeys = {
+                "airConditionStatus", "acSwitch", "airConditioningMode", "airRunState",
+                "airConditioner", "airConditionerStatus", "autoAirConditioning",
+                "eleAirACSwitch", "airState", "airCondition", "acState", "isAirConditioning"
+        };
+        JSONObject[] sources = new JSONObject[]{
+                vi,
+                vi.optJSONObject("statusNow"),
+                hvac,
+                hvac != null ? hvac.optJSONObject("statusNow") : null
+        };
+        String[] prefixes = {"", "sn.", "hv.", "hv.sn."};
+        for (int i = 0; i < sources.length; i++) {
+            JSONObject src = sources[i];
+            if (src == null) continue;
+            for (String k : acKeys) {
+                if (src.has(k) && !src.isNull(k)) {
+                    sb.append(sb.length() > 0 ? " " : "")
+                            .append(prefixes[i]).append(k).append("=").append(src.optString(k, ""));
+                }
+            }
+        }
+        return sb.toString();
+    }
+
+    private static void appendIntDiag(StringBuilder sb, JSONObject src, String key, String label) {
+        if (src.has(key) && !src.isNull(key)) {
+            sb.append(sb.length() > 0 ? " " : "").append(label).append("=").append(src.optInt(key, -1));
+        }
     }
 
     private static int countEquals(int target, int... values) {

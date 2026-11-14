@@ -993,6 +993,11 @@ public class MainActivity extends AppCompatActivity {
                 if (resp.ok) {
                     logMessage(resp.action + ": OK (" + (resp.msg.isEmpty() ? "Success" : resp.msg) + ")");
                     if (resp.state != null) {
+                        if (WatchProtocol.ACTION_STATUS.equals(resp.action)
+                                && resp.state.diagSummary != null
+                                && !resp.state.diagSummary.isEmpty()) {
+                            logMessage("[diag] " + resp.state.diagSummary);
+                        }
                         updateTelemetryUi(resp.state);
                     }
                     String toastMsg = WatchProtocol.ACTION_STATUS.equals(resp.action)
@@ -1102,6 +1107,9 @@ public class MainActivity extends AppCompatActivity {
                 tvChargingBadge.setTextColor(ContextCompat.getColor(this, R.color.accent_emerald));
             } else if (status.chargingState == VehicleStatus.CHARGING_CONNECTED) {
                 tvChargingBadge.setText("Plugged In");
+                tvChargingBadge.setTextColor(ContextCompat.getColor(this, R.color.accent_cyan));
+            } else if (status.vehicleOn) {
+                tvChargingBadge.setText("Driving / On");
                 tvChargingBadge.setTextColor(ContextCompat.getColor(this, R.color.accent_cyan));
             } else {
                 tvChargingBadge.setText("Not Charging");

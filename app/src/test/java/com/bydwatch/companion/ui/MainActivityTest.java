@@ -965,6 +965,18 @@ public class MainActivityTest {
         assertNotNull(cm.getPrimaryClip());
         assertEquals(tvLog.getText().toString(), cm.getPrimaryClip().getItemAt(0).getText().toString());
         assertEquals("Logs copied to clipboard", ShadowToast.getTextOfLatestToast());
+
+        Button btnRefresh = activity.findViewById(R.id.btnRefresh);
+        TextView tvChargingBadge = activity.findViewById(R.id.tvChargingBadge);
+        fakeGateway.currentStatus = new VehicleStatus.Builder(82, 234, false, true, 22, 17, 1700000500L)
+                .vin("LC0TESTVIN1234567")
+                .modelName("Atto 1")
+                .chargingState(VehicleStatus.CHARGING_NONE)
+                .vehicleOn(true)
+                .build();
+        btnRefresh.performClick();
+        awaitAsyncWork();
+        assertEquals("Driving / On", tvChargingBadge.getText().toString());
     }
 
     private static boolean containsTextViewWithText(View view, String target) {
