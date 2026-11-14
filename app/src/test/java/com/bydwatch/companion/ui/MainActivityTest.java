@@ -768,19 +768,33 @@ public class MainActivityTest {
     }
 
     @Test
-    public void carLocationCardDisplaysCoordinatesAndPromptsNavigationChooserOnClick() {
+    public void carLocationCardDisplaysCoordinatesAndPromptsNavigationChooserOnClick() throws Exception {
         View cardLocation = activity.findViewById(R.id.cardLocation);
         TextView tvLocation = activity.findViewById(R.id.tvCarLocation);
         TextView tvHint = activity.findViewById(R.id.tvCarLocationHint);
         Button btnRefreshLoc = activity.findViewById(R.id.btnRefreshLocation);
 
+        // Falls back gracefully to coordinates when offline/geocoder unavailable
         fakeGateway.currentLocation = new com.bydwatch.companion.data.BydGateway.VehicleLocation(
                 -6.20880, 106.84560, 1700000123L);
         btnRefreshLoc.performClick();
         awaitAsyncWork();
+        VehicleLocationHelper.awaitExecutorForTesting();
+        ShadowLooper.idleMainLooper();
 
         assertEquals("-6.20880, 106.84560", tvLocation.getText().toString());
         assertEquals(activity.getString(R.string.label_location_tap_nav), tvHint.getText().toString());
+
+        // Replaces coordinates with resolved street name once reverse-geocoded
+        VehicleLocationHelper.setTestStreetLookupForTesting((ctx, lat, lng) -> "Jl. Jenderal Sudirman, Menteng");
+        fakeGateway.currentLocation = new com.bydwatch.companion.data.BydGateway.VehicleLocation(
+                -6.19500, 106.82300, 1700000200L);
+        btnRefreshLoc.performClick();
+        awaitAsyncWork();
+        VehicleLocationHelper.awaitExecutorForTesting();
+        ShadowLooper.idleMainLooper();
+
+        assertEquals("Jl. Jenderal Sudirman, Menteng", tvLocation.getText().toString());
 
         cardLocation.performClick();
         ShadowLooper.idleMainLooper();

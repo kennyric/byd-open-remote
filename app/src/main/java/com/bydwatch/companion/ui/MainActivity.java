@@ -181,6 +181,7 @@ public class MainActivity extends AppCompatActivity {
     private Button btnClearLog;
     private NestedScrollView scrollStatusLog;
     private TextView tvStatusLog;
+    private volatile String lastLocationLookupKey;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -1214,10 +1215,25 @@ public class MainActivity extends AppCompatActivity {
     private void updateLocationCard(VehicleStatus status) {
         if (tvCarLocation == null || tvCarLocationHint == null) return;
         if (status != null && status.hasLocation()) {
-            tvCarLocation.setText(VehicleLocationHelper.formatCoordinates(status.latitude, status.longitude));
+            final String coordKey = VehicleLocationHelper.formatCoordinates(status.latitude, status.longitude);
+            lastLocationLookupKey = coordKey;
+            String cachedStreet = VehicleLocationHelper.getCachedStreetName(status.latitude, status.longitude);
+            tvCarLocation.setText(cachedStreet != null ? cachedStreet : coordKey);
             tvCarLocationHint.setText(R.string.label_location_tap_nav);
             tvCarLocationHint.setTextColor(ContextCompat.getColor(this, R.color.accent_emerald));
+            if (cachedStreet == null) {
+                VehicleLocationHelper.resolveStreetName(this, status.latitude, status.longitude, street ->
+                        runOnUiThread(() -> {
+                            if (isFinishing() || isDestroyed() || street == null || street.isEmpty()) return;
+                            if (lastStatus != null && lastStatus.hasLocation()
+                                    && coordKey.equals(lastLocationLookupKey)) {
+                                tvCarLocation.setText(street);
+                                LocationWidgetProvider.refreshWidgets(MainActivity.this);
+                            }
+                        }));
+            }
         } else {
+            lastLocationLookupKey = null;
             tvCarLocation.setText(R.string.label_location_unset);
             tvCarLocationHint.setText(R.string.label_location_tap_sync);
             tvCarLocationHint.setTextColor(ContextCompat.getColor(this, R.color.text_muted));

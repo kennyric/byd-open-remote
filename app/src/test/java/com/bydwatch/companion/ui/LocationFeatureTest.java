@@ -202,4 +202,24 @@ public class LocationFeatureTest {
             assertTrue(innerTarget.getDataString().contains("106.845600"));
         }
     }
+
+    @Test
+    public void streetFormattingExtractsThoroughfareSkipsPlusCodesAndParsesNominatim() throws Exception {
+        android.location.Address addr = new android.location.Address(Locale.US);
+        addr.setThoroughfare("Jl. Pangeran Antasari");
+        addr.setSubLocality("Kedamaian");
+        assertEquals("Jl. Pangeran Antasari, Kedamaian", VehicleLocationHelper.formatStreetAddress(addr));
+
+        android.location.Address plusCodeOnly = new android.location.Address(Locale.US);
+        plusCodeOnly.setFeatureName("JP74+8X");
+        plusCodeOnly.setLocality("Bandar Lampung");
+        assertEquals("Bandar Lampung", VehicleLocationHelper.formatStreetAddress(plusCodeOnly));
+
+        JSONObject nominatim = new JSONObject()
+                .put("address", new JSONObject()
+                        .put("road", "Jl. Jenderal Sudirman")
+                        .put("suburb", "Enggal")
+                        .put("city", "Bandar Lampung"));
+        assertEquals("Jl. Jenderal Sudirman, Enggal", VehicleLocationHelper.parseNominatimStreet(nominatim));
+    }
 }

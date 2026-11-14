@@ -109,9 +109,19 @@ public class LocationWidgetProvider extends AppWidgetProvider {
             titleText = "Car Location";
         }
 
-        String coordsText = (st != null && st.hasLocation())
-                ? VehicleLocationHelper.formatCoordinates(st.latitude, st.longitude)
-                : context.getString(R.string.location_widget_empty);
+        String coordsText;
+        if (st != null && st.hasLocation()) {
+            String cachedStreet = VehicleLocationHelper.getCachedStreetName(st.latitude, st.longitude);
+            coordsText = cachedStreet != null
+                    ? cachedStreet
+                    : VehicleLocationHelper.formatCoordinates(st.latitude, st.longitude);
+            if (cachedStreet == null) {
+                VehicleLocationHelper.resolveStreetName(context, st.latitude, st.longitude,
+                        street -> refreshWidgets(context));
+            }
+        } else {
+            coordsText = context.getString(R.string.location_widget_empty);
+        }
 
         int flags = Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
                 ? PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE

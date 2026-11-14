@@ -9,6 +9,7 @@ import com.bydwatch.companion.data.BydRepository;
 import com.bydwatch.companion.data.CloudBydGateway;
 import com.bydwatch.companion.data.ConfigStore;
 import com.bydwatch.companion.data.SecureConfigStore;
+import com.bydwatch.companion.ui.VehicleLocationHelper;
 import com.bydwatch.companion.wear.HuaweiWearP2pTransport;
 import com.bydwatch.companion.wear.PeerTransport;
 import com.bydwatch.companion.wear.WearEngineBridge;
@@ -165,5 +166,6 @@ public class BydWatchApp extends Application {
         testWearEngineConfig = null;
         testPeerTransport = null;
         testWearEngineBridge = null;
+        VehicleLocationHelper.clearCacheForTesting();
     }
 }
