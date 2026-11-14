@@ -258,5 +258,24 @@ public class VehicleWidgetProviderTest {
         View wideView = shadowMgr.getViewFor(compactWidgetId);
         assertEquals("⚡ 7.2 kW · 0h 45m · Locked",
                 ((TextView) wideView.findViewById(R.id.tvWidgetBanner)).getText().toString());
+        assertEquals(View.GONE, wideView.findViewById(R.id.layoutWidgetLocationBar).getVisibility());
+
+        // Resizing EV Watch Status widget to 3+ rows reveals location bar instead of stretching buttons
+        VehicleLocationHelper.setTestStreetLookupForTesting((ctx, lat, lng) -> "Jl. Antasari, Kedamaian");
+        fakeGateway.currentStatus = fakeGateway.currentStatus.toBuilder()
+                .location(-5.40639, 105.30289, 1700000450L)
+                .build();
+        repository.setCachedStatus(fakeGateway.currentStatus);
+
+        wideOpts.putInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 190);
+        mgr.updateAppWidgetOptions(compactWidgetId, wideOpts);
+        provider.onAppWidgetOptionsChanged(app, mgr, compactWidgetId, wideOpts);
+        VehicleLocationHelper.awaitExecutorForTesting();
+        ShadowLooper.idleMainLooper();
+
+        View tallWideView = shadowMgr.getViewFor(compactWidgetId);
+        assertEquals(View.VISIBLE, tallWideView.findViewById(R.id.layoutWidgetLocationBar).getVisibility());
+        assertEquals("Jl. Antasari, Kedamaian",
+                ((TextView) tallWideView.findViewById(R.id.tvWidgetLocationText)).getText().toString());
     }
 }

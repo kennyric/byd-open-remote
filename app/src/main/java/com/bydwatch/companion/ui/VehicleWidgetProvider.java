@@ -50,6 +50,7 @@ public class VehicleWidgetProvider extends AppWidgetProvider {
     public static final String ACTION_WIDGET_AUTO_SYNC = "com.bydwatch.companion.WIDGET_AUTO_SYNC";
 
     static final int WIDE_WIDGET_MIN_WIDTH_DP = 220;
+    static final int TALL_WIDGET_MIN_HEIGHT_DP = 175;
 
     private static final String PREFS_WIDGET = "byd_widget_prefs";
     private static final String KEY_LAST_STATUS_JSON = "last_status_json";
@@ -378,6 +379,12 @@ public class VehicleWidgetProvider extends AppWidgetProvider {
         return minWidthDp >= WIDE_WIDGET_MIN_WIDTH_DP;
     }
 
+    static boolean isTallWidget(AppWidgetManager mgr, int appWidgetId) {
+        Bundle options = mgr != null ? mgr.getAppWidgetOptions(appWidgetId) : null;
+        int minHeightDp = options != null ? options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 0) : 0;
+        return minHeightDp >= TALL_WIDGET_MIN_HEIGHT_DP;
+    }
+
     private static void updateAllWidgets(Context context, AppWidgetManager mgr, int[] ids) {
         BydWatchApp app = resolveApp(context);
         ConfigStore cfg = app != null ? app.getConfigStore() : null;
@@ -411,9 +418,14 @@ public class VehicleWidgetProvider extends AppWidgetProvider {
                 new Intent(context, WidgetActionReceiver.class).setAction(ACTION_WIDGET_UNLOCK), flags);
         PendingIntent acPi = PendingIntent.getBroadcast(context, 13,
                 new Intent(context, WidgetActionReceiver.class).setAction(ACTION_WIDGET_AC), flags);
+        PendingIntent navPi = PendingIntent.getBroadcast(context, 15,
+                new Intent(context, WidgetActionReceiver.class).setAction(LocationWidgetProvider.ACTION_LOCATION_NAVIGATE), flags);
 
+        boolean anyTall = false;
         for (int appWidgetId : ids) {
             boolean wide = isWideWidget(mgr, appWidgetId);
+            boolean tall = isTallWidget(mgr, appWidgetId);
+            if (tall) anyTall = true;
             RemoteViews views = new RemoteViews(
                     context.getPackageName(),
                     wide ? R.layout.widget_vehicle : R.layout.widget_vehicle_2x2
@@ -424,6 +436,30 @@ public class VehicleWidgetProvider extends AppWidgetProvider {
             views.setOnClickPendingIntent(R.id.btnWidgetLock, lockPi);
             views.setOnClickPendingIntent(R.id.btnWidgetUnlock, unlockPi);
             views.setOnClickPendingIntent(R.id.btnWidgetRefresh, refreshPi);
+
+            if (tall) {
+                views.setViewVisibility(R.id.layoutWidgetLocationBar, View.VISIBLE);
+                views.setOnClickPendingIntent(R.id.layoutWidgetLocationBar, navPi);
+                String timeSuffix = "";
+                if (st != null && st.hasLocation() && st.gpsTs != null && st.gpsTs > 0) {
+                    long ms = st.gpsTs > 1_000_000_000_000L ? st.gpsTs : st.gpsTs * 1000L;
+                    timeSuffix = " · " + new SimpleDateFormat("HH:mm", Locale.US).format(new Date(ms));
+                }
+                String locLabel = wide ? ("Car Location" + timeSuffix + " · Navigate") : ("Location" + timeSuffix);
+                views.setTextViewText(R.id.tvWidgetLocationLabel, locLabel);
+                String locText;
+                if (st != null && st.hasLocation()) {
+                    String cachedStreet = VehicleLocationHelper.getCachedStreetName(st.latitude, st.longitude);
+                    locText = cachedStreet != null
+                            ? cachedStreet
+                            : VehicleLocationHelper.formatCoordinates(st.latitude, st.longitude);
+                } else {
+                    locText = context.getString(R.string.location_widget_empty);
+                }
+                views.setTextViewText(R.id.tvWidgetLocationText, locText);
+            } else {
+                views.setViewVisibility(R.id.layoutWidgetLocationBar, View.GONE);
+            }
 
             if (wide) {
                 views.setTextViewText(R.id.tvWidgetRange, rangeText);
@@ -481,6 +517,11 @@ public class VehicleWidgetProvider extends AppWidgetProvider {
             }
 
             mgr.updateAppWidget(appWidgetId, views);
+        }
+        if (anyTall && st != null && st.hasLocation()
+                && VehicleLocationHelper.getCachedStreetName(st.latitude, st.longitude) == null) {
+            VehicleLocationHelper.resolveStreetName(context, st.latitude, st.longitude,
+                    street -> refreshWidgets(context));
         }
     }
 
