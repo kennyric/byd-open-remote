@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Material 3 Light Mode Base Tokens -->
+    <color name="bg_obsidian">#F6F8F7</color>
+    <color name="surface_card">#FFFFFF</color>
+    <color name="surface_inner">#EDF2EF</color>
+    <color name="surface_console">#E8EFEA</color>
+    <color name="stroke_subtle">#D0DBD4</color>
+    <color name="stroke_input">#747D77</color>
+
+    <color name="accent_emerald">#006C4C</color>
+    <color name="accent_emerald_dark">#8CF7C7</color>
+    <color name="accent_cyan">#00658E</color>
+    <color name="accent_cyan_dark">#C7E7FF</color>
+    <color name="accent_amber">#9C5700</color>
+    <color name="accent_amber_bg">#FFEDD6</color>
+    <color name="accent_rose">#BA1A1A</color>
+    <color name="accent_rose_dark">#FFDAD6</color>
+
+    <color name="text_primary">#181D1A</color>
+    <color name="text_secondary">#414944</color>
+    <color name="text_muted">#6E7872</color>
+
+    <!-- Material You Widget Fallback Palette (Light) -->
+    <color name="widget_surface">#F3F7F4</color>
+    <color name="widget_surface_variant">#E3EBE6</color>
+    <color name="widget_on_surface">#181D1A</color>
+    <color name="widget_on_surface_variant">#414944</color>
+    <color name="widget_primary_container">#9FF2CE</color>
+    <color name="widget_on_primary_container">#002114</color>
+    <color name="widget_secondary_container">#CBE6FF</color>
+    <color name="widget_on_secondary_container">#001E30</color>
+    <color name="widget_tertiary_container">#FFE0B2</color>
+    <color name="widget_on_tertiary_container">#2B1700</color>
+    <color name="widget_outline">#C1CCC5</color>
+</resources>

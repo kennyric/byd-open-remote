@@ -1,0 +1,78 @@
+plugins {
+    id 'com.android.application'
+}
+
+def agcAppId = "0"
+def agcCpId = "0"
+def agcFile = file('agconnect-services.json')
+if (agcFile.exists()) {
+    def agcJson = new groovy.json.JsonSlurper().parse(agcFile)
+    if (agcJson?.client?.app_id) agcAppId = agcJson.client.app_id.toString()
+    if (agcJson?.client?.cp_id) agcCpId = agcJson.client.cp_id.toString()
+}
+
+android {
+    namespace 'com.bydwatch.companion'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'com.bydwatch.companion'
+        minSdk 26
+        targetSdk 34
+        versionCode 1
+        versionName '1.0.0'
+
+        testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
+
+        buildConfigField "String", "WATCH_PACKAGE_NAME", "\"com.bydwatch.watch\""
+        buildConfigField "String", "WATCH_CERT_FINGERPRINT", "\"com.bydwatch.watch_BBG+cmVghVnFoIr3ewR8fzWOe/T1PZKjybLqvtVd6ohc65XSefxD048CQzjWAwDtHJKXGWZeqNc5Qq/Fl8ZWIUI=\""
+        buildConfigField "String", "STORE_WATCH_PACKAGE_NAME", "\"com.evwatch.bridge\""
+        buildConfigField "String", "STORE_WATCH_CERT_FINGERPRINT", "\"\""
+
+        manifestPlaceholders = [
+            HUAWEI_APP_ID: agcAppId,
+            HUAWEI_CP_ID: agcCpId
+        ]
+    }
+
+    buildFeatures {
+        buildConfig = true
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    testOptions {
+        unitTests {
+            includeAndroidResources = true
+        }
+    }
+
+    sourceSets {
+        test {
+            resources.srcDirs += ['src/main/assets']
+        }
+    }
+}
+
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+    implementation 'com.google.android.material:material:1.12.0'
+    implementation 'androidx.security:security-crypto:1.1.0-alpha06'
+    implementation 'com.huawei.hms:wearengine:5.0.3.304'
+
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.robolectric:robolectric:4.13'
+    testImplementation 'org.json:json:20240303'
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+}

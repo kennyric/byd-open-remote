@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <group android:checkableBehavior="single">
+        <item
+            android:id="@+id/nav_controls"
+            android:icon="@drawable/ic_nav_car"
+            android:title="@string/nav_controls" />
+        <item
+            android:id="@+id/nav_account"
+            android:icon="@drawable/ic_nav_account"
+            android:title="@string/nav_account" />
+        <item
+            android:id="@+id/nav_preferences"
+            android:icon="@drawable/ic_nav_tune"
+            android:title="@string/nav_preferences" />
+        <item
+            android:id="@+id/nav_watch_bridge"
+            android:icon="@drawable/ic_nav_watch"
+            android:title="@string/nav_watch_bridge" />
+    </group>
+</menu>

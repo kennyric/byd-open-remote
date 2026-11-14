@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Watch Companion BYD</string>
+    <string name="header_title">BYD EV</string>
+    <string name="header_subtitle">Pendamping Cloud Global</string>
+    <string name="auth_notice">Pemberitahuan Keamanan: Sangat disarankan memakai akun tamu Alternate Vehicle Authorization dari aplikasi resmi BYD dengan izin kontrol jarak jauh. Aplikasi pihak ketiga independen.</string>
+    <string name="card_account_title">Akun BYD &amp; Wilayah</string>
+    <string name="label_region">Wilayah / Pasar Cloud</string>
+    <string name="helper_region">Sesuaikan dengan negara pendaftaran akun BYD Anda (termasuk CN)</string>
+    <string name="label_country_code">Kode Negara ISO Opsional (mis. ID, SG, AU)</string>
+    <string name="label_active_vehicle">Kendaraan Aktif (Multi-Mobil)</string>
+    <string name="label_username">Akun BYD (Email atau Telepon)</string>
+    <string name="label_password">Kata Sandi Akun</string>
+    <string name="label_pin">PIN Kontrol Jarak Jauh 6-Digit</string>
+    <string name="btn_save_credentials">Simpan Kredensial</string>
+    <string name="btn_fetch_vin">Ambil Daftar Mobil &amp; Tes Login</string>
+
+    <string name="card_controls_title">Status &amp; Kontrol Kendaraan</string>
+    <string name="label_soc">Baterai</string>
+    <string name="label_range">Jarak</string>
+    <string name="label_doors">Pintu</string>
+    <string name="label_cabin_temp">Suhu Kabin</string>
+    <string name="label_ac_state">AC</string>
+    <string name="label_last_updated">Diperbarui</string>
+
+    <string name="btn_refresh">Segarkan</string>
+    <string name="btn_lock">Kunci</string>
+    <string name="btn_unlock">Buka Kunci</string>
+    <string name="btn_ac_on">AC Nyala</string>
+    <string name="btn_ac_off">AC Mati</string>
+    <string name="btn_lights">Lampu</string>
+    <string name="btn_horn">Klakson</string>
+    <string name="btn_vent_windows">Buka Celah</string>
+    <string name="btn_close_windows">Tutup Kaca</string>
+    <string name="btn_bat_heat">Pemanas Bat</string>
+    <string name="btn_seat_heat">Kursi Hangat</string>
+
+    <string name="label_vehicle_health">Kondisi Kendaraan &amp; Tekanan Ban (TPMS)</string>
+    <string name="label_units">Satuan</string>
+    <string name="widget_label">Status EV Watch</string>
+    <string name="tile_label">Kunci Cepat EV</string>
+    <string name="label_alerts_toggle">Peringatan Pintar (Belum Dikunci / Terbuka / Selesai Cas)</string>
+    <string name="label_watch_edition">Edisi Aplikasi Jam:</string>
+    <string name="btn_disclaimer">Penafian</string>
+
+    <string name="card_bridge_title">Bridge Jam &amp; Log Aktivitas</string>
+    <string name="btn_auth_health">Otorisasi Huawei Health</string>
+    <string name="btn_start_service">Jalankan Layanan Bridge</string>
+    <string name="btn_stop_service">Hentikan Layanan Bridge</string>
+    <string name="btn_battery_opt">Matikan Optimasi Baterai</string>
+    <string name="service_status_running">Layanan bridge aktif (foreground)</string>
+    <string name="service_status_stopped">Layanan bridge berhenti</string>
+</resources>

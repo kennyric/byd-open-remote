@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Companheiro de Relógio BYD</string>
+    <string name="header_title">BYD EV</string>
+    <string name="header_subtitle">Companheiro Cloud Global</string>
+    <string name="auth_notice">Aviso de Segurança: Recomendamos usar uma subconta Alternate Vehicle Authorization criada no aplicativo oficial BYD. Aplicativo independente não oficial.</string>
+    <string name="card_account_title">Conta BYD e Região</string>
+    <string name="label_region">Região / Mercado Cloud</string>
+    <string name="helper_region">Corresponde ao país de registro da conta BYD (inclui China CN)</string>
+    <string name="label_active_vehicle">Veículo Ativo (Multi-Carro)</string>
+    <string name="btn_save_credentials">Salvar Credenciais</string>
+    <string name="btn_fetch_vin">Buscar Veículos e Testar</string>
+
+    <string name="card_controls_title">Status e Controles</string>
+    <string name="label_range">Autonomia</string>
+    <string name="label_doors">Portas</string>
+    <string name="label_cabin_temp">Temp. Cabine</string>
+    <string name="label_last_updated">Atualizado</string>
+
+    <string name="btn_refresh">Atualizar</string>
+    <string name="btn_lock">Travar</string>
+    <string name="btn_unlock">Destravar</string>
+    <string name="btn_ac_on">Ligar AC</string>
+    <string name="btn_ac_off">Desligar AC</string>
+    <string name="btn_lights">Faróis</string>
+    <string name="btn_horn">Buzina</string>
+    <string name="btn_vent_windows">Ventilar</string>
+    <string name="btn_close_windows">Fechar Vidros</string>
+    <string name="btn_bat_heat">Aquec. Bat</string>
+    <string name="btn_seat_heat">Banco</string>
+
+    <string name="label_vehicle_health">Saúde do Veículo e Pneus (TPMS)</string>
+    <string name="label_units">Unidades</string>
+    <string name="label_alerts_toggle">Alertas Inteligentes (Destravado / Aberto / Carga)</string>
+    <string name="label_watch_edition">Edição do Relógio:</string>
+    <string name="btn_disclaimer">Aviso Legal</string>
+
+    <string name="card_bridge_title">Ponte do Relógio e Log</string>
+    <string name="btn_auth_health">Autorizar Huawei Health</string>
+    <string name="btn_start_service">Iniciar Serviço</string>
+    <string name="btn_stop_service">Parar Serviço</string>
+    <string name="btn_battery_opt">Desativar Otimização de Bateria</string>
+</resources>
