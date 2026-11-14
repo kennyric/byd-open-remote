@@ -1000,6 +1000,53 @@ public class MainActivityTest {
         assertTrue(tvLog.getText().toString().contains("[raw] cs=0 conn=1 gear=3 vs=2"));
     }
 
+    @Test
+    public void splashScreenDisplaysCreatorAndNonCommercialNoticeAndProceedsToMain() {
+        try (ActivityController<SplashActivity> splashController =
+                     Robolectric.buildActivity(SplashActivity.class).setup()) {
+            SplashActivity splash = splashController.get();
+            TextView tvCreator = splash.findViewById(R.id.tvSplashCreator);
+            TextView tvNoticeBody = splash.findViewById(R.id.tvSplashNoticeBody);
+            Button btnContinue = splash.findViewById(R.id.btnSplashContinue);
+
+            assertTrue(tvCreator.getText().toString().contains("Kenny Ricardo"));
+            assertTrue(tvNoticeBody.getText().toString().contains("Tidak diperuntukkan untuk jual beli"));
+
+            btnContinue.performClick();
+            ShadowLooper.idleMainLooper();
+
+            Intent next = Shadows.shadowOf(splash).getNextStartedActivity();
+            assertNotNull(next);
+            assertEquals(MainActivity.class.getName(), next.getComponent().getClassName());
+            assertTrue(splash.isFinishing());
+        }
+    }
+
+    @Test
+    public void aboutSectionInDebugPageDisplaysMakerAndOpensGithubLinks() {
+        TextView tvCreator = activity.findViewById(R.id.tvAboutCreator);
+        TextView tvNotice = activity.findViewById(R.id.tvAboutNotice);
+        Button btnCompanion = activity.findViewById(R.id.btnAboutGithubCompanion);
+        Button btnWatch = activity.findViewById(R.id.btnAboutGithubWatch);
+
+        assertTrue(tvCreator.getText().toString().contains("Kenny Ricardo"));
+        assertTrue(tvNotice.getText().toString().contains("Tidak diperuntukkan untuk jual beli"));
+
+        btnCompanion.performClick();
+        ShadowLooper.idleMainLooper();
+        Intent companionIntent = Shadows.shadowOf(activity).getNextStartedActivity();
+        assertNotNull(companionIntent);
+        assertEquals(Intent.ACTION_VIEW, companionIntent.getAction());
+        assertEquals("https://github.com/kennyric/byd-android-companion", companionIntent.getDataString());
+
+        btnWatch.performClick();
+        ShadowLooper.idleMainLooper();
+        Intent watchIntent = Shadows.shadowOf(activity).getNextStartedActivity();
+        assertNotNull(watchIntent);
+        assertEquals(Intent.ACTION_VIEW, watchIntent.getAction());
+        assertEquals("https://github.com/kennyric/byd-watch-gt4", watchIntent.getDataString());
+    }
+
     private static boolean containsTextViewWithText(View view, String target) {
         if (view instanceof TextView && target.contentEquals(((TextView) view).getText())) {
             return true;

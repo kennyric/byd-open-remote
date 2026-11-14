@@ -122,4 +122,19 @@
     <string name="status_bridge_unavailable">Huawei Health / Wear Engine unavailable on device.</string>
     <string name="battery_opt_prompt">Requesting battery optimization exemption...</string>
     <string name="battery_opt_granted">Battery optimization is already disabled.</string>
+
+    <string name="splash_title">BYD Watch Companion</string>
+    <string name="splash_subtitle">Huawei Watch GT 4 &amp; EV Remote Bridge</string>
+    <string name="splash_creator">Created by Kenny Ricardo</string>
+    <string name="splash_non_commercial_title">FREE COMMUNITY APP · NOT FOR SALE</string>
+    <string name="splash_non_commercial_body">Open-source &amp; free for personal use.\nTidak diperuntukkan untuk jual beli (Not for commercial sale or resale).</string>
+    <string name="splash_continue">Continue</string>
+
+    <string name="about_section_title">About &amp; Open Source</string>
+    <string name="about_creator">Maker: Kenny Ricardo</string>
+    <string name="about_non_commercial">Free open-source project — Not for sale / Tidak diperuntukkan untuk jual beli.</string>
+    <string name="about_github_companion">GitHub · Companion App</string>
+    <string name="about_github_watch">GitHub · Watch GT 4 App</string>
+    <string name="about_github_companion_url">https://github.com/kennyric/byd-android-companion</string>
+    <string name="about_github_watch_url">https://github.com/kennyric/byd-watch-gt4</string>
 </resources>

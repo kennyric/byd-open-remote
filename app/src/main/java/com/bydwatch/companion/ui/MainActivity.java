@@ -179,6 +179,8 @@ public class MainActivity extends AppCompatActivity {
     private Button btnBatteryOpt;
     private Button btnCopyLog;
     private Button btnClearLog;
+    private Button btnAboutGithubCompanion;
+    private Button btnAboutGithubWatch;
     private NestedScrollView scrollStatusLog;
     private TextView tvStatusLog;
     private volatile String lastLocationLookupKey;
@@ -326,6 +328,8 @@ public class MainActivity extends AppCompatActivity {
         btnBatteryOpt = findViewById(R.id.btnBatteryOpt);
         btnCopyLog = findViewById(R.id.btnCopyLog);
         btnClearLog = findViewById(R.id.btnClearLog);
+        btnAboutGithubCompanion = findViewById(R.id.btnAboutGithubCompanion);
+        btnAboutGithubWatch = findViewById(R.id.btnAboutGithubWatch);
         scrollStatusLog = findViewById(R.id.scrollStatusLog);
         tvStatusLog = findViewById(R.id.tvStatusLog);
 
@@ -724,6 +728,14 @@ public class MainActivity extends AppCompatActivity {
         btnAuthHealth.setOnClickListener(v -> authorizeHuaweiHealth());
         btnToggleService.setOnClickListener(v -> toggleBridgeService());
         btnBatteryOpt.setOnClickListener(v -> requestBatteryOptimizationExemption());
+        if (btnAboutGithubCompanion != null) {
+            btnAboutGithubCompanion.setOnClickListener(
+                    v -> openExternalUrl(getString(R.string.about_github_companion_url)));
+        }
+        if (btnAboutGithubWatch != null) {
+            btnAboutGithubWatch.setOnClickListener(
+                    v -> openExternalUrl(getString(R.string.about_github_watch_url)));
+        }
     }
 
     private void authorizeHuaweiHealth() {
@@ -1496,12 +1508,24 @@ public class MainActivity extends AppCompatActivity {
 
     private void showDisclaimerDialog() {
         new AlertDialog.Builder(this)
-                .setTitle("Safety & Legal Disclaimer")
-                .setMessage("Unofficial independent EV remote utility. Not affiliated with, endorsed by, or sponsored by BYD Auto or Huawei. "
+                .setTitle("About, Safety & Legal Disclaimer")
+                .setMessage("Created by Kenny Ricardo.\n"
+                        + "Free open-source community project — not for commercial sale or resale (Tidak diperuntukkan untuk jual beli).\n\n"
+                        + "Unofficial independent EV remote utility. Not affiliated with, endorsed by, or sponsored by BYD Auto or Huawei. "
                         + "Always inspect vehicle surroundings visually before operating locks, windows, or climate remotely. "
                         + "Requires your own BYD owner credentials and 6-digit PIN; credentials are stored encrypted on this phone only.")
+                .setNeutralButton("GitHub", (d, w) -> openExternalUrl(getString(R.string.about_github_companion_url)))
                 .setPositiveButton("Close", null)
                 .show();
+    }
+
+    private void openExternalUrl(String url) {
+        if (url == null || url.trim().isEmpty()) return;
+        try {
+            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url.trim())));
+        } catch (Exception e) {
+            showToast("Unable to open link", true);
+        }
     }
 
     private void copyEventLog() {
