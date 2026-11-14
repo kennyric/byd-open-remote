@@ -492,32 +492,53 @@ public class CloudBydGateway implements BydGateway {
         Integer cabinTempC = null;
         if (vi.has("cabinTempC") && !vi.isNull("cabinTempC")) {
             cabinTempC = vi.optInt("cabinTempC");
-        } else if (vi.has("tempInCar") && !vi.isNull("tempInCar")) {
-            double tempInCar = vi.optDouble("tempInCar", -129.0);
-            if (tempInCar >= -40.0 && tempInCar <= 80.0) {
-                cabinTempC = (int) Math.round(tempInCar);
-            }
+        } else {
+            cabinTempC = extractTempFromSources(
+                    new JSONObject[]{
+                            vi,
+                            vi.optJSONObject("statusNow"),
+                            hvac,
+                            hvac != null ? hvac.optJSONObject("statusNow") : null
+                    },
+                    "tempInCar", -40.0, 80.0);
         }
 
-        Integer outsideTempC = null;
-        if (vi.has("tempOutCar") && !vi.isNull("tempOutCar")) {
-            double tempOut = vi.optDouble("tempOutCar", -129.0);
-            if (tempOut >= -50.0 && tempOut <= 75.0) {
-                outsideTempC = (int) Math.round(tempOut);
-            }
-        }
+        Integer outsideTempC = extractTempFromSources(
+                new JSONObject[]{
+                        vi,
+                        vi.optJSONObject("statusNow"),
+                        hvac,
+                        hvac != null ? hvac.optJSONObject("statusNow") : null
+                },
+                "tempOutCar", -50.0, 75.0);
 
         int targetTempC = vi.optInt("targetTempC", configStore != null ? configStore.getDefaultTempC() : 17);
         long ts = vi.optLong("ts", vi.optLong("time", System.currentTimeMillis() / 1000L));
 
+        int powerGear = vi.optInt("powerGear", -1);
         double speed = vi.optDouble("speed", Double.NaN);
         boolean vehicleOn = vi.optBoolean("carOn", false)
+                || powerGear == 3
                 || (!Double.isNaN(speed) && !Double.isInfinite(speed) && speed > 0.5);
 
-        int chargingState = vi.has("chargeState")
-                ? vi.optInt("chargeState", VehicleStatus.CHARGING_UNKNOWN)
-                : vi.optInt("chargingState", VehicleStatus.CHARGING_UNKNOWN);
-        if (vehicleOn && chargingState != VehicleStatus.CHARGING_ACTIVE) {
+        int rawCs = vi.has("chargeState") && !vi.isNull("chargeState")
+                ? vi.optInt("chargeState", -1)
+                : -1;
+        int rawChargingState = vi.has("chargingState") && !vi.isNull("chargingState")
+                ? vi.optInt("chargingState", -1)
+                : -1;
+        int chargingState;
+        if (rawCs >= 0) {
+            chargingState = rawCs;
+        } else if (rawChargingState >= 0) {
+            chargingState = rawChargingState;
+        } else {
+            chargingState = VehicleStatus.CHARGING_UNKNOWN;
+        }
+        // Per Overdrive (VehicleCloudSnapshot.getChargingStateAsSdk) & pyBYD:
+        // BYD leaves chargeState=15 even when unplugged or driving, so do not map 15 to "Plugged In".
+        if (chargingState == VehicleStatus.CHARGING_CONNECTED
+                || (vehicleOn && chargingState != VehicleStatus.CHARGING_ACTIVE)) {
             chargingState = VehicleStatus.CHARGING_NONE;
         }
         Integer chgMin = null;
@@ -641,9 +662,36 @@ public class CloudBydGateway implements BydGateway {
                 .build();
     }
 
+    private static Integer extractTempFromSources(JSONObject[] sources, String key, double minValid, double maxValid) {
+        if (sources == null) return null;
+        for (JSONObject src : sources) {
+            if (src != null && src.has(key) && !src.isNull(key)) {
+                double val = src.optDouble(key, -129.0);
+                if (!Double.isNaN(val) && !Double.isInfinite(val) && val >= minValid && val <= maxValid) {
+                    return (int) Math.round(val);
+                }
+            }
+        }
+        return null;
+    }
+
     private static boolean extractAcOn(JSONObject vi, JSONObject hvac) {
         if (vi != null && vi.has("acOn") && !vi.isNull("acOn")) {
             return vi.optBoolean("acOn", false);
+        }
+        // Per pyBYD (HvacStatus.is_ac_on / HvacOverallStatus): getStatusNow status (1=ON, 2=OFF)
+        // is authoritative; acSwitch/airConditioningMode/airRunState remain set when HVAC is off.
+        JSONObject[] hvacStatusSources = new JSONObject[]{
+                hvac != null ? hvac.optJSONObject("statusNow") : null,
+                hvac,
+                vi != null ? vi.optJSONObject("statusNow") : null
+        };
+        for (JSONObject src : hvacStatusSources) {
+            if (src != null && src.has("status") && !src.isNull("status")) {
+                int st = src.optInt("status", -1);
+                if (st == 1) return true;
+                if (st == 2 || st == 0) return false;
+            }
         }
         String[] intOneKeys = {
                 "airConditionStatus",
@@ -652,9 +700,6 @@ public class CloudBydGateway implements BydGateway {
                 "autoAirConditioning",
                 "eleAirACSwitch",
                 "airState",
-                "acSwitch",
-                "airConditioningMode",
-                "airRunState",
                 "airCondition",
                 "acState",
                 "airConditioning"

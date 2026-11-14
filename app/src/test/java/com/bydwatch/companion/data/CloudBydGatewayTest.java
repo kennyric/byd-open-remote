@@ -333,40 +333,52 @@ public class CloudBydGatewayTest {
     }
 
     @Test
-    public void parkedNonZeroEnumsStayOffWhileSpeedAndStrictAcOneReflectTrueState() throws Exception {
+    public void atto1ParkedTelemetryStaysOffAndNotChargingWhilePowerGearThreeAndHvacStatusOneActivate() throws Exception {
         FakeClient fakeClient = new FakeClient();
+        // Mirrors real Atto 1 parked/off/unplugged/AC-off capture
         fakeClient.realtimeResult = new JSONObject()
-                .put("elecPercent", 82)
-                .put("enduranceMileageV2", 234)
-                .put("chargeState", 0)
-                .put("connectState", 1)
-                .put("powerGear", 3)
+                .put("elecPercent", 79)
+                .put("enduranceMileageV2", 237)
+                .put("chargeState", 15)
+                .put("chargingState", -1)
+                .put("connectState", -1)
+                .put("powerGear", 1)
                 .put("vehicleState", 2)
+                .put("airRunState", 2)
+                .put("tempInCar", -129)
                 .put("speed", 0.0)
-                .put("airConditionStatus", 2)
                 .put("vin", "LC0SECRET123")
                 .put("latitude", -5.4)
                 .put("userToken", "tok_secret");
-        fakeClient.hvacResult = null;
+        fakeClient.hvacResult = new JSONObject()
+                .put("statusNow", new JSONObject()
+                        .put("acSwitch", 1)
+                        .put("airConditioningMode", 2)
+                        .put("status", 2)
+                        .put("tempInCar", -129)
+                        .put("tempOutCar", 33));
 
         CloudBydGateway gateway = new CloudBydGateway(configStore, cfg -> fakeClient);
         VehicleStatus parked = gateway.fetchVehicleRealtime("LGX_ATTO_1");
         assertFalse(parked.vehicleOn);
         assertEquals(VehicleStatus.CHARGING_NONE, parked.chargingState);
         assertFalse(parked.acOn);
+        assertNull(parked.cabinTempC);
+        assertEquals(Integer.valueOf(33), parked.outsideTempC);
 
         configStore.setVerboseLogsEnabled(true);
-        fakeClient.realtimeResult.put("speed", 45.0);
+        fakeClient.realtimeResult.put("powerGear", 3);
         fakeClient.hvacResult = new JSONObject()
                 .put("statusNow", new JSONObject()
                         .put("acSwitch", 1)
-                        .put("airConditioningMode", 2));
+                        .put("airConditioningMode", 2)
+                        .put("status", 1));
 
         VehicleStatus driving = gateway.fetchVehicleRealtime("LGX_ATTO_1");
         assertTrue(driving.vehicleOn);
         assertEquals(VehicleStatus.CHARGING_NONE, driving.chargingState);
         assertTrue(driving.acOn);
-        assertTrue(driving.diagSummary.contains("hv.sn.acSwitch=1"));
+        assertTrue(driving.diagSummary.contains("hv.sn.status=1"));
         assertTrue(driving.diagSummary.contains("powerGear=3"));
         assertFalse(driving.diagSummary.contains("LC0SECRET123"));
         assertFalse(driving.diagSummary.contains("tok_secret"));
