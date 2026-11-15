@@ -185,6 +185,16 @@ The APK (`BYD-Open-Remote-v<version>.apk`) is written to `app/build/outputs/apk/
 
 ---
 
+## Support
+
+**BYD Open Remote** is free and open-source. If this app makes your daily drive easier, you can support ongoing development:
+
+[![Sponsor on Ko-fi](https://img.shields.io/badge/Ko--fi-Support_Project-00658E?style=for-the-badge&logo=kofi&logoColor=white)](https://ko-fi.com/kenny40049)
+
+> **Indonesian Supporters (QRIS):** Local QRIS support is coming soon.
+
+---
+
 ## Acknowledgments
 
 - Created by **Kenny Ricardo**
