@@ -1,6 +1,7 @@
 package com.bydwatch.companion.data;
 
 import com.bydwatch.companion.model.CustomActionCombo;
+import com.bydwatch.companion.model.HomeButtonConfig;
 import com.bydwatch.companion.model.UnitPreferences;
 import com.bydwatch.companion.model.VehicleSummary;
 import com.bydwatch.companion.model.WidgetSlotConfig;
@@ -166,6 +167,29 @@ public interface ConfigStore {
     default void setWidgetSlots(List<WidgetSlotConfig> slots) {
         setWidgetSlotsJson(WidgetSlotConfig.listToJson(slots));
     }
+
+    default String getHomeCustomButtonsJson() { return null; }
+    default void setHomeCustomButtonsJson(String json) {}
+
+    default List<HomeButtonConfig> getHomeCustomButtons() {
+        return HomeButtonConfig.listFromJson(getHomeCustomButtonsJson());
+    }
+
+    default void setHomeCustomButtons(List<HomeButtonConfig> buttons) {
+        setHomeCustomButtonsJson(HomeButtonConfig.listToJson(buttons));
+    }
+
+    default boolean isShowHomeClimate() { return true; }
+    default void setShowHomeClimate(boolean show) {}
+
+    default boolean isShowHomeAlerts() { return true; }
+    default void setShowHomeAlerts(boolean show) {}
+
+    default boolean isShowHomeLocation() { return true; }
+    default void setShowHomeLocation(boolean show) {}
+
+    default boolean isShowHomeHealth() { return true; }
+    default void setShowHomeHealth(boolean show) {}
 
     boolean isConfigured();
 

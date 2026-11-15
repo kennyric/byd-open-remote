@@ -3,9 +3,9 @@
 Free, open-source, unofficial Android remote control & Material You home-screen widget app for BYD vehicles connected to BYD DiLink Cloud (`com.bydopenremote.app`).
 
 [![Download Android APK](https://img.shields.io/badge/Download_APK-Latest_Release-006C4C?style=for-the-badge&logo=android&logoColor=white)](https://github.com/kennyric/byd-open-remote/releases/latest)
-[![Direct APK Download](https://img.shields.io/badge/Direct_Download-v1.0.0_(.apk)-00658E?style=for-the-badge)](https://github.com/kennyric/byd-open-remote/releases/download/v1.0.0/byd-open-remote-v1.0.0-debug.apk)
+[![Direct APK Download](https://img.shields.io/badge/Direct_Download-v1.0.1_(.apk)-00658E?style=for-the-badge)](https://github.com/kennyric/byd-open-remote/releases/download/v1.0.1/BYD-Open-Remote-v1.0.1.apk)
 
-> **Quick Install:** **[Tap here to download the Android app (.apk)](https://github.com/kennyric/byd-open-remote/releases/download/v1.0.0/byd-open-remote-v1.0.0-debug.apk)** or open the **[Releases page](https://github.com/kennyric/byd-open-remote/releases/latest)**, then follow the **[2nd account setup guide](#pre-login-setup-guide-2nd-account--password--pin)** below before signing in.
+> **Quick Install:** **[Tap here to download the Android app (.apk)](https://github.com/kennyric/byd-open-remote/releases/download/v1.0.1/BYD-Open-Remote-v1.0.1.apk)** or open the **[Releases page](https://github.com/kennyric/byd-open-remote/releases/latest)**, then follow the **[2nd account setup guide](#pre-login-setup-guide-2nd-account--password--pin)** below before signing in.
 
 > [!IMPORTANT]
 > **Security Recommendation — Always Use a 2nd BYD Account:** Do **not** log in with your primary owner account. Create a secondary BYD account in the official BYD app, share your car to it with Remote Control permissions, set its password & 6-digit Operation PIN, test a remote command once in the official app, and **only then** sign into BYD Open Remote.
@@ -63,7 +63,7 @@ Setting up a dedicated secondary account takes ~2 minutes in the official **BYD 
    - Tap **Lock** or **Climate On** once inside the official BYD App to confirm the 2nd account's password & Operation PIN are active on BYD Cloud.
 4. **Sign In on BYD Open Remote & Fetch VIN**
    - Open **BYD Open Remote** → **BYD Account & Region**.
-   - Select your **Cloud Region**, enter your **2nd account email, password, and 6-digit Operation PIN**, then tap **Fetch Vehicles & Test Login** (your VIN fills in automatically).
+   - Select your **Cloud Region**, enter your **2nd account email, password, and 6-digit Operation PIN**, tap **Fetch VIN** (your VIN fills in automatically), and then tap **Save** to return to the controls homepage.
 
 > [!TIP]
 > **Why do this first?**
@@ -79,9 +79,10 @@ Setting up a dedicated secondary account takes ~2 minutes in the official **BYD 
   - State of Charge (`%`), estimated range, aggregate charging power (`kW`) & remaining charge time, total odometer, outside temperature, door/window/trunk closure status, and 4-wheel TPMS tire pressure.
   - Switchable display units for distance (`km` / `mi`), temperature (`°C` / `°F`), and pressure (`kPa` / `PSI` / `bar`).
   - *(Note: BYD DiLink Cloud API exposes aggregate charging power in `kW` and remaining charge duration; raw charger voltage `V` and current `A` are not provided by the cloud telemetry endpoint.)*
-- **Remote Vehicle Controls**
+- **Remote Vehicle Controls & Custom Homepage Layout**
   - Lock / Unlock doors, Flash Lights, Honk Horn, Vent / Close Windows, Battery Preconditioning Heat, and Driver Seat Heat (`Level 0–2`).
   - Dual Climate Modes: **Auto Climate** (`°C` / `°F`) and **Manual AC Mode** (e.g., BYD Atto 1 / Seagull with Temp Level `1–9`, Fan Level `1–7`, and `Body` / `Body+Feet` / `Feet` vent direction).
+  - **Editable Homepage Layout & Custom Buttons**: tap **Edit** on the controls card (or in **Preferences**) to show/hide homepage sections and add, reorder, or customize up to 12 one-tap single-action or **Action Combo** buttons directly on the homepage.
 - **Home-Screen Widgets (Material You) & Quick Settings Tile**
   - Adaptive `2×2`, `4×1`, `4×2`, and `4×3` vehicle widgets (each with 4 customizable buttons — default `Lock`, `Unlock`, `AC On/Off`, `Sync`) plus a dedicated **Car Location** widget with reverse-geocoded street names and one-tap navigation handoff.
   - **Live `4×3` Preview in Preferences**: updates live as you change widget style, car model name, units, language, or button assignments (shows synthetic `Sample` telemetry before your first sync); tap any button in the preview or the `1–4` **Widget Buttons** strip to customize it, or tap **Reset** to restore defaults.
@@ -122,7 +123,7 @@ On Windows PowerShell:
 .\gradlew.bat testDebugUnitTest assembleDebug
 ```
 
-The debug APK (`byd-open-remote-v<version>-debug.apk`) is written to `app/build/outputs/apk/debug/`.
+The APK (`BYD-Open-Remote-v<version>.apk`) is written to `app/build/outputs/apk/debug/`.
 
 ---
 

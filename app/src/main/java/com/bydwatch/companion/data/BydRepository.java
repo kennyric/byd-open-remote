@@ -616,6 +616,15 @@ public class BydRepository {
 
         String msg = e.getMessage() != null ? e.getMessage() : "";
 
+        // Account-not-bound errors from verifyControlPassword (e.g. BYD code 2003)
+        // must not fall through to PIN_INVALID just because the wrapper mentions "Control PIN".
+        if (containsAny(combinedLower,
+                "code=2003",
+                "tidak terikat",
+                "not bound")) {
+            return "ACCOUNT_UNBOUND";
+        }
+
         // Specific PIN invalidity matching (avoid false matches on ping, mapping, etc.)
         if (PIN_PATTERN.matcher(msg).find() || PIN_PATTERN.matcher(combinedLower).find()) {
             return "PIN_INVALID";
@@ -647,6 +656,9 @@ public class BydRepository {
     public static String toFriendlyErrorMessage(Throwable e, String errCode) {
         String combinedLower = collectCauseMessagesLower(e);
 
+        if ("ACCOUNT_UNBOUND".equals(errCode)) {
+            return "Vehicle VIN is not bound to this BYD account. Go to Account and tap Fetch VIN.";
+        }
         if ("PIN_INVALID".equals(errCode)) {
             return "Incorrect 6-digit Remote Control PIN. Check your PIN in BYD Account.";
         }

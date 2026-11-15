@@ -120,6 +120,29 @@
                         android:textSize="16sp"
                         android:textStyle="bold" />
 
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnEditHomeLayout"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="28dp"
+                        android:layout_marginEnd="6dp"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        android:minWidth="0dp"
+                        android:minHeight="0dp"
+                        android:paddingHorizontal="10dp"
+                        android:text="@string/btn_edit_home_layout"
+                        android:textAllCaps="false"
+                        android:textColor="?attr/colorOnSurfaceVariant"
+                        android:textSize="11sp"
+                        app:cornerRadius="999dp"
+                        app:icon="@drawable/ic_nav_tune"
+                        app:iconGravity="textStart"
+                        app:iconPadding="4dp"
+                        app:iconSize="13dp"
+                        app:iconTint="?attr/colorOnSurfaceVariant"
+                        app:strokeColor="?attr/colorOutlineVariant" />
+
                     <TextView
                         android:id="@+id/tvLastUpdated"
                         android:layout_width="wrap_content"
@@ -408,6 +431,7 @@
 
                 <!-- Climate Control Bar (Compact AC On/Off Toggle + Adjust Popup Button) -->
                 <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cardClimateControl"
                     style="@style/Widget.Material3.CardView.Filled"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -508,6 +532,7 @@
 
                 <!-- Alert Controls: Flash Lights & Horn -->
                 <LinearLayout
+                    android:id="@+id/layoutAlertControls"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="8dp"
@@ -629,6 +654,31 @@
                         android:textSize="12sp"
                         app:cornerRadius="14dp"
                         app:strokeColor="?attr/colorOutlineVariant" />
+                </LinearLayout>
+
+                <!-- User Custom Homepage Buttons (Added via Edit Homepage Layout) -->
+                <LinearLayout
+                    android:id="@+id/layoutHomeCustomSection"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="10dp"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="6dp"
+                        android:text="@string/label_home_custom_buttons"
+                        android:textColor="?attr/colorOnSurfaceVariant"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+
+                    <LinearLayout
+                        android:id="@+id/layoutHomeCustomGrid"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical" />
                 </LinearLayout>
 
                 <!-- Multi-Car Quick Switcher -->
@@ -1251,8 +1301,12 @@
                             android:id="@+id/etVin"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
+                            android:clickable="false"
+                            android:cursorVisible="false"
+                            android:focusable="false"
                             android:importantForAutofill="no"
-                            android:inputType="textCapCharacters|textNoSuggestions"
+                            android:inputType="none"
+                            android:longClickable="false"
                             android:maxLength="17"
                             android:textSize="14sp" />
                     </com.google.android.material.textfield.TextInputLayout>
@@ -1263,11 +1317,26 @@
                         android:orientation="horizontal">
 
                         <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnFetchVin"
+                            style="@style/Widget.Material3.Button.TonalButton"
+                            android:layout_width="0dp"
+                            android:layout_height="46dp"
+                            android:layout_marginEnd="6dp"
+                            android:layout_weight="1"
+                            android:insetTop="0dp"
+                            android:insetBottom="0dp"
+                            android:text="@string/btn_fetch_vin"
+                            android:textAllCaps="false"
+                            android:textSize="13sp"
+                            android:textStyle="bold"
+                            app:cornerRadius="16dp" />
+
+                        <com.google.android.material.button.MaterialButton
                             android:id="@+id/btnSaveCredentials"
                             style="@style/Widget.Material3.Button"
                             android:layout_width="0dp"
                             android:layout_height="46dp"
-                            android:layout_marginEnd="6dp"
+                            android:layout_marginStart="6dp"
                             android:layout_weight="1"
                             android:insetTop="0dp"
                             android:insetBottom="0dp"
@@ -1275,20 +1344,6 @@
                             android:textAllCaps="false"
                             android:textSize="13sp"
                             android:textStyle="bold"
-                            app:cornerRadius="16dp" />
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btnFetchVin"
-                            style="@style/Widget.Material3.Button.TonalButton"
-                            android:layout_width="0dp"
-                            android:layout_height="46dp"
-                            android:layout_marginStart="6dp"
-                            android:layout_weight="1"
-                            android:insetTop="0dp"
-                            android:insetBottom="0dp"
-                            android:text="@string/btn_fetch_vin"
-                            android:textAllCaps="false"
-                            android:textSize="13sp"
                             app:cornerRadius="16dp" />
                     </LinearLayout>
                 </LinearLayout>
@@ -1810,6 +1865,24 @@
                     android:layout_height="1dp"
                     android:layout_marginBottom="10dp"
                     android:background="@color/stroke_subtle" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnPrefsEditHomeLayout"
+                    style="@style/Widget.Material3.Button.TonalButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="42dp"
+                    android:layout_marginBottom="10dp"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    android:text="@string/btn_prefs_edit_home_layout"
+                    android:textAllCaps="false"
+                    android:textSize="12.5sp"
+                    android:textStyle="bold"
+                    app:cornerRadius="14dp"
+                    app:icon="@drawable/ic_nav_tune"
+                    app:iconGravity="textStart"
+                    app:iconPadding="8dp"
+                    app:iconSize="16dp" />
 
                 <!-- Manual AC Mode Toggle (Atto 1 / No Climate Control) -->
                 <com.google.android.material.materialswitch.MaterialSwitch

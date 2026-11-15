@@ -173,40 +173,65 @@ public class MainActivityTest {
     }
 
     @Test
-    public void savesCredentialsToConfigStoreWhenValid() {
+    public void savesCredentialsAfterFetchVinAndNavigatesToHomepageWithToast() {
+        com.google.android.material.navigation.NavigationView navView = activity.findViewById(R.id.navView);
+        navView.getMenu().performIdentifierAction(R.id.nav_account, 0);
+        ShadowLooper.idleMainLooper();
+
         EditText etUsername = activity.findViewById(R.id.etUsername);
         EditText etPassword = activity.findViewById(R.id.etPassword);
         EditText etPin = activity.findViewById(R.id.etPin);
         EditText etVin = activity.findViewById(R.id.etVin);
+        Button btnFetchVin = activity.findViewById(R.id.btnFetchVin);
         Button btnSave = activity.findViewById(R.id.btnSaveCredentials);
         TextView tvLog = activity.findViewById(R.id.tvStatusLog);
 
+        // Editing account details clears verified VIN state and disables Save until Fetch VIN runs
         etUsername.setText("newowner@byd.id");
         etPassword.setText("NewPassword99");
         etPin.setText("654321");
-        etVin.setText("VIN9876543210");
-
-        btnSave.performClick();
         ShadowLooper.idleMainLooper();
+
+        assertFalse(btnSave.isEnabled());
+        assertEquals("", etVin.getText().toString());
+
+        // Step 1: Fetch VIN verifies credentials and fills VIN while keeping user on Account page
+        btnFetchVin.performClick();
+        awaitAsyncWork();
+
+        assertTrue(btnSave.isEnabled());
+        assertEquals("BYDATTO1TESTVIN99", etVin.getText().toString());
+        assertEquals(View.VISIBLE, activity.findViewById(R.id.cardAccount).getVisibility());
+
+        // Step 2: Save completes setup, switches to homepage, shows toast, and refreshes telemetry
+        btnSave.performClick();
+        awaitAsyncWork();
 
         assertEquals("newowner@byd.id", configStore.getUsername());
         assertEquals("NewPassword99", configStore.getPassword());
         assertEquals("654321", configStore.getPin());
-        assertEquals("VIN9876543210", configStore.getVin());
-        assertTrue(tvLog.getText().toString().contains("saved") || tvLog.getText().toString().contains("Saved"));
+        assertEquals("BYDATTO1TESTVIN99", configStore.getVin());
+        assertEquals(View.VISIBLE, activity.findViewById(R.id.cardControls).getVisibility());
+        assertEquals(View.GONE, activity.findViewById(R.id.cardAccount).getVisibility());
+        assertTrue(ShadowToast.showedToast("Account login successful"));
+        assertTrue(tvLog.getText().toString().contains("Account login successful"));
     }
 
     @Test
-    public void saveCredentialsRejectsMissingCredentialsOrInvalidPin() {
+    public void saveCredentialsRequiresFetchVinAndRejectsInvalidInputs() {
         EditText etUsername = activity.findViewById(R.id.etUsername);
         EditText etPassword = activity.findViewById(R.id.etPassword);
         EditText etPin = activity.findViewById(R.id.etPin);
+        Button btnFetchVin = activity.findViewById(R.id.btnFetchVin);
         Button btnSave = activity.findViewById(R.id.btnSaveCredentials);
         TextView tvLog = activity.findViewById(R.id.tvStatusLog);
 
-        // Test non-6-digit PIN
+        // Changing PIN invalidates Fetch VIN and disables Save
         etPin.setText("12345");
-        btnSave.performClick();
+        ShadowLooper.idleMainLooper();
+        assertFalse(btnSave.isEnabled());
+
+        btnFetchVin.performClick();
         ShadowLooper.idleMainLooper();
         assertTrue(tvLog.getText().toString().contains("Validation error"));
         assertFalse("12345".equals(configStore.getPin()));
@@ -214,7 +239,9 @@ public class MainActivityTest {
         // Test empty username
         etUsername.setText("");
         etPin.setText("123456");
-        btnSave.performClick();
+        ShadowLooper.idleMainLooper();
+        assertFalse(btnSave.isEnabled());
+        btnFetchVin.performClick();
         ShadowLooper.idleMainLooper();
         assertTrue(tvLog.getText().toString().contains("Validation error"));
 
@@ -223,7 +250,9 @@ public class MainActivityTest {
         tvLog.setText("");
         etUsername.setText("valid@user.com");
         etPassword.setText("");
-        btnSave.performClick();
+        ShadowLooper.idleMainLooper();
+        assertFalse(btnSave.isEnabled());
+        btnFetchVin.performClick();
         ShadowLooper.idleMainLooper();
         assertTrue(tvLog.getText().toString().contains("Validation error"));
     }
@@ -244,25 +273,29 @@ public class MainActivityTest {
     }
 
     @Test
-    public void fetchVinAndTestLoginUpdatesVinAndRefreshesStatus() {
+    public void fetchVinThenSaveUpdatesVinAndRefreshesHomepageStatus() {
         Button btnFetchVin = activity.findViewById(R.id.btnFetchVin);
+        Button btnSave = activity.findViewById(R.id.btnSaveCredentials);
         EditText etVin = activity.findViewById(R.id.etVin);
         TextView tvSoc = activity.findViewById(R.id.tvSoc);
         TextView tvLog = activity.findViewById(R.id.tvStatusLog);
 
         btnFetchVin.performClick();
-        // Stage 1: fetchFirstVin background work + onSuccess post to main looper
-        awaitAsyncWork();
-        // Stage 2: executeWatchAction(status) background work + response post to main looper
         awaitAsyncWork();
 
         assertTrue(btnFetchVin.isEnabled());
+        assertTrue(btnSave.isEnabled());
         assertTrue(fakeGateway.loginCalls.get() >= 1);
         assertTrue(fakeGateway.fetchVinCalls.get() >= 1);
         assertEquals("BYDATTO1TESTVIN99", etVin.getText().toString());
         assertEquals("BYDATTO1TESTVIN99", configStore.getVin());
+        assertTrue(tvLog.getText().toString().contains("VIN") || tvLog.getText().toString().contains("Tap Save"));
+
+        btnSave.performClick();
+        awaitAsyncWork();
+
+        assertEquals(View.VISIBLE, activity.findViewById(R.id.cardControls).getVisibility());
         assertTrue(tvSoc.getText().toString().contains("80"));
-        assertTrue(tvLog.getText().toString().contains("VIN") || tvLog.getText().toString().contains("Login"));
     }
 
     @Test
@@ -429,19 +462,24 @@ public class MainActivityTest {
         TextView watchStatus = newActivity.findViewById(R.id.tvWatchStatus);
         assertEquals(newActivity.getString(R.string.watch_status_unconfigured), watchStatus.getText().toString());
 
-        // Configure credentials and save
+        // Configure credentials, fetch VIN, then save
         EditText etUsername = newActivity.findViewById(R.id.etUsername);
         EditText etPassword = newActivity.findViewById(R.id.etPassword);
         EditText etPin = newActivity.findViewById(R.id.etPin);
-        EditText etVin = newActivity.findViewById(R.id.etVin);
+        Button btnFetchVin = newActivity.findViewById(R.id.btnFetchVin);
         Button btnSave = newActivity.findViewById(R.id.btnSaveCredentials);
+
+        assertFalse(btnSave.isEnabled());
 
         etUsername.setText("configured@byd.id");
         etPassword.setText("Pass1234");
         etPin.setText("123456");
-        etVin.setText("VIN12345678");
+        btnFetchVin.performClick();
+        awaitAsyncWork();
+
+        assertTrue(btnSave.isEnabled());
         btnSave.performClick();
-        ShadowLooper.idleMainLooper();
+        awaitAsyncWork();
 
         assertEquals(newActivity.getString(R.string.watch_status_ready), watchStatus.getText().toString());
     }
@@ -711,8 +749,10 @@ public class MainActivityTest {
         etUsername.setText("driver@byd.cn");
         etPassword.setText("Pass12345");
         etPin.setText("654321");
+        activity.findViewById(R.id.btnFetchVin).performClick();
+        awaitAsyncWork();
         btnSave.performClick();
-        ShadowLooper.idleMainLooper();
+        awaitAsyncWork();
 
         assertEquals("cn", configStore.getRegion());
         assertEquals("CN", configStore.getCountryCode());
@@ -1428,6 +1468,117 @@ public class MainActivityTest {
         ShadowLooper.idleMainLooper();
         assertEquals("1. Lock", ((Button) activity.findViewById(R.id.btnWidgetSlot1)).getText().toString());
         assertEquals("4. Sync", ((Button) activity.findViewById(R.id.btnWidgetSlot4)).getText().toString());
+    }
+
+    @Test
+    public void editHomepageLayoutTogglesSectionsAndRendersExecutableCustomButtons() {
+        // Seed a custom combo + two custom homepage buttons (one single action, one combo)
+        com.bydwatch.companion.model.CustomActionCombo combo =
+                new com.bydwatch.companion.model.CustomActionCombo(
+                        "cmb_home",
+                        "Quick Cool",
+                        com.bydwatch.companion.model.CustomActionCombo.ICON_FROST,
+                        com.bydwatch.companion.model.CustomActionCombo.TONE_CYAN,
+                        java.util.Collections.singletonList(
+                                new com.bydwatch.companion.model.CustomActionCombo.ComboStep(
+                                        com.bydwatch.companion.protocol.WatchProtocol.ACTION_LIGHTS)
+                        )
+                );
+        configStore.setActionCombos(java.util.Collections.singletonList(combo));
+        configStore.setHomeCustomButtons(java.util.Arrays.asList(
+                new com.bydwatch.companion.model.HomeButtonConfig(
+                        "hb_1",
+                        com.bydwatch.companion.model.HomeButtonConfig.TYPE_SINGLE,
+                        com.bydwatch.companion.model.WidgetSlotConfig.SINGLE_LIGHTS,
+                        "Blink Now",
+                        com.bydwatch.companion.model.CustomActionCombo.ICON_SPARKLE,
+                        com.bydwatch.companion.model.CustomActionCombo.TONE_AMBER
+                ),
+                new com.bydwatch.companion.model.HomeButtonConfig(
+                        "hb_2",
+                        com.bydwatch.companion.model.HomeButtonConfig.TYPE_COMBO,
+                        "cmb_home",
+                        "Quick Cool",
+                        "",
+                        ""
+                )
+        ));
+
+        // Open Edit Homepage Layout dialog from homepage button
+        Button btnEditLayout = activity.findViewById(R.id.btnEditHomeLayout);
+        assertNotNull(btnEditLayout);
+        btnEditLayout.performClick();
+        ShadowLooper.idleMainLooper();
+
+        AlertDialog layoutDialog = (AlertDialog) ShadowDialog.getLatestDialog();
+        assertNotNull(layoutDialog);
+        assertTrue(layoutDialog.isShowing());
+
+        // Dialog lists custom buttons and section toggles
+        assertTrue(containsTextViewWithText(layoutDialog.getWindow().getDecorView(), "Blink Now"));
+        assertTrue(containsTextViewWithText(layoutDialog.getWindow().getDecorView(), "Quick Cool"));
+
+        // Toggle "Alert Controls (Lights & Horn)" switch off inside layout dialog
+        androidx.appcompat.widget.SwitchCompat alertSwitch = findSwitchByText(
+                layoutDialog.getWindow().getDecorView(),
+                activity.getString(R.string.home_section_alerts)
+        );
+        assertNotNull(alertSwitch);
+        alertSwitch.setChecked(false);
+        ShadowLooper.idleMainLooper();
+        assertFalse(configStore.isShowHomeAlerts());
+        assertEquals(View.GONE, activity.findViewById(R.id.layoutAlertControls).getVisibility());
+
+        layoutDialog.dismiss();
+        ShadowLooper.idleMainLooper();
+
+        // Homepage custom buttons section is now visible with rendered buttons
+        View customSection = activity.findViewById(R.id.layoutHomeCustomSection);
+        android.view.ViewGroup customGrid = activity.findViewById(R.id.layoutHomeCustomGrid);
+        assertEquals(View.VISIBLE, customSection.getVisibility());
+        assertTrue(containsTextViewWithText(customGrid, "Blink Now"));
+        assertTrue(containsTextViewWithText(customGrid, "Quick Cool"));
+
+        // Clicking "Blink Now" single-action custom button executes flashLights on gateway
+        View blinkTile = findClickableChildWithText(customGrid, "Blink Now");
+        assertNotNull(blinkTile);
+        int beforeLights = fakeGateway.flashLightsCalls.get();
+        blinkTile.performClick();
+        awaitAsyncWork();
+        assertEquals(beforeLights + 1, fakeGateway.flashLightsCalls.get());
+    }
+
+    private static com.google.android.material.materialswitch.MaterialSwitch findSwitchByText(View view, String text) {
+        if (view instanceof com.google.android.material.materialswitch.MaterialSwitch) {
+            com.google.android.material.materialswitch.MaterialSwitch sw =
+                    (com.google.android.material.materialswitch.MaterialSwitch) view;
+            if (text.contentEquals(sw.getText())) {
+                return sw;
+            }
+        }
+        if (view instanceof android.view.ViewGroup) {
+            android.view.ViewGroup group = (android.view.ViewGroup) view;
+            for (int i = 0; i < group.getChildCount(); i++) {
+                com.google.android.material.materialswitch.MaterialSwitch found =
+                        findSwitchByText(group.getChildAt(i), text);
+                if (found != null) return found;
+            }
+        }
+        return null;
+    }
+
+    private static View findClickableChildWithText(View view, String text) {
+        if (view.isClickable() && containsTextViewWithText(view, text)) {
+            return view;
+        }
+        if (view instanceof android.view.ViewGroup) {
+            android.view.ViewGroup group = (android.view.ViewGroup) view;
+            for (int i = 0; i < group.getChildCount(); i++) {
+                View found = findClickableChildWithText(group.getChildAt(i), text);
+                if (found != null) return found;
+            }
+        }
+        return null;
     }
 
     private static boolean containsTextViewWithText(View view, String target) {

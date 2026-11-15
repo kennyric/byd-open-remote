@@ -18,6 +18,8 @@ import android.os.Looper;
 import android.os.PersistableBundle;
 import android.os.PowerManager;
 import android.provider.Settings;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
@@ -56,6 +58,7 @@ import com.bydwatch.companion.model.RegionOption;
 import com.bydwatch.companion.model.UnitPreferences;
 import com.bydwatch.companion.model.VehicleStatus;
 import com.bydwatch.companion.model.VehicleSummary;
+import com.bydwatch.companion.model.WidgetSlotConfig;
 import com.bydwatch.companion.protocol.WatchProtocol;
 import com.bydwatch.companion.protocol.WatchResponse;
 import com.bydwatch.companion.wear.WearBridgeService;
@@ -177,8 +180,13 @@ public class MainActivity extends AppCompatActivity {
     private Button btnPopupApply;
     private Button btnLights;
     private Button btnHorn;
+    private View cardClimateControl;
+    private View layoutAlertControls;
     private View layoutComfortRow1;
     private View layoutComfortRow2;
+    private View layoutHealthPanel;
+    private Button btnEditHomeLayout;
+    private Button btnPrefsEditHomeLayout;
     private Button btnVentWindows;
     private Button btnCloseWindows;
     private Button btnBatHeat;
@@ -213,9 +221,13 @@ public class MainActivity extends AppCompatActivity {
     private MaterialButtonToggleGroup toggleWidgetStyle;
     private TextView tvWidgetStyleDesc;
     private WidgetComboUiHelper widgetComboUiHelper;
+    private HomeLayoutEditorHelper homeLayoutEditorHelper;
     private boolean updatingWidgetStyleUi = false;
     private MaterialButtonToggleGroup toggleAppLanguage;
     private boolean updatingAppLanguageUi = false;
+    private boolean vinVerifiedByFetch = false;
+    private boolean updatingAccountFields = false;
+    private boolean updatingHideExtraSwitch = false;
     private SwitchCompat switchManualAc;
     private SwitchCompat switchHideExtraControls;
     private SwitchCompat switchSmartAlerts;
@@ -359,8 +371,13 @@ public class MainActivity extends AppCompatActivity {
         btnAcAdjust = findViewById(R.id.btnAcAdjust);
         btnLights = findViewById(R.id.btnLights);
         btnHorn = findViewById(R.id.btnHorn);
+        cardClimateControl = findViewById(R.id.cardClimateControl);
+        layoutAlertControls = findViewById(R.id.layoutAlertControls);
         layoutComfortRow1 = findViewById(R.id.layoutComfortRow1);
         layoutComfortRow2 = findViewById(R.id.layoutComfortRow2);
+        layoutHealthPanel = findViewById(R.id.layoutHealthPanel);
+        btnEditHomeLayout = findViewById(R.id.btnEditHomeLayout);
+        btnPrefsEditHomeLayout = findViewById(R.id.btnPrefsEditHomeLayout);
         btnVentWindows = findViewById(R.id.btnVentWindows);
         btnCloseWindows = findViewById(R.id.btnCloseWindows);
         btnBatHeat = findViewById(R.id.btnBatHeat);
@@ -427,6 +444,36 @@ public class MainActivity extends AppCompatActivity {
                 findViewById(R.id.btnNewActionCombo),
                 findViewById(R.id.layoutCombosContainer)
         );
+        homeLayoutEditorHelper = new HomeLayoutEditorHelper(
+                this,
+                configStore,
+                widgetComboUiHelper,
+                new HomeLayoutEditorHelper.Listener() {
+                    @Override
+                    public VehicleStatus getCurrentStatus() {
+                        return lastStatus;
+                    }
+
+                    @Override
+                    public void onRunSingleAction(String actionKey) {
+                        dispatchSingleHomeAction(actionKey);
+                    }
+
+                    @Override
+                    public void onRunCombo(CustomActionCombo combo) {
+                        runComboFromUi(combo);
+                    }
+
+                    @Override
+                    public void onLayoutConfigChanged() {
+                        updateHomeSectionsVisibility();
+                    }
+                }
+        );
+        homeLayoutEditorHelper.bindViews(
+                findViewById(R.id.layoutHomeCustomSection),
+                findViewById(R.id.layoutHomeCustomGrid)
+        );
         toggleAppLanguage = findViewById(R.id.toggleAppLanguage);
         switchManualAc = findViewById(R.id.switchManualAc);
         switchHideExtraControls = findViewById(R.id.switchHideExtraControls);
@@ -459,32 +506,43 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void initValues() {
-        // Never pre-fill saved password or PIN back into editable inputs.
-        etPassword.setText("");
-        etPin.setText("");
+        updatingAccountFields = true;
+        try {
+            // Never pre-fill saved password or PIN back into editable inputs.
+            etPassword.setText("");
+            etPin.setText("");
 
-        if (actvRegion != null) {
-            ArrayAdapter<RegionOption> regionAdapter = new ArrayAdapter<>(
-                    this, android.R.layout.simple_dropdown_item_1line, RegionOption.ALL_REGIONS);
-            actvRegion.setAdapter(regionAdapter);
+            if (actvRegion != null) {
+                ArrayAdapter<RegionOption> regionAdapter = new ArrayAdapter<>(
+                        this, android.R.layout.simple_dropdown_item_1line, RegionOption.ALL_REGIONS);
+                actvRegion.setAdapter(regionAdapter);
+            }
+
+            String regionCode = configStore != null ? configStore.getRegion() : SecureConfigStore.DEFAULT_REGION;
+            if (actvRegion != null) {
+                actvRegion.setText(RegionOption.findByCode(regionCode).formatLabel(), false);
+            }
+            if (etCountryCode != null && configStore != null) {
+                String cc = configStore.getCountryCode();
+                etCountryCode.setText(cc != null ? cc : "");
+            }
+
+            if (configStore != null) {
+                String u = configStore.getUsername();
+                if (u != null) etUsername.setText(u);
+
+                String vin = configStore.getVin();
+                if (vin != null) etVin.setText(vin);
+            }
+        } finally {
+            updatingAccountFields = false;
         }
 
-        String regionCode = configStore != null ? configStore.getRegion() : SecureConfigStore.DEFAULT_REGION;
-        if (actvRegion != null) {
-            actvRegion.setText(RegionOption.findByCode(regionCode).formatLabel(), false);
-        }
-        if (etCountryCode != null && configStore != null) {
-            String cc = configStore.getCountryCode();
-            etCountryCode.setText(cc != null ? cc : "");
-        }
+        vinVerifiedByFetch = configStore != null && configStore.isConfigured();
+        updateSaveCredentialsButtonState();
+        attachAccountCredentialWatchers();
 
         if (configStore != null) {
-            String u = configStore.getUsername();
-            if (u != null) etUsername.setText(u);
-
-            String vin = configStore.getVin();
-            if (vin != null) etVin.setText(vin);
-
             targetTempC = configStore.getDefaultTempC();
             if (targetTempC < WatchProtocol.MIN_TEMP_C || targetTempC > WatchProtocol.MAX_TEMP_C) {
                 targetTempC = WatchProtocol.DEFAULT_TEMP_C;
@@ -597,8 +655,15 @@ public class MainActivity extends AppCompatActivity {
         VehicleWidgetProvider.recordSuccessfulSync(this, demo);
         VehicleWidgetProvider.refreshWidgets(this);
 
-        if (etUsername != null) etUsername.setText("demo.driver@example.com");
-        if (etVin != null) etVin.setText("LGX0DEMO000000001");
+        updatingAccountFields = true;
+        try {
+            if (etUsername != null) etUsername.setText("demo.driver@example.com");
+            if (etVin != null) etVin.setText("LGX0DEMO000000001");
+        } finally {
+            updatingAccountFields = false;
+        }
+        vinVerifiedByFetch = true;
+        updateSaveCredentialsButtonState();
         if (etCustomModelName != null) etCustomModelName.setText("BYD Atto 1");
         updateAccountUiState();
         updateWidgetStyleUi(configStore.getWidgetStyle());
@@ -606,6 +671,7 @@ public class MainActivity extends AppCompatActivity {
         updateTelemetryUi(demo);
         updateHeaderVehicleInfo(demo);
         updateClimateControlsUi();
+        updateHomeSectionsVisibility();
         setAccountExpanded(false);
         setSetupGuideExpanded(intent.getBooleanExtra("demo_setup_guide", false));
 
@@ -853,6 +919,12 @@ public class MainActivity extends AppCompatActivity {
 
         btnSaveCredentials.setOnClickListener(v -> saveCredentials());
         btnFetchVin.setOnClickListener(v -> fetchVinAndTestLogin());
+        if (btnEditHomeLayout != null) {
+            btnEditHomeLayout.setOnClickListener(v -> openHomeLayoutEditor());
+        }
+        if (btnPrefsEditHomeLayout != null) {
+            btnPrefsEditHomeLayout.setOnClickListener(v -> openHomeLayoutEditor());
+        }
 
         if (btnAcToggle != null) {
             btnAcToggle.setOnClickListener(v -> toggleAcState());
@@ -874,19 +946,10 @@ public class MainActivity extends AppCompatActivity {
             btnCloseWindows.setOnClickListener(v -> executeWatchAction(WatchProtocol.ACTION_CLOSE_WINDOWS, -1));
         }
         if (btnBatHeat != null) {
-            btnBatHeat.setOnClickListener(v -> {
-                boolean currentlyOn = lastStatus != null && Boolean.TRUE.equals(lastStatus.batteryHeatOn);
-                executeWatchAction(currentlyOn
-                        ? WatchProtocol.ACTION_BATTERY_HEAT_OFF
-                        : WatchProtocol.ACTION_BATTERY_HEAT_ON, -1);
-            });
+            btnBatHeat.setOnClickListener(v -> dispatchSingleHomeAction(WidgetSlotConfig.SINGLE_BAT_HEAT));
         }
         if (btnSeatHeat != null) {
-            btnSeatHeat.setOnClickListener(v -> {
-                int currentLevel = lastStatus != null ? lastStatus.driverSeatLevel : 0;
-                int nextLevel = (currentLevel + 1) % 3;
-                executeWatchAction(WatchProtocol.ACTION_SEAT_HEAT, -1, null, nextLevel);
-            });
+            btnSeatHeat.setOnClickListener(v -> dispatchSingleHomeAction(WidgetSlotConfig.SINGLE_SEAT_HEAT));
         }
         if (btnSwitchActiveCar != null) {
             btnSwitchActiveCar.setOnClickListener(v -> showMultiCarPicker());
@@ -961,6 +1024,7 @@ public class MainActivity extends AppCompatActivity {
         }
         if (switchHideExtraControls != null) {
             switchHideExtraControls.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                if (updatingHideExtraSwitch) return;
                 if (configStore != null) {
                     configStore.setHideExtraControls(isChecked);
                 }
@@ -1165,7 +1229,7 @@ public class MainActivity extends AppCompatActivity {
             configStore.setPassword(effectivePassword);
             configStore.setPin(effectivePin);
             if (!vin.isEmpty()) {
-                configStore.setVin(vin);
+                configStore.setVin(vin.toUpperCase(Locale.US));
             }
             configStore.setRegion(selectedRegion);
             configStore.setCountryCode(countryCode);
@@ -1173,16 +1237,83 @@ public class MainActivity extends AppCompatActivity {
         }
 
         // Clear typed secret fields immediately after persisting so saved secrets stay hidden.
-        etPassword.setText("");
-        etPin.setText("");
-        etPassword.clearFocus();
-        etPin.clearFocus();
+        updatingAccountFields = true;
+        try {
+            etPassword.setText("");
+            etPin.setText("");
+            etPassword.clearFocus();
+            etPin.clearFocus();
+        } finally {
+            updatingAccountFields = false;
+        }
         updateAccountUiState();
         return true;
     }
 
+    private void attachAccountCredentialWatchers() {
+        TextWatcher invalidateVinWatcher = new TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
+            @Override
+            public void afterTextChanged(Editable s) {
+                if (updatingAccountFields) return;
+                invalidateFetchedVin(false);
+            }
+        };
+        TextWatcher clearVinOnIdentityEdit = new TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
+            @Override
+            public void afterTextChanged(Editable s) {
+                if (updatingAccountFields) return;
+                invalidateFetchedVin(true);
+            }
+        };
+        if (etUsername != null) etUsername.addTextChangedListener(clearVinOnIdentityEdit);
+        if (etPassword != null) etPassword.addTextChangedListener(invalidateVinWatcher);
+        if (etPin != null) etPin.addTextChangedListener(invalidateVinWatcher);
+        if (etCountryCode != null) etCountryCode.addTextChangedListener(clearVinOnIdentityEdit);
+        if (actvRegion != null) {
+            actvRegion.setOnItemClickListener((parent, view, position, id) -> {
+                if (!updatingAccountFields) {
+                    invalidateFetchedVin(true);
+                }
+            });
+            actvRegion.addTextChangedListener(clearVinOnIdentityEdit);
+        }
+    }
+
+    private void invalidateFetchedVin(boolean clearVinField) {
+        vinVerifiedByFetch = false;
+        if (clearVinField && etVin != null) {
+            updatingAccountFields = true;
+            try {
+                etVin.setText("");
+            } finally {
+                updatingAccountFields = false;
+            }
+        }
+        updateSaveCredentialsButtonState();
+    }
+
+    private void updateSaveCredentialsButtonState() {
+        if (btnSaveCredentials == null) return;
+        String vinText = etVin != null && etVin.getText() != null
+                ? etVin.getText().toString().trim() : "";
+        boolean canSave = vinVerifiedByFetch && !vinText.isEmpty();
+        btnSaveCredentials.setEnabled(canSave);
+        btnSaveCredentials.setAlpha(canSave ? 1f : 0.45f);
+    }
+
     private void saveCredentials() {
-        if (!persistValidatedInputs(false)) {
+        String currentVin = etVin != null && etVin.getText() != null
+                ? etVin.getText().toString().trim() : "";
+        if (!vinVerifiedByFetch || currentVin.isEmpty()) {
+            logMessage("Save blocked: please fetch VIN first.");
+            showToast(getString(R.string.toast_fetch_vin_required), true);
+            return;
+        }
+        if (!persistValidatedInputs(true)) {
             return;
         }
 
@@ -1191,16 +1322,25 @@ public class MainActivity extends AppCompatActivity {
             showPage(R.id.nav_controls);
         }
         updateWatchStatus();
-        logMessage("Credentials saved successfully.");
-        showToast("Credentials saved", false);
+        logMessage("Account login successful.");
+        showToast(getString(R.string.toast_account_login_successful), false);
+        executeWatchAction(WatchProtocol.ACTION_STATUS, -1);
     }
 
     private void fetchVinAndTestLogin() {
         if (!persistValidatedInputs(false)) {
             return;
         }
+        if (!vinVerifiedByFetch && configStore != null) {
+            // Do not match or preserve a stale VIN before this account/region is verified.
+            configStore.setVin(null);
+        }
 
         btnFetchVin.setEnabled(false);
+        if (btnSaveCredentials != null) {
+            btnSaveCredentials.setEnabled(false);
+            btnSaveCredentials.setAlpha(0.45f);
+        }
         logMessage("Logging in and fetching vehicles...");
 
         repository.fetchVehicles(new BydRepository.VehiclesCallback() {
@@ -1208,20 +1348,24 @@ public class MainActivity extends AppCompatActivity {
             public void onSuccess(List<VehicleSummary> vehicles, VehicleSummary active) {
                 runOnUiThread(() -> {
                     btnFetchVin.setEnabled(true);
-                    String activeVin = active != null ? active.vin : "";
-                    etVin.setText(activeVin);
+                    String activeVin = active != null && active.vin != null ? active.vin.trim().toUpperCase(Locale.US) : "";
+                    updatingAccountFields = true;
+                    try {
+                        etVin.setText(activeVin);
+                    } finally {
+                        updatingAccountFields = false;
+                    }
+                    vinVerifiedByFetch = !activeVin.isEmpty();
+                    updateSaveCredentialsButtonState();
                     updateAccountUiState();
                     updateHeaderVehicleInfo(null);
                     updateMultiCarBar(null);
-                    if (configStore != null && configStore.isConfigured()) {
-                        setAccountExpanded(false);
-                        showPage(R.id.nav_controls);
-                    }
                     int count = vehicles != null ? vehicles.size() : (activeVin.isEmpty() ? 0 : 1);
-                    logMessage("Login successful. Found VIN: " + maskVin(activeVin)
-                            + (count > 1 ? " (" + count + " vehicles)" : ""));
+                    logMessage("VIN fetched: " + maskVin(activeVin)
+                            + (count > 1 ? " (" + count + " vehicles)" : "")
+                            + ". Tap Save to continue.");
                     updateWatchStatus();
-                    executeWatchAction(WatchProtocol.ACTION_STATUS, -1);
+                    showToast(getString(R.string.toast_vin_fetched_tap_save), false);
                 });
             }
 
@@ -1229,6 +1373,19 @@ public class MainActivity extends AppCompatActivity {
             public void onError(String error) {
                 runOnUiThread(() -> {
                     btnFetchVin.setEnabled(true);
+                    vinVerifiedByFetch = false;
+                    updatingAccountFields = true;
+                    try {
+                        if (etVin != null) etVin.setText("");
+                    } finally {
+                        updatingAccountFields = false;
+                    }
+                    if (configStore != null) {
+                        configStore.setVin(null);
+                    }
+                    updateSaveCredentialsButtonState();
+                    updateAccountUiState();
+                    updateWatchStatus();
                     logMessage("Login & Fetch VIN failed: " + error);
                     showToast("Login & Fetch VIN failed: " + error, true);
                 });
@@ -1658,7 +1815,12 @@ public class MainActivity extends AppCompatActivity {
 
         if (status.vin != null && !status.vin.isEmpty() && etVin != null
                 && !status.vin.equals(etVin.getText().toString().trim())) {
-            etVin.setText(status.vin);
+            updatingAccountFields = true;
+            try {
+                etVin.setText(status.vin);
+            } finally {
+                updatingAccountFields = false;
+            }
         }
 
         updateClimateControlsUi();
@@ -1669,6 +1831,9 @@ public class MainActivity extends AppCompatActivity {
         VehicleWidgetProvider.refreshWidgets(this);
         if (widgetComboUiHelper != null) {
             widgetComboUiHelper.refreshUi();
+        }
+        if (homeLayoutEditorHelper != null) {
+            homeLayoutEditorHelper.renderCustomButtonsGrid();
         }
     }
 
@@ -1685,10 +1850,92 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void updateExtraControlsVisibility() {
-        boolean hide = configStore != null && configStore.isHideExtraControls();
-        int vis = hide ? View.GONE : View.VISIBLE;
-        if (layoutComfortRow1 != null) layoutComfortRow1.setVisibility(vis);
-        if (layoutComfortRow2 != null) layoutComfortRow2.setVisibility(vis);
+        updateHomeSectionsVisibility();
+    }
+
+    private void updateHomeSectionsVisibility() {
+        boolean showClimate = configStore == null || configStore.isShowHomeClimate();
+        boolean showAlerts = configStore == null || configStore.isShowHomeAlerts();
+        boolean hideExtra = configStore != null && configStore.isHideExtraControls();
+        boolean showLocation = configStore == null || configStore.isShowHomeLocation();
+        boolean showHealth = configStore == null || configStore.isShowHomeHealth();
+
+        if (cardClimateControl != null) {
+            cardClimateControl.setVisibility(showClimate ? View.VISIBLE : View.GONE);
+        }
+        if (layoutAlertControls != null) {
+            layoutAlertControls.setVisibility(showAlerts ? View.VISIBLE : View.GONE);
+        }
+        int extraVis = hideExtra ? View.GONE : View.VISIBLE;
+        if (layoutComfortRow1 != null) layoutComfortRow1.setVisibility(extraVis);
+        if (layoutComfortRow2 != null) layoutComfortRow2.setVisibility(extraVis);
+        if (cardLocation != null) {
+            cardLocation.setVisibility(showLocation ? View.VISIBLE : View.GONE);
+        }
+        if (layoutHealthPanel != null) {
+            layoutHealthPanel.setVisibility(showHealth ? View.VISIBLE : View.GONE);
+        }
+        if (switchHideExtraControls != null && switchHideExtraControls.isChecked() != hideExtra) {
+            updatingHideExtraSwitch = true;
+            try {
+                switchHideExtraControls.setChecked(hideExtra);
+            } finally {
+                updatingHideExtraSwitch = false;
+            }
+        }
+    }
+
+    private void openHomeLayoutEditor() {
+        if (homeLayoutEditorHelper != null) {
+            homeLayoutEditorHelper.showEditLayoutDialog();
+        }
+    }
+
+    private void dispatchSingleHomeAction(String actionKey) {
+        if (actionKey == null) return;
+        switch (actionKey) {
+            case WidgetSlotConfig.SINGLE_LOCK:
+                executeWatchAction(WatchProtocol.ACTION_LOCK, -1);
+                break;
+            case WidgetSlotConfig.SINGLE_UNLOCK:
+                executeWatchAction(WatchProtocol.ACTION_UNLOCK, -1);
+                break;
+            case WidgetSlotConfig.SINGLE_AC_TOGGLE:
+                toggleAcState();
+                break;
+            case WidgetSlotConfig.SINGLE_LIGHTS:
+                executeWatchAction(WatchProtocol.ACTION_LIGHTS, -1);
+                break;
+            case WidgetSlotConfig.SINGLE_HORN:
+                executeWatchAction(WatchProtocol.ACTION_HORN, -1);
+                break;
+            case WidgetSlotConfig.SINGLE_VENT_WINDOWS:
+                executeWatchAction(WatchProtocol.ACTION_VENT_WINDOWS, -1);
+                break;
+            case WidgetSlotConfig.SINGLE_CLOSE_WINDOWS:
+                executeWatchAction(WatchProtocol.ACTION_CLOSE_WINDOWS, -1);
+                break;
+            case WidgetSlotConfig.SINGLE_BAT_HEAT: {
+                boolean currentlyOn = lastStatus != null && Boolean.TRUE.equals(lastStatus.batteryHeatOn);
+                executeWatchAction(currentlyOn
+                        ? WatchProtocol.ACTION_BATTERY_HEAT_OFF
+                        : WatchProtocol.ACTION_BATTERY_HEAT_ON, -1);
+                break;
+            }
+            case WidgetSlotConfig.SINGLE_SEAT_HEAT: {
+                int currentLevel = lastStatus != null ? lastStatus.driverSeatLevel : 0;
+                int nextLevel = (currentLevel + 1) % 3;
+                executeWatchAction(WatchProtocol.ACTION_SEAT_HEAT, -1, null, nextLevel);
+                break;
+            }
+            case WidgetSlotConfig.SINGLE_LOCATION:
+                executeWatchAction(WatchProtocol.ACTION_LOCATION, -1);
+                break;
+            case WidgetSlotConfig.SINGLE_STATUS:
+            default:
+                executeWatchAction(WatchProtocol.ACTION_STATUS, -1);
+                break;
+        }
     }
 
     private void updateLocationCard(VehicleStatus status) {

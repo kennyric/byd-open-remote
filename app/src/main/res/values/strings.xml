@@ -35,13 +35,16 @@
     <string name="helper_password_saved">Saved securely — leave blank to keep existing password</string>
     <string name="helper_pin_required">6-digit vehicle remote operation PIN</string>
     <string name="helper_pin_saved">Saved securely — leave blank to keep existing PIN</string>
-    <string name="helper_vin">Auto-filled via Fetch VIN or enter 17-char VIN</string>
+    <string name="helper_vin">Auto-filled via Fetch VIN (required before saving)</string>
     <string name="account_summary_unconfigured">Not configured — tap to enter BYD credentials</string>
     <string name="btn_edit_account">Edit</string>
     <string name="btn_hide_account">Hide</string>
     <string name="btn_account_header">Account</string>
-    <string name="btn_save_credentials">Save Credentials</string>
-    <string name="btn_fetch_vin">Fetch Vehicles &amp; Test Login</string>
+    <string name="btn_save_credentials">Save</string>
+    <string name="btn_fetch_vin">Fetch VIN</string>
+    <string name="toast_vin_fetched_tap_save">VIN verified! Tap Save to continue.</string>
+    <string name="toast_fetch_vin_required">Please tap Fetch VIN first before saving.</string>
+    <string name="toast_account_login_successful">Account login successful</string>
 
     <string name="card_controls_title">Vehicle Status &amp; Controls</string>
     <string name="label_soc">SoC</string>
@@ -294,4 +297,30 @@
     <string name="combo_wind_face_feet">Face+Feet</string>
     <string name="combo_wind_feet">Feet</string>
     <string name="combo_max_steps_hint">Up to 6 actions per combo</string>
+
+    <!-- Homepage Layout Editor & Custom Buttons -->
+    <string name="btn_edit_home_layout">Edit</string>
+    <string name="btn_prefs_edit_home_layout">Edit Homepage Layout</string>
+    <string name="label_home_custom_buttons">Custom Buttons</string>
+    <string name="dialog_home_layout_title">Edit Homepage Layout</string>
+    <string name="section_home_custom_buttons">Homepage Custom Buttons</string>
+    <string name="section_home_visible_panels">Visible Homepage Sections</string>
+    <string name="btn_add_home_button">+ Add Button</string>
+    <string name="home_custom_empty_hint">No custom buttons yet. Add single actions or multi-step combos directly to your homepage.</string>
+    <string name="home_section_climate">Climate Control (AC)</string>
+    <string name="home_section_alerts">Alert Controls (Lights &amp; Horn)</string>
+    <string name="home_section_extra">Extra Controls (Windows &amp; Heat)</string>
+    <string name="home_section_location">Car Location Card</string>
+    <string name="home_section_health">Vehicle Health &amp; TPMS</string>
+    <string name="btn_reset_home_layout">Reset Layout</string>
+    <string name="home_layout_reset_toast">Homepage layout reset to default</string>
+    <string name="dialog_add_home_button_title">Add Custom Button</string>
+    <string name="dialog_edit_home_button_title">Edit Custom Button</string>
+    <string name="tab_single_action">Single Action</string>
+    <string name="tab_action_combo">Action Combo</string>
+    <string name="label_home_button_label">Button Label</string>
+    <string name="hint_home_button_label">e.g. Cool Ride, Open Lights</string>
+    <string name="home_button_combo_missing">Linked combo was deleted</string>
+    <string name="home_button_max_toast">Maximum of %1$d custom buttons reached</string>
+    <string name="home_button_select_action_toast">Select an action or combo first</string>
 </resources>

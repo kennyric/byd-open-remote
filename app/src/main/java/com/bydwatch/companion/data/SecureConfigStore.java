@@ -50,6 +50,11 @@ public class SecureConfigStore implements ConfigStore {
     private static final String PREF_WIDGET_LAST_SYNC_MS = "byd_widget_last_sync_ms";
     private static final String PREF_ACTION_COMBOS_JSON = "byd_action_combos_json";
     private static final String PREF_WIDGET_SLOTS_JSON = "byd_widget_slots_json";
+    private static final String PREF_HOME_CUSTOM_BUTTONS_JSON = "byd_home_custom_buttons_json";
+    private static final String PREF_SHOW_HOME_CLIMATE = "byd_show_home_climate";
+    private static final String PREF_SHOW_HOME_ALERTS = "byd_show_home_alerts";
+    private static final String PREF_SHOW_HOME_LOCATION = "byd_show_home_location";
+    private static final String PREF_SHOW_HOME_HEALTH = "byd_show_home_health";
 
     private final SharedPreferences prefs;
 
@@ -430,6 +435,60 @@ public class SecureConfigStore implements ConfigStore {
         } else {
             prefs.edit().putString(PREF_WIDGET_SLOTS_JSON, json).apply();
         }
+    }
+
+    @Override
+    public String getHomeCustomButtonsJson() {
+        return prefs.getString(PREF_HOME_CUSTOM_BUTTONS_JSON, null);
+    }
+
+    @Override
+    public void setHomeCustomButtonsJson(String json) {
+        if (json == null || json.trim().isEmpty()) {
+            prefs.edit().remove(PREF_HOME_CUSTOM_BUTTONS_JSON).apply();
+        } else {
+            prefs.edit().putString(PREF_HOME_CUSTOM_BUTTONS_JSON, json).apply();
+        }
+    }
+
+    @Override
+    public boolean isShowHomeClimate() {
+        return prefs.getBoolean(PREF_SHOW_HOME_CLIMATE, true);
+    }
+
+    @Override
+    public void setShowHomeClimate(boolean show) {
+        prefs.edit().putBoolean(PREF_SHOW_HOME_CLIMATE, show).apply();
+    }
+
+    @Override
+    public boolean isShowHomeAlerts() {
+        return prefs.getBoolean(PREF_SHOW_HOME_ALERTS, true);
+    }
+
+    @Override
+    public void setShowHomeAlerts(boolean show) {
+        prefs.edit().putBoolean(PREF_SHOW_HOME_ALERTS, show).apply();
+    }
+
+    @Override
+    public boolean isShowHomeLocation() {
+        return prefs.getBoolean(PREF_SHOW_HOME_LOCATION, true);
+    }
+
+    @Override
+    public void setShowHomeLocation(boolean show) {
+        prefs.edit().putBoolean(PREF_SHOW_HOME_LOCATION, show).apply();
+    }
+
+    @Override
+    public boolean isShowHomeHealth() {
+        return prefs.getBoolean(PREF_SHOW_HOME_HEALTH, true);
+    }
+
+    @Override
+    public void setShowHomeHealth(boolean show) {
+        prefs.edit().putBoolean(PREF_SHOW_HOME_HEALTH, show).apply();
     }
 
     @Override

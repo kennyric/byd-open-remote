@@ -85,6 +85,19 @@ public class BydRepositoryTest {
     }
 
     @Test
+    public void mapsCode2003AccountUnboundWithoutMisclassifyingAsPinInvalid() throws Exception {
+        fakeGateway.transportError = new IOException(
+                "Control PIN verification failed: code=2003 Akun ini tidak terikat dengan kendaraan.");
+
+        JSONObject resp = executeCommand("{\"id\":\"2b\",\"action\":\"unlock\"}");
+
+        assertEquals("2b", resp.getString("id"));
+        assertFalse(resp.getBoolean("ok"));
+        assertEquals("ACCOUNT_UNBOUND", resp.getString("err"));
+        assertTrue(resp.getString("msg").contains("Fetch VIN"));
+    }
+
+    @Test
     public void serializesConcurrentCommandsAndAutoRefreshesAfterLock() throws Exception {
         fakeGateway.operationDelayMs = 50; // Add latency to observe concurrency
 
@@ -454,11 +467,26 @@ public class BydRepositoryTest {
 
         private String actionCombosJson = null;
         private String widgetSlotsJson = null;
+        private String homeCustomButtonsJson = null;
+        private boolean showHomeClimate = true;
+        private boolean showHomeAlerts = true;
+        private boolean showHomeLocation = true;
+        private boolean showHomeHealth = true;
 
         @Override public String getActionCombosJson() { return actionCombosJson; }
         @Override public void setActionCombosJson(String json) { this.actionCombosJson = json; }
         @Override public String getWidgetSlotsJson() { return widgetSlotsJson; }
         @Override public void setWidgetSlotsJson(String json) { this.widgetSlotsJson = json; }
+        @Override public String getHomeCustomButtonsJson() { return homeCustomButtonsJson; }
+        @Override public void setHomeCustomButtonsJson(String json) { this.homeCustomButtonsJson = json; }
+        @Override public boolean isShowHomeClimate() { return showHomeClimate; }
+        @Override public void setShowHomeClimate(boolean show) { this.showHomeClimate = show; }
+        @Override public boolean isShowHomeAlerts() { return showHomeAlerts; }
+        @Override public void setShowHomeAlerts(boolean show) { this.showHomeAlerts = show; }
+        @Override public boolean isShowHomeLocation() { return showHomeLocation; }
+        @Override public void setShowHomeLocation(boolean show) { this.showHomeLocation = show; }
+        @Override public boolean isShowHomeHealth() { return showHomeHealth; }
+        @Override public void setShowHomeHealth(boolean show) { this.showHomeHealth = show; }
 
         @Override
         public boolean isConfigured() {
@@ -483,6 +511,11 @@ public class BydRepositoryTest {
             detectedManualAc = false;
             actionCombosJson = null;
             widgetSlotsJson = null;
+            homeCustomButtonsJson = null;
+            showHomeClimate = true;
+            showHomeAlerts = true;
+            showHomeLocation = true;
+            showHomeHealth = true;
         }
     }
 

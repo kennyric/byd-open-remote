@@ -36,13 +36,16 @@
     <string name="helper_password_saved">Tersimpan aman — kosongkan untuk mempertahankan sandi lama</string>
     <string name="helper_pin_required">PIN operasi jarak jauh kendaraan 6-digit</string>
     <string name="helper_pin_saved">Tersimpan aman — kosongkan untuk mempertahankan PIN lama</string>
-    <string name="helper_vin">Terisi otomatis lewat Ambil VIN atau isi 17 karakter VIN</string>
+    <string name="helper_vin">Terisi otomatis lewat Ambil VIN (wajib sebelum simpan)</string>
     <string name="account_summary_unconfigured">Belum diatur — ketuk untuk memasukkan kredensial BYD</string>
     <string name="btn_edit_account">Ubah</string>
     <string name="btn_hide_account">Sembunyikan</string>
     <string name="btn_account_header">Akun</string>
-    <string name="btn_save_credentials">Simpan Kredensial</string>
-    <string name="btn_fetch_vin">Ambil Daftar Mobil &amp; Tes Login</string>
+    <string name="btn_save_credentials">Simpan</string>
+    <string name="btn_fetch_vin">Ambil VIN</string>
+    <string name="toast_vin_fetched_tap_save">VIN terverifikasi! Ketuk Simpan untuk melanjutkan.</string>
+    <string name="toast_fetch_vin_required">Silakan ketuk Ambil VIN terlebih dahulu sebelum menyimpan.</string>
+    <string name="toast_account_login_successful">Login akun berhasil</string>
 
     <string name="card_controls_title">Status &amp; Kontrol Kendaraan</string>
     <string name="label_soc">Baterai</string>
@@ -293,4 +296,30 @@
     <string name="combo_wind_face_feet">Wajah+Kaki</string>
     <string name="combo_wind_feet">Kaki</string>
     <string name="combo_max_steps_hint">Maksimal 6 aksi per kombo</string>
+
+    <!-- Editor Tata Letak Beranda & Tombol Kustom -->
+    <string name="btn_edit_home_layout">Ubah</string>
+    <string name="btn_prefs_edit_home_layout">Ubah Tata Letak Beranda</string>
+    <string name="label_home_custom_buttons">Tombol Kustom</string>
+    <string name="dialog_home_layout_title">Ubah Tata Letak Beranda</string>
+    <string name="section_home_custom_buttons">Tombol Kustom Beranda</string>
+    <string name="section_home_visible_panels">Bagian Beranda yang Ditampilkan</string>
+    <string name="btn_add_home_button">+ Tambah Tombol</string>
+    <string name="home_custom_empty_hint">Belum ada tombol kustom. Tambahkan aksi tunggal atau kombo langsung ke beranda.</string>
+    <string name="home_section_climate">Kontrol AC</string>
+    <string name="home_section_alerts">Lampu &amp; Klakson</string>
+    <string name="home_section_extra">Kontrol Ekstra (Kaca &amp; Pemanas)</string>
+    <string name="home_section_location">Kartu Lokasi Mobil</string>
+    <string name="home_section_health">Kondisi Kendaraan &amp; TPMS</string>
+    <string name="btn_reset_home_layout">Reset Tata Letak</string>
+    <string name="home_layout_reset_toast">Tata letak beranda dikembalikan ke bawaan</string>
+    <string name="dialog_add_home_button_title">Tambah Tombol Kustom</string>
+    <string name="dialog_edit_home_button_title">Ubah Tombol Kustom</string>
+    <string name="tab_single_action">Aksi Tunggal</string>
+    <string name="tab_action_combo">Kombo Aksi</string>
+    <string name="label_home_button_label">Label Tombol</string>
+    <string name="hint_home_button_label">mis. Adem Cepat, Buka Lampu</string>
+    <string name="home_button_combo_missing">Kombo terkait sudah dihapus</string>
+    <string name="home_button_max_toast">Maksimal %1$d tombol kustom tercapai</string>
+    <string name="home_button_select_action_toast">Pilih aksi atau kombo terlebih dahulu</string>
 </resources>

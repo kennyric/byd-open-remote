@@ -50,6 +50,10 @@ public final class WidgetComboUiHelper {
         void onConfigUpdated();
     }
 
+    public interface ComboSavedListener {
+        void onComboSaved(CustomActionCombo combo);
+    }
+
     private static final int[] PREVIEW_TILE_IDS = {
             R.id.tileWidgetLock,
             R.id.tileWidgetUnlock,
@@ -278,7 +282,7 @@ public final class WidgetComboUiHelper {
         return card;
     }
 
-    private Button createCompactActionBtn(String text, boolean filled) {
+    Button createCompactActionBtn(String text, boolean filled) {
         MaterialButton btn = new MaterialButton(
                 activity,
                 null,
@@ -483,7 +487,7 @@ public final class WidgetComboUiHelper {
         if (listener != null) listener.onConfigUpdated();
     }
 
-    private View buildComboPickerRow(Context resCtx, CustomActionCombo combo, boolean selected) {
+    View buildComboPickerRow(Context resCtx, CustomActionCombo combo, boolean selected) {
         LinearLayout row = new LinearLayout(activity);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
@@ -514,7 +518,7 @@ public final class WidgetComboUiHelper {
         return row;
     }
 
-    private View buildSingleActionTile(Context resCtx, String actionKey, boolean selected) {
+    View buildSingleActionTile(Context resCtx, String actionKey, boolean selected) {
         VehicleWidgetProvider.SlotVisual visual = VehicleWidgetProvider.resolveSlotVisual(
                 resCtx, WidgetSlotConfig.single(actionKey), resolveStatusOrSample(), null);
 
@@ -547,6 +551,14 @@ public final class WidgetComboUiHelper {
     }
 
     public void showComboEditorDialog(@Nullable CustomActionCombo existing, int assignToSlotIndex) {
+        showComboEditorDialog(existing, assignToSlotIndex, null);
+    }
+
+    public void showComboEditorDialog(
+            @Nullable CustomActionCombo existing,
+            int assignToSlotIndex,
+            @Nullable ComboSavedListener onSaved
+    ) {
         if (configStore == null || activity.isFinishing()) return;
         Context resCtx = AppLocaleHelper.localizedContext(activity, configStore);
 
@@ -626,72 +638,8 @@ public final class WidgetComboUiHelper {
         root.addView(stepsContainer);
 
         final Runnable[] renderAppearances = new Runnable[1];
-        renderAppearances[0] = () -> {
-            toneRow.removeAllViews();
-            for (String tone : CustomActionCombo.PRESET_TONES) {
-                boolean active = tone.equals(selectedTone[0]);
-                FrameLayout swatch = new FrameLayout(activity);
-                swatch.setBackgroundResource(VehicleWidgetProvider.bgResForTone(tone));
-                if (active) swatch.setForeground(makeSelectionBorderDrawable());
-                LinearLayout.LayoutParams sLp = new LinearLayout.LayoutParams(0, dp(34), 1f);
-                sLp.setMarginEnd(dp(6));
-                swatch.setLayoutParams(sLp);
-                if (active) {
-                    TextView check = new TextView(activity);
-                    check.setText("✓");
-                    check.setTextColor(ContextCompat.getColor(
-                            activity, VehicleWidgetProvider.textColorResForTone(tone)));
-                    check.setTypeface(null, Typeface.BOLD);
-                    check.setGravity(Gravity.CENTER);
-                    swatch.addView(check, new FrameLayout.LayoutParams(
-                            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-                }
-                swatch.setOnClickListener(v -> {
-                    selectedTone[0] = tone;
-                    renderAppearances[0].run();
-                });
-                toneRow.addView(swatch);
-            }
-
-            iconGrid.removeAllViews();
-            List<String> icons = CustomActionCombo.PRESET_ICONS;
-            for (int r = 0; r < icons.size(); r += 4) {
-                LinearLayout row = new LinearLayout(activity);
-                row.setOrientation(LinearLayout.HORIZONTAL);
-                LinearLayout.LayoutParams rLp = new LinearLayout.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-                rLp.bottomMargin = dp(6);
-                row.setLayoutParams(rLp);
-                for (int c = 0; c < 4; c++) {
-                    int idx = r + c;
-                    if (idx >= icons.size()) continue;
-                    String key = icons.get(idx);
-                    boolean active = key.equals(selectedIcon[0]);
-                    FrameLayout cell = new FrameLayout(activity);
-                    if (active) {
-                        cell.setBackgroundResource(VehicleWidgetProvider.bgResForTone(selectedTone[0]));
-                        cell.setForeground(makeSelectionBorderDrawable());
-                    } else {
-                        cell.setBackgroundResource(R.drawable.bg_panel_inner);
-                    }
-                    LinearLayout.LayoutParams cLp = new LinearLayout.LayoutParams(0, dp(42), 1f);
-                    if (c < 3) cLp.setMarginEnd(dp(6));
-                    cell.setLayoutParams(cLp);
-
-                    ImageView iv = new ImageView(activity);
-                    iv.setImageResource(VehicleWidgetProvider.iconResForKey(key));
-                    iv.setColorFilter(ContextCompat.getColor(activity,
-                            active ? VehicleWidgetProvider.textColorResForTone(selectedTone[0]) : R.color.text_primary));
-                    cell.addView(iv, new FrameLayout.LayoutParams(dp(20), dp(20), Gravity.CENTER));
-                    cell.setOnClickListener(v -> {
-                        selectedIcon[0] = key;
-                        renderAppearances[0].run();
-                    });
-                    row.addView(cell);
-                }
-                iconGrid.addView(row);
-            }
-        };
+        renderAppearances[0] = () -> renderToneAndIconPickers(
+                toneRow, iconGrid, selectedTone, selectedIcon, renderAppearances[0]);
 
         final Runnable[] renderSteps = new Runnable[1];
         renderSteps[0] = () -> {
@@ -760,6 +708,9 @@ public final class WidgetComboUiHelper {
                 CustomActionCombo saved = new CustomActionCombo(
                         id, name, selectedIcon[0], selectedTone[0], builtSteps);
                 upsertCombo(saved, assignToSlotIndex);
+                if (onSaved != null) {
+                    onSaved.onComboSaved(saved);
+                }
                 dialog.dismiss();
             });
         }
@@ -1085,7 +1036,80 @@ public final class WidgetComboUiHelper {
         if (listener != null) listener.onConfigUpdated();
     }
 
-    private String formatComboSummary(Context resCtx, CustomActionCombo combo) {
+    void renderToneAndIconPickers(
+            LinearLayout toneRow,
+            LinearLayout iconGrid,
+            String[] selectedTone,
+            String[] selectedIcon,
+            Runnable rerender
+    ) {
+        toneRow.removeAllViews();
+        for (String tone : CustomActionCombo.PRESET_TONES) {
+            boolean active = tone.equals(selectedTone[0]);
+            FrameLayout swatch = new FrameLayout(activity);
+            swatch.setBackgroundResource(VehicleWidgetProvider.bgResForTone(tone));
+            if (active) swatch.setForeground(makeSelectionBorderDrawable());
+            LinearLayout.LayoutParams sLp = new LinearLayout.LayoutParams(0, dp(34), 1f);
+            sLp.setMarginEnd(dp(6));
+            swatch.setLayoutParams(sLp);
+            if (active) {
+                TextView check = new TextView(activity);
+                check.setText("✓");
+                check.setTextColor(ContextCompat.getColor(
+                        activity, VehicleWidgetProvider.textColorResForTone(tone)));
+                check.setTypeface(null, Typeface.BOLD);
+                check.setGravity(Gravity.CENTER);
+                swatch.addView(check, new FrameLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+            }
+            swatch.setOnClickListener(v -> {
+                selectedTone[0] = tone;
+                if (rerender != null) rerender.run();
+            });
+            toneRow.addView(swatch);
+        }
+
+        iconGrid.removeAllViews();
+        List<String> icons = CustomActionCombo.PRESET_ICONS;
+        for (int r = 0; r < icons.size(); r += 4) {
+            LinearLayout row = new LinearLayout(activity);
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            LinearLayout.LayoutParams rLp = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            rLp.bottomMargin = dp(6);
+            row.setLayoutParams(rLp);
+            for (int c = 0; c < 4; c++) {
+                int idx = r + c;
+                if (idx >= icons.size()) continue;
+                String key = icons.get(idx);
+                boolean active = key.equals(selectedIcon[0]);
+                FrameLayout cell = new FrameLayout(activity);
+                if (active) {
+                    cell.setBackgroundResource(VehicleWidgetProvider.bgResForTone(selectedTone[0]));
+                    cell.setForeground(makeSelectionBorderDrawable());
+                } else {
+                    cell.setBackgroundResource(R.drawable.bg_panel_inner);
+                }
+                LinearLayout.LayoutParams cLp = new LinearLayout.LayoutParams(0, dp(42), 1f);
+                if (c < 3) cLp.setMarginEnd(dp(6));
+                cell.setLayoutParams(cLp);
+
+                ImageView iv = new ImageView(activity);
+                iv.setImageResource(VehicleWidgetProvider.iconResForKey(key));
+                iv.setColorFilter(ContextCompat.getColor(activity,
+                        active ? VehicleWidgetProvider.textColorResForTone(selectedTone[0]) : R.color.text_primary));
+                cell.addView(iv, new FrameLayout.LayoutParams(dp(20), dp(20), Gravity.CENTER));
+                cell.setOnClickListener(v -> {
+                    selectedIcon[0] = key;
+                    if (rerender != null) rerender.run();
+                });
+                row.addView(cell);
+            }
+            iconGrid.addView(row);
+        }
+    }
+
+    String formatComboSummary(Context resCtx, CustomActionCombo combo) {
         String countText = formatStepCount(resCtx, combo.steps.size());
         if (combo.steps.isEmpty()) return countText;
         StringBuilder sb = new StringBuilder(countText).append(" · ");
@@ -1119,7 +1143,7 @@ public final class WidgetComboUiHelper {
                 .build();
     }
 
-    private TextView makeSectionHeader(String text) {
+    TextView makeSectionHeader(String text) {
         TextView tv = new TextView(activity);
         tv.setText(text);
         tv.setTextColor(ContextCompat.getColor(activity, R.color.text_secondary));
@@ -1147,7 +1171,7 @@ public final class WidgetComboUiHelper {
         return d;
     }
 
-    private int dp(int value) {
+    int dp(int value) {
         return Math.round(TypedValue.applyDimension(
                 TypedValue.COMPLEX_UNIT_DIP, value, activity.getResources().getDisplayMetrics()));
     }
