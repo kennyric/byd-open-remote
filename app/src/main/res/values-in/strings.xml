@@ -9,12 +9,12 @@
     <string name="btn_show_guide">Lihat</string>
     <string name="btn_hide_guide">Tutup</string>
     <string name="setup_guide_warning">JANGAN gunakan akun pemilik utama Anda. Otorisasikan akun BYD ke-2 di aplikasi resmi BYD — langkah ini melindungi sesi login utama Anda, mencegah keluar paksa, dan memungkinkan pencabutan akses kapan saja.</string>
-    <string name="setup_guide_step1_title">1. Buat Akun BYD ke-2 &amp; Kata Sandi</string>
-    <string name="setup_guide_step1_body">Keluar dari aplikasi resmi BYD, lalu daftarkan akun ke-2 dengan email berbeda di negara/wilayah yang sama dengan mobil Anda. Pastikan akun ke-2 memiliki Kata Sandi Login (Saya → Pengaturan ⚙️ → Akun &amp; Keamanan → Kata Sandi), bukan hanya login kode OTP.</string>
-    <string name="setup_guide_step2_title">2. Bagikan Akses Mobil dari Akun Utama</string>
-    <string name="setup_guide_step2_body">Masuk kembali ke Akun Pemilik Utama di aplikasi resmi BYD → Mobil Saya → Otorisasi Kendaraan / Manajemen Kendaraan (Vehicle Authorization) → Tambah Akun → masukkan email akun ke-2 dan aktifkan izin Kontrol Jarak Jauh (Kunci/Buka Kunci, AC).</string>
+    <string name="setup_guide_step1_title">1. Bagikan Akses Mobil dari Akun Utama</string>
+    <string name="setup_guide_step1_body">Di aplikasi resmi BYD (saat masih login di Akun Pemilik Utama) → Mobil Saya → Otorisasi Kendaraan / Manajemen Kendaraan (Vehicle Authorization) → Tambah Akun → masukkan alamat email ke-2 (bisa dilakukan bahkan sebelum email tersebut didaftarkan ke BYD) dan aktifkan izin Kontrol Jarak Jauh (Kunci/Buka Kunci, AC).</string>
+    <string name="setup_guide_step2_title">2. Daftar / Masuk Akun ke-2 &amp; Buat Kata Sandi</string>
+    <string name="setup_guide_step2_body">Keluar dari akun utama di aplikasi resmi BYD, lalu daftar atau masuk memakai email ke-2 tersebut di negara/wilayah yang sama dengan mobil Anda. Pastikan akun ke-2 memiliki Kata Sandi Login (Saya → Pengaturan ⚙️ → Akun &amp; Keamanan → Kata Sandi), bukan hanya login kode OTP.</string>
     <string name="setup_guide_step3_title">3. Terima Undangan &amp; Atur PIN Operasi 6-Digit</string>
-    <string name="setup_guide_step3_body">Masuk ke aplikasi resmi BYD memakai akun ke-2 dan terima undangan berbagi mobil. Buat PIN Operasi 6-digit di Saya → Pengaturan ⚙️ → Akun &amp; Keamanan → Kata Sandi Operasi (Operation Password), lalu coba tekan Kunci atau AC sekali di aplikasi resmi.</string>
+    <string name="setup_guide_step3_body">Masih di akun ke-2 pada aplikasi resmi BYD, terima undangan berbagi mobil. Buat PIN Operasi 6-digit di Saya → Pengaturan ⚙️ → Akun &amp; Keamanan → Kata Sandi Operasi (Operation Password), lalu coba tekan Kunci atau AC sekali di aplikasi resmi.</string>
     <string name="setup_guide_step4_title">4. Ketuk Ambil VIN → Lalu Ketuk Simpan</string>
     <string name="setup_guide_step4_body">Pilih Wilayah Cloud di bawah (mis. Indonesia ID), masukkan email akun ke-2, kata sandi login, dan PIN 6-digit. Ketuk Ambil VIN terlebih dahulu hingga nomor rangka muncul otomatis, lalu ketuk Simpan.</string>
     <string name="card_account_title">Akun BYD &amp; Wilayah</string>

@@ -8,12 +8,12 @@
     <string name="btn_show_guide">Show</string>
     <string name="btn_hide_guide">Hide</string>
     <string name="setup_guide_warning">Do NOT use your main owner account. Authorize a separate 2nd BYD account in the official BYD App instead — this protects your primary login, prevents forced logouts, and lets you revoke access anytime.</string>
-    <string name="setup_guide_step1_title">1. Create a 2nd BYD Account &amp; Password</string>
-    <string name="setup_guide_step1_body">Sign out of the official BYD App and register a 2nd account with a separate email in the same country/region as your car. Make sure to set a login password (My → Settings ⚙️ → Account &amp; Security → Password) — OTP-only login will not work here.</string>
-    <string name="setup_guide_step2_title">2. Share Car from Your Main Account</string>
-    <string name="setup_guide_step2_body">Log back into your Main Owner Account in the official BYD App → My Car → Vehicle Authorization / Car Sharing (Otorisasi Kendaraan) → Add Authorized Account → enter your 2nd account email and enable Remote Control permissions (Lock/Unlock, AC).</string>
+    <string name="setup_guide_step1_title">1. Share Car from Your Main Account First</string>
+    <string name="setup_guide_step1_body">In the official BYD App (while still signed into your Main Owner Account) → My Car → Vehicle Authorization / Car Sharing (Otorisasi Kendaraan) → Add Authorized Account → enter a 2nd email address (can be done even before registering that email) and enable Remote Control permissions (Lock/Unlock, AC).</string>
+    <string name="setup_guide_step2_title">2. Register / Sign Into 2nd Account &amp; Set Password</string>
+    <string name="setup_guide_step2_body">Sign out of your main account in the official BYD App, then register or sign in with that 2nd email in the same country/region as your car. Make sure to set a login password (My → Settings ⚙️ → Account &amp; Security → Password) — OTP-only login will not work here.</string>
     <string name="setup_guide_step3_title">3. Accept Invite &amp; Set 6-Digit Operation PIN</string>
-    <string name="setup_guide_step3_body">Log into the official BYD App with your 2nd account and accept the car-share invite. Set a 6-digit Operation PIN under My → Settings ⚙️ → Account &amp; Security → Operation Password (Kata Sandi Operasi), then test Lock or AC once in the official app.</string>
+    <string name="setup_guide_step3_body">Still in your 2nd account in the official BYD App, accept the car-share invite. Set a 6-digit Operation PIN under My → Settings ⚙️ → Account &amp; Security → Operation Password (Kata Sandi Operasi), then test Lock or AC once in the official app.</string>
     <string name="setup_guide_step4_title">4. Tap Fetch VIN → Then Tap Save</string>
     <string name="setup_guide_step4_body">Select your Cloud Region below (e.g. Indonesia ID), enter your 2nd account email, login password, and 6-digit PIN. Tap Fetch VIN first (waits for VIN to fill in), then tap Save to finish login.</string>
     <string name="card_account_title">BYD Account &amp; Region</string>
