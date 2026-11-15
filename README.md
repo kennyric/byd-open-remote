@@ -5,39 +5,34 @@ Free, open-source, unofficial Android remote control & Material You home-screen 
 [![Download Android APK](https://img.shields.io/badge/Download_APK-Latest_Release-006C4C?style=for-the-badge&logo=android&logoColor=white)](https://github.com/kennyric/byd-open-remote/releases/latest)
 [![Direct APK Download](https://img.shields.io/badge/Direct_Download-v1.0.1_(.apk)-00658E?style=for-the-badge)](https://github.com/kennyric/byd-open-remote/releases/download/v1.0.1/BYD-Open-Remote-v1.0.1.apk)
 
-> **Quick Install:** **[Tap here to download the Android app (.apk)](https://github.com/kennyric/byd-open-remote/releases/download/v1.0.1/BYD-Open-Remote-v1.0.1.apk)** or open the **[Releases page](https://github.com/kennyric/byd-open-remote/releases/latest)**, then follow the **[2nd account setup guide](#pre-login-setup-guide-2nd-account--password--pin)** below before signing in.
->
-> *First time sideloading an Android APK?* Open the downloaded `.apk` file → allow **Install unknown apps** for your browser/Files app if prompted. If Google Play Protect shows a warning about an unrecognized developer, tap **More details → Install anyway**.
+> **Quick Install:** **[Download BYD-Open-Remote-v1.0.1.apk](https://github.com/kennyric/byd-open-remote/releases/download/v1.0.1/BYD-Open-Remote-v1.0.1.apk)** or view **[GitHub Releases](https://github.com/kennyric/byd-open-remote/releases/latest)**, then complete the **[Pre-Login Setup Guide](#pre-login-setup-guide-2nd-account--password--pin)** below before signing in.
 
 <details>
-<summary><b>🇮🇩 Panduan Cepat Bahasa Indonesia (Klik untuk buka: Cara Install, Akun ke-2, Login &amp; Pasang Widget)</b></summary>
+<summary><b>Panduan Penggunaan (Bahasa Indonesia)</b></summary>
 
-1. **Install Aplikasi (.apk)**
-   - Unduh **`BYD-Open-Remote-v1.0.1.apk`** lewat tombol di atas, lalu buka file tersebut.
-   - Jika diminta izin Android, aktifkan **Izinkan dari sumber ini (*Install unknown apps*)**. Jika muncul peringatan Google Play Protect (*Pengembang tidak dikenal*), ketuk **Selengkapnya / More details → Tetap instal (*Install anyway*)**.
-2. **Bagikan Akses Mobil dari Akun Utama Terlebih Dahulu**
-   - Saat masih login di **Akun Pemilik Utama** pada aplikasi resmi **BYD App**, buka **Mobil Saya (*My Car*) → Otorisasi Kendaraan / Manajemen Kendaraan (*Vehicle Authorization / Car Sharing*) → Tambah Akun Resmi (*Add Authorized Account*)**.
-   - Masukkan **alamat email ke-2** *(bisa dilakukan langsung bahkan sebelum email ke-2 tersebut didaftarkan di BYD!)* dan centang izin **Kontrol Jarak Jauh / Remote Control** (Kunci/Buka Kunci, AC, dll.).
-3. **Daftar / Masuk ke Akun BYD ke-2 &amp; Buat Kata Sandi Login**
-   - Keluar (*Log out*) dari akun utama di aplikasi resmi **BYD App**, lalu daftar atau masuk menggunakan **email ke-2** tersebut di negara/wilayah yang sama (mis. Indonesia).
-   - Pastikan akun ke-2 punya **Kata Sandi Login** — jika daftarnya pakai kode OTP email tanpa password, buka **Saya (*My*) → Pengaturan ⚙️ (*Settings*) → Akun &amp; Keamanan (*Account & Security*) → Kata Sandi (*Password*)** untuk membuat password terlebih dahulu.
-4. **Terima Undangan &amp; Atur PIN Operasi 6-Digit**
-   - Masih di **akun ke-2** pada aplikasi resmi **BYD App**, **terima undangan berbagi mobil**.
-   - Buka **Saya → Pengaturan ⚙️ → Akun &amp; Keamanan → Kata Sandi Operasi (*Operation Password*)** untuk mengatur **PIN Operasi 6-digit** (beda dengan password login!).
-   - Coba tekan tombol **Kunci** atau **AC** sekali di aplikasi resmi BYD untuk memastikan PIN aktif.
-5. **Login di BYD Open Remote (`Ambil VIN` → `Simpan`)**
-   - Buka **BYD Open Remote** → masuk ke **Akun BYD &amp; Wilayah** → pilih **Indonesia (ID)** (sesuai negara akun).
-   - Masukkan **email akun ke-2**, **Kata Sandi Login** *(password login, bukan kode OTP)*, dan **PIN Kontrol 6-Digit** *(Operation PIN)*.
-   - Ketuk **Ambil VIN (*Fetch VIN*)** dan tunggu hingga **Nomor Rangka (VIN)** terisi otomatis. *(Tombol **Simpan** memang dinonaktifkan sebelum Ambil VIN berhasil.)*
-   - Setelah VIN muncul, ketuk **Simpan (*Save*)** — Anda akan otomatis masuk ke halaman utama Kontrol dengan notifikasi **"Login akun berhasil"**.
-6. **Pasang Widget di Layar Utama HP Android**
-   - Setelah berhasil login, kembali ke layar utama HP → **tekan &amp; tahan area kosong** di layar → pilih **Widget** → cari **BYD Open Remote** → seret widget **`4×3`**, **`4×2`**, **`4×1`**, **`2×2`**, atau **Lokasi Mobil** ke layar utama.
-   - *(Opsional)* Bahasa aplikasi bisa diganti ke **Indonesia** di menu **Preferensi (*Preferences*) → Bahasa Aplikasi (*App Language*)**.
+#### 1. Instalasi Aplikasi
+1. Unduh berkas **[`BYD-Open-Remote-v1.0.1.apk`](https://github.com/kennyric/byd-open-remote/releases/download/v1.0.1/BYD-Open-Remote-v1.0.1.apk)** dan buka pada perangkat Android Anda.
+2. Apabila diminta oleh sistem Android, aktifkan izin **Instal aplikasi tidak dikenal (*Install unknown apps*)** pada peramban atau pengelola berkas Anda. Jika muncul dialog Google Play Protect, pilih **Selengkapnya (*More details*) → Tetap instal (*Install anyway*)**.
+
+#### 2. Persiapan Akun Kedua BYD
+Demi keamanan dan agar sesi aplikasi resmi BYD di ponsel utama Anda tidak keluar secara otomatis, gunakan akun BYD kedua yang diberi otorisasi kendaraan:
+
+1. **Otorisasi Email Kedua dari Akun Utama**
+   Pada aplikasi resmi **BYD App** menggunakan akun pemilik utama, buka **Mobil Saya → Otorisasi Kendaraan → Tambah Akun**. Masukkan alamat email kedua dan aktifkan izin **Kontrol Jarak Jauh**. *(Otorisasi dapat dikirim sebelum email kedua terdaftar sebagai akun BYD.)*
+2. **Daftarkan Akun Kedua &amp; Atur Kata Sandi Login**
+   Keluar dari akun utama di aplikasi resmi **BYD App**, lalu daftar atau masuk menggunakan email kedua tersebut pada negara/wilayah yang sama dengan kendaraan Anda. Pastikan akun kedua memiliki kata sandi login melalui **Saya → Pengaturan → Akun &amp; Keamanan → Kata Sandi** *(akun yang hanya menggunakan kode OTP tidak dapat digunakan)*.
+3. **Terima Undangan &amp; Atur PIN Operasi 6 Digit**
+   Pada akun kedua di aplikasi resmi **BYD App**, terima undangan otorisasi kendaraan. Atur PIN Operasi 6 digit melalui **Saya → Pengaturan → Akun &amp; Keamanan → Kata Sandi Operasi**, lalu uji perintah **Kunci** atau **AC** satu kali untuk memastikan PIN aktif.
+4. **Masuk di BYD Open Remote (`Ambil VIN` → `Simpan`)**
+   Buka **BYD Open Remote → Akun BYD &amp; Wilayah**, pilih wilayah yang sesuai (misalnya `Indonesia (ID)`), lalu masukkan email akun kedua, kata sandi login, dan PIN Operasi 6 digit. Ketuk **Ambil VIN** hingga nomor rangka (VIN) terisi otomatis, kemudian ketuk **Simpan**.
+
+#### 3. Menambahkan Widget ke Layar Utama
+Tekan dan tahan area kosong pada layar utama Android → pilih **Widget** → cari **BYD Open Remote** → tambahkan widget **Status BYD Remote** (`4×3`, `4×2`, `4×1`, `2×2`) atau **Lokasi Mobil**.
 
 </details>
 
 > [!IMPORTANT]
-> **Security Recommendation — Always Use a 2nd BYD Account:** Do **not** log in with your primary owner account. Share your car from your main BYD account to a secondary email with Remote Control permissions, register/sign into that 2nd account in the official BYD app, accept the invite, set its login password & 6-digit Operation PIN, test a remote command once in the official app, and **only then** sign into BYD Open Remote.
+> **Security Recommendation — Use a Secondary BYD Account:** Do **not** sign in with your primary owner account. Authorize a secondary email address from your main BYD account with Remote Control permissions, register or sign into that secondary account in the official BYD App, configure its login password and 6-digit Operation PIN, verify a remote command once in the official app, and then sign into BYD Open Remote.
 
 > [!NOTE]
 > **Watch Companion Notice:** This project originally started alongside a Huawei Watch GT 4 bridge, so legacy package namespaces (`com.bydwatch.companion`) remain in parts of the codebase. **Huawei Watch integration is currently not working** — use the **Android phone app, Quick Settings tile, and home-screen widgets**, which work standalone without a watch.
@@ -77,46 +72,43 @@ Free, open-source, unofficial Android remote control & Material You home-screen 
 
 ## Pre-Login Setup Guide (2nd Account + Password + PIN)
 
-Setting up a dedicated secondary account takes ~2 minutes in the official **BYD App** and keeps your primary owner session uninterrupted:
+Configuring a dedicated secondary account in the official **BYD App** takes ~2 minutes and keeps your primary owner session uninterrupted:
 
-> **Two different secrets in BYD:** BYD uses **(a) an Account Login Password** to sign in *and* **(b) a 6-digit Operation PIN** to unlock/lock/start AC. If you sign into the official BYD App using email OTP codes, you must set a login password first before third-party login can work.
-
-1. **Share &amp; Authorize Vehicle from Your Main Account First (Official BYD App)**
-   - While still signed into your **Main Owner Account** in the official BYD App, open **My Car (`Mobil Saya`) → Vehicle Authorization / Car Sharing (`Otorisasi Kendaraan / Manajemen Kendaraan`) → Add Authorized Account (`Tambah Akun`)**.
-   - Enter your **2nd email address** *(you can share to the new email even before registering it on BYD)* and grant **Remote Control** permissions (Door Lock/Unlock, Climate/AC, Flash/Horn).
-2. **Register / Sign Into Your 2nd BYD Account &amp; Set a Login Password**
-   - Sign out of your main account in the official BYD App, then register (or sign in) with that **2nd email address** in the **exact same country/region** as your vehicle.
-   - Set its **Account Login Password** under **My (`Saya`) → Settings ⚙️ → Account &amp; Security (`Akun & Keamanan`) → Password (`Kata Sandi`)** *(OTP-only accounts without a password cannot sign in here)*.
-3. **Accept Invite &amp; Configure the 6-Digit Operation PIN (Still in 2nd Account)**
-   - Still signed into your **2nd account** in the official BYD App, accept the vehicle share invitation.
-   - Open **My (`Saya`) → Settings ⚙️ → Account &amp; Security → Operation Password (`Kata Sandi Operasi`)** (or follow the prompt on your first Lock/AC tap) and set a **6-digit Operation PIN**.
-   - Tap **Lock** or **Climate On** once inside the official BYD App to confirm the 2nd account's password &amp; Operation PIN are active on BYD Cloud.
-4. **Sign In on BYD Open Remote (`Fetch VIN` → `Save`)**
-   - Open **BYD Open Remote** → **BYD Account &amp; Region**.
-   - Select your **Cloud Region** (e.g. `Indonesia (ID)`), then enter your **2nd account email**, **Account Login Password**, and **6-digit Operation PIN**.
-   - Tap **Fetch VIN** first — your vehicle VIN fills in automatically and unlocks the **Save** button *(**Save** stays disabled until **Fetch VIN** verifies the account &amp; region)*.
-   - Tap **Save** to return to the homepage with `"Account login successful"` and trigger an immediate telemetry refresh.
+1. **Authorize a Secondary Email**
+   - In the official BYD App on your **primary owner account**, navigate to **My Car → Vehicle Authorization → Add Authorized Account**.
+   - Enter a secondary email address and enable **Remote Control** permissions (Door Lock/Unlock, Climate/AC, Flash/Horn). *The email address does not need to be registered with BYD prior to sending the authorization.*
+2. **Register the Secondary Account &amp; Set a Login Password**
+   - Sign out of the official BYD App and register or sign in using that secondary email in the **same country/region** as your vehicle.
+   - Ensure a login password is set under **My → Settings → Account &amp; Security → Password**. *Accounts configured for email OTP sign-in only cannot authenticate without a password.*
+3. **Accept Authorization &amp; Configure the 6-Digit Operation PIN**
+   - While signed into the secondary account in the official BYD App, accept the vehicle authorization invitation.
+   - Navigate to **My → Settings → Account &amp; Security → Operation Password** and set a **6-digit Operation PIN** (distinct from your account login password).
+   - Trigger **Lock** or **Climate On** once in the official BYD App to confirm the Operation PIN is active on BYD Cloud.
+4. **Verify VIN &amp; Save Credentials in BYD Open Remote**
+   - Open **BYD Open Remote → BYD Account &amp; Region**.
+   - Select your **Cloud Region** (for example, `Indonesia (ID)`), then enter the secondary account email, login password, and 6-digit Operation PIN.
+   - Tap **Fetch VIN** to verify your credentials and populate your vehicle's VIN, then tap **Save**.
 
 > [!TIP]
-> **Why do this first?**
-> - Prevents forced session logouts on your main BYD App when home-screen widgets auto-sync.
-> - Lets you revoke or pause third-party remote access anytime from your main owner account.
-> - Ensures your 6-digit Operation PIN is initialized on BYD's servers (BYD rejects remote control commands until the PIN has been set in the official app).
+> **Why use a secondary account?**
+> - Prevents session conflicts and automatic logouts on your primary BYD App when widgets sync in the background.
+> - Allows you to revoke or pause third-party remote access at any time from your primary owner account.
+> - Ensures the 6-digit Operation PIN is initialized on BYD's servers prior to issuing remote commands.
 
-### Adding Home-Screen Widgets (Android)
+### Adding Home-Screen Widgets
 
-1. After saving your account and confirming telemetry loads on the homepage, return to your phone's Android home screen.
-2. **Long-press** an empty area of your home screen → tap **Widgets** → scroll to **BYD Open Remote**.
-3. Drag **`BYD Remote Status`** (`4×3`, `4×2`, `4×1`, or `2×2`) or **`Car Location`** onto your home screen, then customize card styles, sync interval, and button slots anytime in **Preferences**.
+1. After saving your credentials and verifying that telemetry loads on the homepage, return to your Android home screen.
+2. Long-press an empty area on the home screen, select **Widgets**, and locate **BYD Open Remote**.
+3. Place **`BYD Remote Status`** (`4×3`, `4×2`, `4×1`, or `2×2`) or **`Car Location`** on your home screen. Widget visual styles, sync intervals, and action buttons can be customized under **Preferences**.
 
-### Quick Troubleshooting
+### Troubleshooting
 
-| Symptom / Error | Cause | How to Fix |
+| Issue | Cause | Resolution |
 | :--- | :--- | :--- |
-| **Save** button is greyed out / disabled | Account credentials/region haven't been verified via **Fetch VIN** (or were edited afterward). | Tap **Fetch VIN** first and wait for the VIN field to populate, then tap **Save**. |
-| `ACCOUNT_UNBOUND` / `code=2003` (*"Akun ini tidak terikat dengan kendaraan"*) | No verified vehicle VIN bound for the current region/account, or the 2nd-account car-share invite hasn't been accepted yet. | Confirm the car-share invite is accepted in the official BYD App, verify the matching **Cloud Region**, go to **BYD Account** → tap **Fetch VIN** → tap **Save**. |
-| `PIN_INVALID` on Lock/Unlock/AC | Wrong 6-digit Operation PIN, entered login password instead of PIN, or PIN not yet set in official BYD App. | Test **Lock** once in the official BYD App (set **Operation Password** under **Settings → Account &amp; Security** if needed), then re-enter the 6-digit PIN in **BYD Account** → **Fetch VIN** → **Save**. |
-| Official BYD App logs out unexpectedly | Logged into BYD Open Remote using your **Main Owner Account** instead of a shared 2nd account. | Switch to a dedicated **2nd BYD Account** authorized via Car Sharing so widget sync never kicks out your main phone session. |
+| **Save** button is disabled | Credentials or region have not been verified via **Fetch VIN** (or were modified after fetching). | Tap **Fetch VIN** and wait for the VIN field to populate, then tap **Save**. |
+| `ACCOUNT_UNBOUND` (`code=2003`) | No verified VIN is bound for the active session, or the vehicle sharing invitation has not been accepted. | Confirm the invitation is accepted in the official BYD App, verify the selected **Cloud Region**, then tap **Fetch VIN** followed by **Save**. |
+| `PIN_INVALID` on remote commands | Incorrect 6-digit Operation PIN, or the Operation PIN has not been initialized in the official BYD App. | Verify that **Operation Password** is set under **My → Settings → Account &amp; Security** and test **Lock** once in the official BYD App, then update the PIN in **BYD Account → Fetch VIN → Save**. |
+| Official BYD App signs out unexpectedly | Signed into BYD Open Remote with the primary owner account instead of a secondary account. | Switch BYD Open Remote to a dedicated secondary account authorized via **Vehicle Authorization**. |
 
 ---
 
