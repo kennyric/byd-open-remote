@@ -1,7 +1,9 @@
 package com.bydwatch.companion.data;
 
+import com.bydwatch.companion.model.CustomActionCombo;
 import com.bydwatch.companion.model.UnitPreferences;
 import com.bydwatch.companion.model.VehicleSummary;
+import com.bydwatch.companion.model.WidgetSlotConfig;
 
 import java.util.Collections;
 import java.util.List;
@@ -142,6 +144,28 @@ public interface ConfigStore {
 
     default long getWidgetLastSyncMs() { return 0L; }
     default void setWidgetLastSyncMs(long syncMs) {}
+
+    default String getActionCombosJson() { return null; }
+    default void setActionCombosJson(String json) {}
+
+    default List<CustomActionCombo> getActionCombos() {
+        return CustomActionCombo.listFromJson(getActionCombosJson());
+    }
+
+    default void setActionCombos(List<CustomActionCombo> combos) {
+        setActionCombosJson(CustomActionCombo.listToJson(combos));
+    }
+
+    default String getWidgetSlotsJson() { return null; }
+    default void setWidgetSlotsJson(String json) {}
+
+    default List<WidgetSlotConfig> getWidgetSlots() {
+        return WidgetSlotConfig.listFromJson(getWidgetSlotsJson());
+    }
+
+    default void setWidgetSlots(List<WidgetSlotConfig> slots) {
+        setWidgetSlotsJson(WidgetSlotConfig.listToJson(slots));
+    }
 
     boolean isConfigured();
 

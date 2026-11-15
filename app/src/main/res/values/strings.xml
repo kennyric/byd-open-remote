@@ -231,4 +231,67 @@
     <string name="qs_setup_needed">Setup needed</string>
     <string name="qs_tap_sync">Tap to sync</string>
     <string name="qs_default_label">EV Remote</string>
+
+    <!-- Live Widget Preview & Customizable 4-Slot Buttons -->
+    <string name="label_live_widget_preview">Live 4×3 Preview</string>
+    <string name="hint_live_widget_preview">Tap any button below to customize</string>
+    <string name="badge_sample_preview">Sample</string>
+    <string name="label_widget_buttons">Widget Buttons</string>
+    <string name="btn_reset_slots">Reset</string>
+    <string name="slots_reset_toast">Widget buttons reset to default</string>
+    <string name="slot_pill_fmt">%1$d. %2$s</string>
+    <string name="slot_label_lights">Lights</string>
+    <string name="slot_label_bat_heat_off">Bat Off</string>
+    <string name="slot_label_location">Locate</string>
+
+    <!-- Action Combos -->
+    <string name="label_action_combos">Action Combos</string>
+    <string name="btn_new_combo">+ New</string>
+    <string name="btn_new_combo_long">+ Create New Action Combo</string>
+    <string name="combo_empty_hint">No combos yet. Create one to combine actions like Unlock + Cool AC + Lights in a single tap.</string>
+    <string name="combo_step_count_fmt">%1$d steps</string>
+    <string name="combo_step_single">1 step</string>
+    <string name="btn_run_combo">Run</string>
+    <string name="btn_edit_combo">Edit</string>
+    <string name="combo_default_name">My Combo</string>
+    <string name="combo_missing_banner">Combo missing</string>
+    <string name="combo_setup_required">Setup app first</string>
+    <string name="combo_empty_error">Add at least one action</string>
+    <string name="combo_done_fmt">%1$s done</string>
+    <string name="combo_running_fmt">Running %1$s (%2$s)</string>
+
+    <!-- Slot Picker Dialog -->
+    <string name="dialog_choose_action_title">Choose Button %1$d Action</string>
+    <string name="label_button_number_prefix">Button %1$d</string>
+    <string name="label_custom_button_name">Button Name (Optional)</string>
+    <string name="hint_custom_button_name">Leave blank for default name</string>
+    <string name="section_your_combos">Your Action Combos</string>
+    <string name="section_single_actions">Single Actions</string>
+
+    <!-- Combo Builder Dialog -->
+    <string name="dialog_combo_create_title">New Action Combo</string>
+    <string name="dialog_combo_edit_title">Edit Action Combo</string>
+    <string name="label_combo_name">Name</string>
+    <string name="hint_combo_name">e.g. Cool Ride, Morning Start</string>
+    <string name="label_combo_color">Color</string>
+    <string name="label_combo_icon">Icon</string>
+    <string name="label_combo_steps">Actions (in order)</string>
+    <string name="btn_add_action">+ Add Action</string>
+    <string name="btn_delete_combo">Delete</string>
+    <string name="btn_cancel">Cancel</string>
+    <string name="combo_ac_mode_auto">Auto °C</string>
+    <string name="combo_ac_mode_manual">Manual</string>
+    <string name="combo_ac_mode_default">App Default</string>
+    <string name="combo_step_ac_auto_fmt">Start AC (%1$d°C)</string>
+    <string name="combo_step_ac_manual_fmt">Start AC (Lvl %1$d · Fan %2$d)</string>
+    <string name="combo_step_bat_heat_on">Bat Heat: On</string>
+    <string name="combo_step_bat_heat_off">Bat Heat: Off</string>
+    <string name="combo_step_seat_cycle">Cycle</string>
+    <string name="combo_step_seat_off">Seat: Off</string>
+    <string name="combo_step_seat_low">Seat: Low</string>
+    <string name="combo_step_seat_high">Seat: High</string>
+    <string name="combo_wind_face">Face</string>
+    <string name="combo_wind_face_feet">Face+Feet</string>
+    <string name="combo_wind_feet">Feet</string>
+    <string name="combo_max_steps_hint">Up to 6 actions per combo</string>
 </resources>

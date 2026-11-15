@@ -585,4 +585,72 @@ public class VehicleWidgetProviderTest {
         assertEquals("12,500 km · Tertutup",
                 ((TextView) v.findViewById(R.id.tvWidgetBatteryMeta)).getText().toString());
     }
+
+    @Test
+    public void customSlotsUpdateAllLayoutsAndExecuteSequentialComboAndSingleActions() throws Exception {
+        AppWidgetManager mgr = AppWidgetManager.getInstance(app);
+        ShadowAppWidgetManager shadowMgr = Shadows.shadowOf(mgr);
+        Bundle wide4x2 = new Bundle();
+        wide4x2.putInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 280);
+        wide4x2.putInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 110);
+
+        com.bydwatch.companion.model.CustomActionCombo combo =
+                new com.bydwatch.companion.model.CustomActionCombo(
+                        "cmb_morning",
+                        "Morning",
+                        com.bydwatch.companion.model.CustomActionCombo.ICON_SUN,
+                        com.bydwatch.companion.model.CustomActionCombo.TONE_AMBER,
+                        java.util.Arrays.asList(
+                                new com.bydwatch.companion.model.CustomActionCombo.ComboStep(
+                                        com.bydwatch.companion.protocol.WatchProtocol.ACTION_UNLOCK),
+                                new com.bydwatch.companion.model.CustomActionCombo.ComboStep(
+                                        com.bydwatch.companion.protocol.WatchProtocol.ACTION_AC_ON,
+                                        true, false, 19, 3, 4, 1, -1),
+                                new com.bydwatch.companion.model.CustomActionCombo.ComboStep(
+                                        com.bydwatch.companion.protocol.WatchProtocol.ACTION_LIGHTS)
+                        )
+                );
+        configStore.setActionCombos(java.util.Collections.singletonList(combo));
+        configStore.setWidgetSlots(java.util.Arrays.asList(
+                com.bydwatch.companion.model.WidgetSlotConfig.single(
+                        com.bydwatch.companion.model.WidgetSlotConfig.SINGLE_LIGHTS),
+                com.bydwatch.companion.model.WidgetSlotConfig.combo("cmb_morning", "Warmup"),
+                com.bydwatch.companion.model.WidgetSlotConfig.single(
+                        com.bydwatch.companion.model.WidgetSlotConfig.SINGLE_VENT_WINDOWS),
+                com.bydwatch.companion.model.WidgetSlotConfig.single(
+                        com.bydwatch.companion.model.WidgetSlotConfig.SINGLE_LOCATION)
+        ));
+
+        VehicleWidgetProvider provider = new VehicleWidgetProvider();
+        provider.onAppWidgetOptionsChanged(app, mgr, compactWidgetId, wide4x2);
+        View wideView = shadowMgr.getViewFor(compactWidgetId);
+        assertEquals("Lights", ((Button) wideView.findViewById(R.id.btnWidgetLock)).getText().toString());
+        assertEquals("Warmup", ((Button) wideView.findViewById(R.id.btnWidgetUnlock)).getText().toString());
+        assertEquals("Vent Win", ((Button) wideView.findViewById(R.id.btnWidgetAc)).getText().toString());
+        assertEquals("Locate", ((Button) wideView.findViewById(R.id.btnWidgetRefresh)).getText().toString());
+        assertNotNull(wideView.findViewById(R.id.ivWidgetUnlock));
+
+        // Slot 0 single action -> flashLights
+        WidgetActionReceiver receiver = new WidgetActionReceiver();
+        receiver.onReceive(app, new Intent(app, WidgetActionReceiver.class)
+                .setAction(VehicleWidgetProvider.slotAction(0)));
+        awaitRepo();
+        assertEquals(1, fakeGateway.flashLightsCalls.get());
+
+        // Slot 1 multi-step combo -> unlock + startClimate(19C) + flashLights
+        VehicleWidgetProvider.comboStepDelayMs = 0L;
+        try {
+            receiver.onReceive(app, new Intent(app, WidgetActionReceiver.class)
+                    .setAction(VehicleWidgetProvider.slotAction(1)));
+            VehicleWidgetProvider.awaitComboExecutorForTesting();
+            awaitRepo();
+        } finally {
+            VehicleWidgetProvider.comboStepDelayMs = 800L;
+        }
+        assertEquals(1, fakeGateway.unlockCalls.get());
+        assertEquals(1, fakeGateway.startClimateCalls.get());
+        assertEquals(19.0, fakeGateway.lastTempCelsius, 0.01);
+        assertEquals(2, fakeGateway.flashLightsCalls.get());
+        assertNull(VehicleWidgetProvider.getActiveBanner(app));
+    }
 }

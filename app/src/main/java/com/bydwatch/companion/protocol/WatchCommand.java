@@ -15,18 +15,24 @@ public final class WatchCommand {
     public final int tempGear;
     public final int fanLevel;
     public final int windMode;
+    public final String acMode;
 
     public WatchCommand(String id, String action, int tempC, String vin, int level) {
-        this(id, action, tempC, vin, level, -1, -1, -1);
+        this(id, action, tempC, vin, level, -1, -1, -1, "");
     }
 
     public WatchCommand(String id, String action, int tempC, String vin, int level,
                         int tempGear, int fanLevel) {
-        this(id, action, tempC, vin, level, tempGear, fanLevel, -1);
+        this(id, action, tempC, vin, level, tempGear, fanLevel, -1, "");
     }
 
     public WatchCommand(String id, String action, int tempC, String vin, int level,
                         int tempGear, int fanLevel, int windMode) {
+        this(id, action, tempC, vin, level, tempGear, fanLevel, windMode, "");
+    }
+
+    public WatchCommand(String id, String action, int tempC, String vin, int level,
+                        int tempGear, int fanLevel, int windMode, String acMode) {
         this.id = id;
         this.action = action;
         this.tempC = tempC;
@@ -35,6 +41,7 @@ public final class WatchCommand {
         this.tempGear = tempGear;
         this.fanLevel = fanLevel;
         this.windMode = windMode;
+        this.acMode = acMode != null ? acMode.trim() : "";
     }
 
     public WatchCommand(String id, String action, int tempC) {
@@ -77,12 +84,13 @@ public final class WatchCommand {
                 && windMode == that.windMode
                 && Objects.equals(id, that.id)
                 && Objects.equals(action, that.action)
-                && Objects.equals(vin, that.vin);
+                && Objects.equals(vin, that.vin)
+                && Objects.equals(acMode, that.acMode);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, action, tempC, vin, level, tempGear, fanLevel, windMode);
+        return Objects.hash(id, action, tempC, vin, level, tempGear, fanLevel, windMode, acMode);
     }
 
     @Override

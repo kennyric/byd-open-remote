@@ -32,5 +32,7 @@
     <color name="widget_on_secondary_container">#CBE6FF</color>
     <color name="widget_tertiary_container">#5C3D00</color>
     <color name="widget_on_tertiary_container">#FFE0B2</color>
+    <color name="widget_rose_container">#6D191F</color>
+    <color name="widget_on_rose_container">#FFDAD6</color>
     <color name="widget_outline">#3D4943</color>
 </resources>

@@ -26,8 +26,10 @@ import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -49,6 +51,7 @@ import com.bydwatch.companion.data.BydGateway;
 import com.bydwatch.companion.data.BydRepository;
 import com.bydwatch.companion.data.ConfigStore;
 import com.bydwatch.companion.data.SecureConfigStore;
+import com.bydwatch.companion.model.CustomActionCombo;
 import com.bydwatch.companion.model.RegionOption;
 import com.bydwatch.companion.model.UnitPreferences;
 import com.bydwatch.companion.model.VehicleStatus;
@@ -209,6 +212,7 @@ public class MainActivity extends AppCompatActivity {
     private Button btnSaveCustomModel;
     private MaterialButtonToggleGroup toggleWidgetStyle;
     private TextView tvWidgetStyleDesc;
+    private WidgetComboUiHelper widgetComboUiHelper;
     private boolean updatingWidgetStyleUi = false;
     private MaterialButtonToggleGroup toggleAppLanguage;
     private boolean updatingAppLanguageUi = false;
@@ -390,6 +394,39 @@ public class MainActivity extends AppCompatActivity {
         btnSaveCustomModel = findViewById(R.id.btnSaveCustomModel);
         toggleWidgetStyle = findViewById(R.id.toggleWidgetStyle);
         tvWidgetStyleDesc = findViewById(R.id.tvWidgetStyleDesc);
+        widgetComboUiHelper = new WidgetComboUiHelper(
+                this,
+                configStore,
+                new WidgetComboUiHelper.Listener() {
+                    @Override
+                    public VehicleStatus getCurrentStatus() {
+                        return lastStatus;
+                    }
+
+                    @Override
+                    public void onRunCombo(CustomActionCombo combo) {
+                        runComboFromUi(combo);
+                    }
+
+                    @Override
+                    public void onConfigUpdated() {
+                        VehicleWidgetProvider.refreshWidgets(MainActivity.this);
+                    }
+                }
+        );
+        widgetComboUiHelper.bindViews(
+                findViewById(R.id.flWidgetPreviewContainer),
+                findViewById(R.id.tvWidgetPreviewSampleBadge),
+                new MaterialButton[]{
+                        findViewById(R.id.btnWidgetSlot1),
+                        findViewById(R.id.btnWidgetSlot2),
+                        findViewById(R.id.btnWidgetSlot3),
+                        findViewById(R.id.btnWidgetSlot4)
+                },
+                findViewById(R.id.btnResetWidgetSlots),
+                findViewById(R.id.btnNewActionCombo),
+                findViewById(R.id.layoutCombosContainer)
+        );
         toggleAppLanguage = findViewById(R.id.toggleAppLanguage);
         switchManualAc = findViewById(R.id.switchManualAc);
         switchHideExtraControls = findViewById(R.id.switchHideExtraControls);
@@ -889,6 +926,7 @@ public class MainActivity extends AppCompatActivity {
                     configStore.setAppLanguage(lang);
                 }
                 updateAppLanguageUi(lang);
+                if (widgetComboUiHelper != null) widgetComboUiHelper.refreshUi();
                 VehicleWidgetProvider.refreshWidgets(this);
                 LocationWidgetProvider.refreshWidgets(this);
                 Context resCtx = AppLocaleHelper.localizedContext(this, configStore);
@@ -1629,6 +1667,9 @@ public class MainActivity extends AppCompatActivity {
         updateLocationCard(status);
         updateAccountUiState();
         VehicleWidgetProvider.refreshWidgets(this);
+        if (widgetComboUiHelper != null) {
+            widgetComboUiHelper.refreshUi();
+        }
     }
 
     private static String formatChargePowerKw(Double kw) {
@@ -1824,7 +1865,10 @@ public class MainActivity extends AppCompatActivity {
         configStore.setDistanceUnit(next);
         updateUnitButtons();
         if (lastStatus != null) updateTelemetryUi(lastStatus);
-        else VehicleWidgetProvider.refreshWidgets(this);
+        else {
+            VehicleWidgetProvider.refreshWidgets(this);
+            if (widgetComboUiHelper != null) widgetComboUiHelper.refreshUi();
+        }
     }
 
     private void cycleTempUnit() {
@@ -1964,6 +2008,35 @@ public class MainActivity extends AppCompatActivity {
         if (tvWidgetStyleDesc != null) {
             tvWidgetStyleDesc.setText(widgetStyleDescFor(normalized));
         }
+        if (widgetComboUiHelper != null) {
+            widgetComboUiHelper.refreshUi();
+        }
+    }
+
+    private void runComboFromUi(CustomActionCombo combo) {
+        if (combo == null) return;
+        logMessage("Running combo: " + combo.name);
+        VehicleWidgetProvider.executeCombo(
+                this,
+                combo,
+                true,
+                new VehicleWidgetProvider.ComboProgressListener() {
+                    @Override
+                    public void onStepProgress(int stepIndex, int totalSteps, String label) {
+                        showToast(getString(R.string.combo_running_fmt, combo.name, label), false);
+                    }
+
+                    @Override
+                    public void onFinished(boolean ok, String message) {
+                        logMessage("Combo " + combo.name + ": " + message);
+                        showToast(message, true);
+                        if (repository != null && repository.getCachedStatus() != null) {
+                            updateTelemetryUi(repository.getCachedStatus());
+                        }
+                    }
+                },
+                null
+        );
     }
 
     private void saveCustomModelName() {
@@ -1975,6 +2048,9 @@ public class MainActivity extends AppCompatActivity {
         etCustomModelName.setText(custom);
         etCustomModelName.clearFocus();
         updateHeaderVehicleInfo(lastStatus);
+        if (widgetComboUiHelper != null) {
+            widgetComboUiHelper.refreshUi();
+        }
         VehicleWidgetProvider.refreshWidgets(this);
         LocationWidgetProvider.refreshWidgets(this);
         String msg = custom.isEmpty()

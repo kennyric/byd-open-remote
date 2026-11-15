@@ -125,8 +125,9 @@ public final class WatchProtocol {
                 windMode = Math.max(1, Math.min(5, rawWind));
             }
         }
+        String acMode = obj.optString("acMode", "").trim();
 
-        return new WatchCommand(id, action, tempC, vin, level, tempGear, fanLevel, windMode);
+        return new WatchCommand(id, action, tempC, vin, level, tempGear, fanLevel, windMode, acMode);
     }
 
     /**

@@ -284,14 +284,17 @@ public class BydRepository {
                 case WatchProtocol.ACTION_AC_ON: {
                     gateway.verifyControlPassword(vin);
                     VehicleStatus prev = cachedStatus.get();
+                    boolean explicitAuto = "auto".equalsIgnoreCase(cmd.acMode);
+                    boolean explicitManual = "manual".equalsIgnoreCase(cmd.acMode);
                     Boolean manualOverride = configStore.getManualAcOverride();
-                    boolean useManualAc = manualOverride != null
-                            ? manualOverride.booleanValue()
-                            : ((prev != null && prev.manualAc)
-                                    || configStore.isDetectedManualAc()
-                                    || cmd.tempGear > 0
-                                    || cmd.fanLevel > 0
-                                    || cmd.windMode > 0);
+                    boolean useManualAc = explicitManual
+                            || (!explicitAuto && (manualOverride != null
+                                    ? manualOverride.booleanValue()
+                                    : ((prev != null && prev.manualAc)
+                                            || configStore.isDetectedManualAc()
+                                            || cmd.tempGear > 0
+                                            || cmd.fanLevel > 0
+                                            || cmd.windMode > 0)));
                     boolean ok;
                     if (useManualAc) {
                         int gear = (cmd.tempGear >= ConfigStore.MIN_TEMP_GEAR && cmd.tempGear <= ConfigStore.MAX_TEMP_GEAR)
@@ -305,9 +308,11 @@ public class BydRepository {
                                 || cmd.windMode == ConfigStore.WIND_MODE_FEET)
                                 ? cmd.windMode
                                 : configStore.getDefaultWindMode();
-                        configStore.setDefaultTempGear(gear);
-                        configStore.setDefaultFanLevel(fan);
-                        configStore.setDefaultWindMode(windMode);
+                        if (!explicitManual) {
+                            configStore.setDefaultTempGear(gear);
+                            configStore.setDefaultFanLevel(fan);
+                            configStore.setDefaultWindMode(windMode);
+                        }
                         ok = gateway.startElectricClimate(vin, gear, fan, windMode);
                     } else {
                         int temp = cmd.tempC;

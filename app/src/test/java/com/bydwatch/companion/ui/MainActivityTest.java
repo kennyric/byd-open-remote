@@ -1366,6 +1366,70 @@ public class MainActivityTest {
         }
     }
 
+    @Test
+    public void liveWidgetPreviewUpdatesWithStyleCustomSlotsAndResetsCleanly() {
+        android.widget.FrameLayout previewContainer = activity.findViewById(R.id.flWidgetPreviewContainer);
+        assertNotNull(previewContainer);
+        assertTrue(previewContainer.getChildCount() > 0);
+        View previewView = previewContainer.getChildAt(0);
+        assertEquals("Lock", ((Button) previewView.findViewById(R.id.btnWidgetLock)).getText().toString());
+        assertEquals("Unlock", ((Button) previewView.findViewById(R.id.btnWidgetUnlock)).getText().toString());
+        assertEquals("AC On", ((Button) previewView.findViewById(R.id.btnWidgetAc)).getText().toString());
+        assertEquals("Sync", ((Button) previewView.findViewById(R.id.btnWidgetRefresh)).getText().toString());
+
+        // Switching 4x3 style to Bento swaps preview to Bento layout
+        activity.findViewById(R.id.btnWidgetStyleBento).performClick();
+        ShadowLooper.idleMainLooper();
+        View bentoPreview = previewContainer.getChildAt(0);
+        assertNotNull(bentoPreview.findViewById(R.id.tvWidgetBatteryLabel));
+
+        // Save custom combo + slot override and verify both slot bar and live preview update
+        com.bydwatch.companion.model.CustomActionCombo combo =
+                new com.bydwatch.companion.model.CustomActionCombo(
+                        "cmb_prev",
+                        "Cool Drive",
+                        com.bydwatch.companion.model.CustomActionCombo.ICON_FROST,
+                        com.bydwatch.companion.model.CustomActionCombo.TONE_CYAN,
+                        java.util.Collections.singletonList(
+                                new com.bydwatch.companion.model.CustomActionCombo.ComboStep(
+                                        com.bydwatch.companion.protocol.WatchProtocol.ACTION_UNLOCK)
+                        )
+                );
+        configStore.setActionCombos(java.util.Collections.singletonList(combo));
+        configStore.setWidgetSlots(java.util.Arrays.asList(
+                com.bydwatch.companion.model.WidgetSlotConfig.single(
+                        com.bydwatch.companion.model.WidgetSlotConfig.SINGLE_LIGHTS),
+                com.bydwatch.companion.model.WidgetSlotConfig.combo("cmb_prev", ""),
+                com.bydwatch.companion.model.WidgetSlotConfig.single(
+                        com.bydwatch.companion.model.WidgetSlotConfig.SINGLE_AC_TOGGLE),
+                com.bydwatch.companion.model.WidgetSlotConfig.single(
+                        com.bydwatch.companion.model.WidgetSlotConfig.SINGLE_LOCATION)
+        ));
+        activity.findViewById(R.id.btnWidgetStyleTank).performClick();
+        ShadowLooper.idleMainLooper();
+
+        assertEquals("1. Lights", ((Button) activity.findViewById(R.id.btnWidgetSlot1)).getText().toString());
+        assertEquals("2. Cool Drive", ((Button) activity.findViewById(R.id.btnWidgetSlot2)).getText().toString());
+        View tankPreview = previewContainer.getChildAt(0);
+        assertEquals("Lights", ((Button) tankPreview.findViewById(R.id.btnWidgetLock)).getText().toString());
+        assertEquals("Cool Drive", ((Button) tankPreview.findViewById(R.id.btnWidgetUnlock)).getText().toString());
+        assertEquals("Locate", ((Button) tankPreview.findViewById(R.id.btnWidgetRefresh)).getText().toString());
+
+        // User-facing strings must avoid internal/legal jargon
+        android.view.ViewGroup combosContainer = activity.findViewById(R.id.layoutCombosContainer);
+        assertNotNull(combosContainer);
+        assertEquals(1, combosContainer.getChildCount());
+        assertFalse(containsTextViewWithText(combosContainer, "Copyright-Free"));
+        assertFalse(containsTextViewWithText(combosContainer, "WatchProtocol"));
+        assertFalse(containsTextViewWithText(combosContainer, "Safe Sequential Execution"));
+
+        // Reset restores default 4 buttons
+        activity.findViewById(R.id.btnResetWidgetSlots).performClick();
+        ShadowLooper.idleMainLooper();
+        assertEquals("1. Lock", ((Button) activity.findViewById(R.id.btnWidgetSlot1)).getText().toString());
+        assertEquals("4. Sync", ((Button) activity.findViewById(R.id.btnWidgetSlot4)).getText().toString());
+    }
+
     private static boolean containsTextViewWithText(View view, String target) {
         if (view instanceof TextView && target.contentEquals(((TextView) view).getText())) {
             return true;

@@ -452,6 +452,14 @@ public class BydRepositoryTest {
         @Override public boolean isDetectedManualAc() { return detectedManualAc; }
         @Override public void setDetectedManualAc(boolean detected) { this.detectedManualAc = detected; }
 
+        private String actionCombosJson = null;
+        private String widgetSlotsJson = null;
+
+        @Override public String getActionCombosJson() { return actionCombosJson; }
+        @Override public void setActionCombosJson(String json) { this.actionCombosJson = json; }
+        @Override public String getWidgetSlotsJson() { return widgetSlotsJson; }
+        @Override public void setWidgetSlotsJson(String json) { this.widgetSlotsJson = json; }
+
         @Override
         public boolean isConfigured() {
             return username != null && !username.trim().isEmpty()
@@ -473,6 +481,8 @@ public class BydRepositoryTest {
             defaultWindMode = DEFAULT_WIND_MODE;
             manualAcOverride = null;
             detectedManualAc = false;
+            actionCombosJson = null;
+            widgetSlotsJson = null;
         }
     }
 
@@ -777,5 +787,71 @@ public class BydRepositoryTest {
         assertFalse(unknownVin.getBoolean("ok"));
         assertEquals("BAD_REQUEST", unknownVin.getString("err"));
         assertEquals("LC0SECONDVIN99999", configStore.getVin());
+    }
+
+    @Test
+    public void acOnHonorsPerStepAcModeOverrideAndModelJsonRoundTrip() throws Exception {
+        // Global Manual AC enabled, but command asks for explicit Auto mode
+        configStore.setManualAcMode(true);
+        JSONObject autoOverride = executeCommand(
+                "{\"id\":\"ac_auto_1\",\"action\":\"ac_on\",\"acMode\":\"auto\",\"tempC\":21}");
+        assertTrue(autoOverride.getBoolean("ok"));
+        assertEquals(1, fakeGateway.startClimateCalls.get());
+        assertEquals(0, fakeGateway.startElectricClimateCalls.get());
+        assertEquals(21.0, fakeGateway.lastTempCelsius, 0.01);
+
+        // Global Auto AC enabled, but command asks for explicit Manual preset
+        configStore.setManualAcMode(false);
+        JSONObject manualOverride = executeCommand(
+                "{\"id\":\"ac_man_1\",\"action\":\"ac_on\",\"acMode\":\"manual\",\"tempGear\":5,\"fanLevel\":6,\"windMode\":2}");
+        assertTrue(manualOverride.getBoolean("ok"));
+        assertEquals(1, fakeGateway.startElectricClimateCalls.get());
+        assertEquals(5, fakeGateway.lastTempGear);
+        assertEquals(6, fakeGateway.lastWindLevel);
+        assertEquals(2, fakeGateway.lastWindMode);
+
+        // Model JSON serialization round-trips
+        com.bydwatch.companion.model.CustomActionCombo combo =
+                new com.bydwatch.companion.model.CustomActionCombo(
+                        "cmb_test",
+                        "Cool Ride",
+                        com.bydwatch.companion.model.CustomActionCombo.ICON_FROST,
+                        com.bydwatch.companion.model.CustomActionCombo.TONE_CYAN,
+                        Arrays.asList(
+                                new com.bydwatch.companion.model.CustomActionCombo.ComboStep(
+                                        com.bydwatch.companion.protocol.WatchProtocol.ACTION_UNLOCK),
+                                new com.bydwatch.companion.model.CustomActionCombo.ComboStep(
+                                        com.bydwatch.companion.protocol.WatchProtocol.ACTION_AC_ON, true, true, 19, 6, 5, 2, -1)
+                        )
+                );
+        configStore.setActionCombos(java.util.Collections.singletonList(combo));
+        java.util.List<com.bydwatch.companion.model.CustomActionCombo> restoredCombos =
+                configStore.getActionCombos();
+        assertEquals(1, restoredCombos.size());
+        assertEquals("Cool Ride", restoredCombos.get(0).name);
+        assertEquals("frost", restoredCombos.get(0).iconKey);
+        assertEquals("cyan", restoredCombos.get(0).tone);
+        assertEquals(2, restoredCombos.get(0).steps.size());
+        assertTrue(restoredCombos.get(0).steps.get(1).manualAc);
+        assertEquals(6, restoredCombos.get(0).steps.get(1).tempGear);
+
+        configStore.setWidgetSlots(Arrays.asList(
+                com.bydwatch.companion.model.WidgetSlotConfig.combo("cmb_test", "Chill"),
+                com.bydwatch.companion.model.WidgetSlotConfig.single(
+                        com.bydwatch.companion.model.WidgetSlotConfig.SINGLE_LIGHTS),
+                com.bydwatch.companion.model.WidgetSlotConfig.single(
+                        com.bydwatch.companion.model.WidgetSlotConfig.SINGLE_VENT_WINDOWS),
+                com.bydwatch.companion.model.WidgetSlotConfig.single(
+                        com.bydwatch.companion.model.WidgetSlotConfig.SINGLE_LOCATION)
+        ));
+        java.util.List<com.bydwatch.companion.model.WidgetSlotConfig> restoredSlots =
+                configStore.getWidgetSlots();
+        assertEquals(4, restoredSlots.size());
+        assertTrue(restoredSlots.get(0).isCombo());
+        assertEquals("cmb_test", restoredSlots.get(0).targetId);
+        assertEquals("Chill", restoredSlots.get(0).customLabel);
+        assertEquals("lights", restoredSlots.get(1).targetId);
+        assertEquals("vent_windows", restoredSlots.get(2).targetId);
+        assertEquals("location", restoredSlots.get(3).targetId);
     }
 }

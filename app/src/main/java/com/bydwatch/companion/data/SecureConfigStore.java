@@ -48,6 +48,8 @@ public class SecureConfigStore implements ConfigStore {
     private static final String PREF_APP_LANGUAGE = "byd_app_language";
     private static final String PREF_WIDGET_STATUS_JSON = "byd_widget_status_json";
     private static final String PREF_WIDGET_LAST_SYNC_MS = "byd_widget_last_sync_ms";
+    private static final String PREF_ACTION_COMBOS_JSON = "byd_action_combos_json";
+    private static final String PREF_WIDGET_SLOTS_JSON = "byd_widget_slots_json";
 
     private final SharedPreferences prefs;
 
@@ -400,6 +402,34 @@ public class SecureConfigStore implements ConfigStore {
     @Override
     public void setWidgetLastSyncMs(long syncMs) {
         prefs.edit().putLong(PREF_WIDGET_LAST_SYNC_MS, Math.max(0L, syncMs)).apply();
+    }
+
+    @Override
+    public String getActionCombosJson() {
+        return prefs.getString(PREF_ACTION_COMBOS_JSON, null);
+    }
+
+    @Override
+    public void setActionCombosJson(String json) {
+        if (json == null || json.trim().isEmpty()) {
+            prefs.edit().remove(PREF_ACTION_COMBOS_JSON).apply();
+        } else {
+            prefs.edit().putString(PREF_ACTION_COMBOS_JSON, json).apply();
+        }
+    }
+
+    @Override
+    public String getWidgetSlotsJson() {
+        return prefs.getString(PREF_WIDGET_SLOTS_JSON, null);
+    }
+
+    @Override
+    public void setWidgetSlotsJson(String json) {
+        if (json == null || json.trim().isEmpty()) {
+            prefs.edit().remove(PREF_WIDGET_SLOTS_JSON).apply();
+        } else {
+            prefs.edit().putString(PREF_WIDGET_SLOTS_JSON, json).apply();
+        }
     }
 
     @Override
