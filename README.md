@@ -2,6 +2,11 @@
 
 Free, open-source, unofficial Android remote control & Material You home-screen widget app for BYD vehicles connected to BYD DiLink Cloud (`com.bydopenremote.app`).
 
+[![Download Android APK](https://img.shields.io/badge/Download_APK-Latest_Release-006C4C?style=for-the-badge&logo=android&logoColor=white)](https://github.com/kennyric/byd-open-remote/releases/latest)
+[![Direct APK Download](https://img.shields.io/badge/Direct_Download-v1.0.0_(.apk)-00658E?style=for-the-badge)](https://github.com/kennyric/byd-open-remote/releases/download/v1.0.0/byd-open-remote-v1.0.0-debug.apk)
+
+> **Quick Install:** **[Tap here to download the Android app (.apk)](https://github.com/kennyric/byd-open-remote/releases/download/v1.0.0/byd-open-remote-v1.0.0-debug.apk)** or open the **[Releases page](https://github.com/kennyric/byd-open-remote/releases/latest)**, then follow the **[2nd account setup guide](#pre-login-setup-guide-2nd-account--password--pin)** below before signing in.
+
 > [!IMPORTANT]
 > **Security Recommendation — Always Use a 2nd BYD Account:** Do **not** log in with your primary owner account. Create a secondary BYD account in the official BYD app, share your car to it with Remote Control permissions, set its password & 6-digit Operation PIN, test a remote command once in the official app, and **only then** sign into BYD Open Remote.
 

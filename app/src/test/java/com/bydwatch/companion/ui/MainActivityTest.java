@@ -1058,7 +1058,7 @@ public class MainActivityTest {
         Intent companionIntent = Shadows.shadowOf(activity).getNextStartedActivity();
         assertNotNull(companionIntent);
         assertEquals(Intent.ACTION_VIEW, companionIntent.getAction());
-        assertEquals("https://github.com/kennyric/byd-android-companion", companionIntent.getDataString());
+        assertEquals("https://github.com/kennyric/byd-open-remote", companionIntent.getDataString());
 
         btnWatch.performClick();
         ShadowLooper.idleMainLooper();

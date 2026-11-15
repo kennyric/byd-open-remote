@@ -177,7 +177,7 @@
     <string name="about_non_commercial">Free open-source project — Not for sale / Tidak diperuntukkan untuk jual beli.</string>
     <string name="about_github_companion">GitHub · Companion App</string>
     <string name="about_github_watch">GitHub · Watch GT 4 App</string>
-    <string name="about_github_companion_url" translatable="false">https://github.com/kennyric/byd-android-companion</string>
+    <string name="about_github_companion_url" translatable="false">https://github.com/kennyric/byd-open-remote</string>
     <string name="about_github_watch_url" translatable="false">https://github.com/kennyric/byd-watch-gt4</string>
 
     <string name="label_app_language">App Language</string>
