@@ -1,4 +1,4 @@
-# BYD Open Remote (`No.1`)
+# BYD Open Remote
 
 Free, open-source, unofficial Android remote control & Material You home-screen widget app for BYD vehicles connected to BYD DiLink Cloud (`com.bydopenremote.app`).
 
@@ -78,12 +78,14 @@ Setting up a dedicated secondary account takes ~2 minutes in the official **BYD 
   - Lock / Unlock doors, Flash Lights, Honk Horn, Vent / Close Windows, Battery Preconditioning Heat, and Driver Seat Heat (`Level 0–2`).
   - Dual Climate Modes: **Auto Climate** (`°C` / `°F`) and **Manual AC Mode** (e.g., BYD Atto 1 / Seagull with Temp Level `1–9`, Fan Level `1–7`, and `Body` / `Body+Feet` / `Feet` vent direction).
 - **Home-Screen Widgets (Material You) & Quick Settings Tile**
-  - Adaptive `2×2`, `4×1`, `4×2`, and `4×3` vehicle widgets (`Lock`, `Unlock`, `AC On/Off`, `Sync`) plus a dedicated **Car Location** widget with reverse-geocoded street names and one-tap navigation handoff.
+  - Adaptive `2×2`, `4×1`, `4×2`, and `4×3` vehicle widgets (each with 4 customizable buttons — default `Lock`, `Unlock`, `AC On/Off`, `Sync`) plus a dedicated **Car Location** widget with reverse-geocoded street names and one-tap navigation handoff.
+  - **Live `4×3` Preview in Preferences**: updates live as you change widget style, car model name, units, language, or button assignments (shows synthetic `Sample` telemetry before your first sync); tap any button in the preview or the `1–4` **Widget Buttons** strip to customize it, or tap **Reset** to restore defaults.
+  - **Customizable Buttons & Action Combos**: assign any of the 4 widget buttons (with an optional custom short label) to any of 11 single actions (`Lock`, `Unlock`, `AC On/Off`, `Sync`, `Lights`, `Horn`, `Vent Win`, `Close Win`, `Bat Heat`, `Seat Heat`, `Locate`) or your own **Action Combos** (up to 6 ordered actions per combo, e.g., `Unlock → Start AC → Flash Lights`, with per-step `Auto °C` or `Manual` climate presets, `Seat Heat` level, 8 icons, and 4 colors). Combos can be run directly from **Preferences** or any widget slot.
   - **4 Selectable `4×3` Battery Card Styles** in **Preferences**:
-    1. **Capsule** — Balanced SoC & Range with a thick capsule progress bar
-    2. **Ring Gauge** — Circular radial SoC gauge with stacked range metrics
-    3. **Bento Split** — Side-by-side Battery and Range KPI tiles
-    4. **Tank Fill** — Full-height horizontal fill progress card
+    1. **Capsule** — Balanced SoC & Range with a capsule progress bar
+    2. **Ring** — Circular ring gauge on left with stacked range metrics
+    3. **Bento** — Side-by-side Battery and Range KPI tiles
+    4. **Tank** — Full-height tank fill charge card
   - Configurable widget auto-sync interval (minutes or hours).
   - Android Quick Settings tile (**EV Quick Lock**).
 - **Multi-Language Support (English & Bahasa Indonesia)**
@@ -115,7 +117,7 @@ On Windows PowerShell:
 .\gradlew.bat testDebugUnitTest assembleDebug
 ```
 
-Assembled APKs (`byd-open-remote-v<version>-<variant>.apk`) are written to `app/build/outputs/apk/debug/`.
+The debug APK (`byd-open-remote-v<version>-debug.apk`) is written to `app/build/outputs/apk/debug/`.
 
 ---
 
