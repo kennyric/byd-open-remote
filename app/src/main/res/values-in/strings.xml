@@ -115,7 +115,7 @@
     <string name="label_hide_extra_controls">Sembunyikan Kontrol Ekstra (Kaca / Pemanas)</string>
     <string name="label_watch_edition">Edisi Aplikasi Jam:</string>
     <string name="label_widget_sync_freq">Sinkron Otomatis Widget</string>
-    <string name="label_widget_battery_style">Gaya Widget 4×3</string>
+    <string name="label_widget_battery_style">Gaya Widget 4×2 / 4×3</string>
     <string name="widget_style_capsule">Kapsul</string>
     <string name="widget_style_ring">Cincin</string>
     <string name="widget_style_bento">Bento</string>

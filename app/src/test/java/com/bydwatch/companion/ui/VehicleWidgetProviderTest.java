@@ -653,4 +653,85 @@ public class VehicleWidgetProviderTest {
         assertEquals(2, fakeGateway.flashLightsCalls.get());
         assertNull(VehicleWidgetProvider.getActiveBanner(app));
     }
+
+    @Test
+    public void wide4x2WidgetSupportsAllFourBatteryStylesAndTracksSettingChangesWith4x3() throws Exception {
+        AppWidgetManager mgr = AppWidgetManager.getInstance(app);
+        ShadowAppWidgetManager shadowMgr = Shadows.shadowOf(mgr);
+        int secondWidgetId = shadowMgr.createWidget(VehicleWidgetProvider.class, R.layout.widget_vehicle_4x3);
+        awaitRepo();
+
+        Bundle wide4x2Opts = new Bundle();
+        wide4x2Opts.putInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 280);
+        wide4x2Opts.putInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 120);
+        mgr.updateAppWidgetOptions(compactWidgetId, wide4x2Opts);
+
+        Bundle tall4x3Opts = new Bundle();
+        tall4x3Opts.putInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 280);
+        tall4x3Opts.putInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 190);
+        mgr.updateAppWidgetOptions(secondWidgetId, tall4x3Opts);
+
+        fakeGateway.currentStatus = new VehicleStatus.Builder(63, 215, true, false, 26, 20, 1700000800L)
+                .totalMileageKm(18420)
+                .build();
+        repository.setCachedStatus(fakeGateway.currentStatus);
+
+        int[] styles = {
+                com.bydwatch.companion.data.ConfigStore.WIDGET_STYLE_CAPSULE,
+                com.bydwatch.companion.data.ConfigStore.WIDGET_STYLE_RING,
+                com.bydwatch.companion.data.ConfigStore.WIDGET_STYLE_BENTO,
+                com.bydwatch.companion.data.ConfigStore.WIDGET_STYLE_TANK
+        };
+        for (int style : styles) {
+            configStore.setWidgetStyle(style);
+            VehicleWidgetProvider.refreshWidgets(app);
+            ShadowLooper.idleMainLooper();
+
+            View v4x2 = shadowMgr.getViewFor(compactWidgetId);
+            assertEquals("63%", ((TextView) v4x2.findViewById(R.id.tvWidgetSoc)).getText().toString());
+            assertEquals("215 km", ((TextView) v4x2.findViewById(R.id.tvWidgetRange)).getText().toString());
+            assertEquals(63, ((android.widget.ProgressBar) v4x2.findViewById(R.id.pbWidgetSoc)).getProgress());
+            assertEquals("18,420 km · Closed",
+                    ((TextView) v4x2.findViewById(R.id.tvWidgetBatteryMeta)).getText().toString());
+            assertEquals(View.GONE, v4x2.findViewById(R.id.layoutWidgetLocationBar).getVisibility());
+
+            if (style == com.bydwatch.companion.data.ConfigStore.WIDGET_STYLE_RING) {
+                assertNotNull(v4x2.findViewById(R.id.tvWidgetEstRangeLabel));
+            } else if (style == com.bydwatch.companion.data.ConfigStore.WIDGET_STYLE_BENTO
+                    || style == com.bydwatch.companion.data.ConfigStore.WIDGET_STYLE_TANK) {
+                assertNotNull(v4x2.findViewById(R.id.tvWidgetBatteryLabel));
+                assertNotNull(v4x2.findViewById(R.id.tvWidgetRangeLabel));
+            } else {
+                assertNull(v4x2.findViewById(R.id.tvWidgetBatteryLabel));
+                assertNull(v4x2.findViewById(R.id.tvWidgetEstRangeLabel));
+            }
+
+            View v4x3 = shadowMgr.getViewFor(secondWidgetId);
+            assertEquals(View.VISIBLE, v4x3.findViewById(R.id.layoutWidgetLocationBar).getVisibility());
+            if (style == com.bydwatch.companion.data.ConfigStore.WIDGET_STYLE_RING) {
+                assertNotNull(v4x3.findViewById(R.id.tvWidgetEstRangeLabel));
+            } else if (style == com.bydwatch.companion.data.ConfigStore.WIDGET_STYLE_BENTO
+                    || style == com.bydwatch.companion.data.ConfigStore.WIDGET_STYLE_TANK) {
+                assertNotNull(v4x3.findViewById(R.id.tvWidgetBatteryLabel));
+            }
+        }
+
+        // Indonesian localization applies cleanly to 4x2 Ring & Bento labels too
+        configStore.setAppLanguage(com.bydwatch.companion.data.ConfigStore.LANG_ID);
+        configStore.setWidgetStyle(com.bydwatch.companion.data.ConfigStore.WIDGET_STYLE_RING);
+        VehicleWidgetProvider.refreshWidgets(app);
+        ShadowLooper.idleMainLooper();
+        View ringIdView = shadowMgr.getViewFor(compactWidgetId);
+        assertEquals("Estimasi Jarak",
+                ((TextView) ringIdView.findViewById(R.id.tvWidgetEstRangeLabel)).getText().toString());
+
+        configStore.setWidgetStyle(com.bydwatch.companion.data.ConfigStore.WIDGET_STYLE_BENTO);
+        VehicleWidgetProvider.refreshWidgets(app);
+        ShadowLooper.idleMainLooper();
+        View bentoIdView = shadowMgr.getViewFor(compactWidgetId);
+        assertEquals("Baterai",
+                ((TextView) bentoIdView.findViewById(R.id.tvWidgetBatteryLabel)).getText().toString());
+        assertEquals("Jarak Tempuh",
+                ((TextView) bentoIdView.findViewById(R.id.tvWidgetRangeLabel)).getText().toString());
+    }
 }

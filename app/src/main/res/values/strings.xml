@@ -114,7 +114,7 @@
     <string name="label_hide_extra_controls">Hide Extra Controls (Win / Heat)</string>
     <string name="label_watch_edition">Watch App Edition:</string>
     <string name="label_widget_sync_freq">Widget Auto-Sync</string>
-    <string name="label_widget_battery_style">4×3 Widget Style</string>
+    <string name="label_widget_battery_style">4×2 / 4×3 Widget Style</string>
     <string name="widget_style_capsule">Capsule</string>
     <string name="widget_style_ring">Ring</string>
     <string name="widget_style_bento">Bento</string>

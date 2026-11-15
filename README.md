@@ -3,15 +3,15 @@
 Free, open-source, unofficial Android remote control & Material You home-screen widget app for BYD vehicles connected to BYD DiLink Cloud (`com.bydopenremote.app`).
 
 [![Download Android APK](https://img.shields.io/badge/Download_APK-Latest_Release-006C4C?style=for-the-badge&logo=android&logoColor=white)](https://github.com/kennyric/byd-open-remote/releases/latest)
-[![Direct APK Download](https://img.shields.io/badge/Direct_Download-v1.0.1_(.apk)-00658E?style=for-the-badge)](https://github.com/kennyric/byd-open-remote/releases/download/v1.0.1/BYD-Open-Remote-v1.0.1.apk)
+[![Direct APK Download](https://img.shields.io/badge/Direct_Download-v1.0.2_(.apk)-00658E?style=for-the-badge)](https://github.com/kennyric/byd-open-remote/releases/download/v1.0.2/BYD-Open-Remote-v1.0.2.apk)
 
-> **Quick Install:** **[Download BYD-Open-Remote-v1.0.1.apk](https://github.com/kennyric/byd-open-remote/releases/download/v1.0.1/BYD-Open-Remote-v1.0.1.apk)** or view **[GitHub Releases](https://github.com/kennyric/byd-open-remote/releases/latest)**, then complete the **[Pre-Login Setup Guide](#pre-login-setup-guide-2nd-account--password--pin)** below before signing in.
+> **Quick Install:** **[Download BYD-Open-Remote-v1.0.2.apk](https://github.com/kennyric/byd-open-remote/releases/download/v1.0.2/BYD-Open-Remote-v1.0.2.apk)** or view **[GitHub Releases](https://github.com/kennyric/byd-open-remote/releases/latest)**, then complete the **[Pre-Login Setup Guide](#pre-login-setup-guide-2nd-account--password--pin)** below before signing in.
 
 <details>
 <summary><b>Panduan Penggunaan (Bahasa Indonesia)</b></summary>
 
 #### 1. Instalasi Aplikasi
-1. Unduh berkas **[`BYD-Open-Remote-v1.0.1.apk`](https://github.com/kennyric/byd-open-remote/releases/download/v1.0.1/BYD-Open-Remote-v1.0.1.apk)** dan buka pada perangkat Android Anda.
+1. Unduh berkas **[`BYD-Open-Remote-v1.0.2.apk`](https://github.com/kennyric/byd-open-remote/releases/download/v1.0.2/BYD-Open-Remote-v1.0.2.apk)** dan buka pada perangkat Android Anda.
 2. Apabila diminta oleh sistem Android, aktifkan izin **Instal aplikasi tidak dikenal (*Install unknown apps*)** pada peramban atau pengelola berkas Anda. Jika muncul dialog Google Play Protect, pilih **Selengkapnya (*More details*) → Tetap instal (*Install anyway*)**.
 
 #### 2. Persiapan Akun Kedua BYD
@@ -126,7 +126,7 @@ Configuring a dedicated secondary account in the official **BYD App** takes ~2 m
   - Adaptive `2×2`, `4×1`, `4×2`, and `4×3` vehicle widgets (each with 4 customizable buttons — default `Lock`, `Unlock`, `AC On/Off`, `Sync`) plus a dedicated **Car Location** widget with reverse-geocoded street names and one-tap navigation handoff.
   - **Live `4×3` Preview in Preferences**: updates live as you change widget style, car model name, units, language, or button assignments (shows synthetic `Sample` telemetry before your first sync); tap any button in the preview or the `1–4` **Widget Buttons** strip to customize it, or tap **Reset** to restore defaults.
   - **Customizable Buttons & Action Combos**: assign any of the 4 widget buttons (with an optional custom short label) to any of 11 single actions (`Lock`, `Unlock`, `AC On/Off`, `Sync`, `Lights`, `Horn`, `Vent Win`, `Close Win`, `Bat Heat`, `Seat Heat`, `Locate`) or your own **Action Combos** (up to 6 ordered actions per combo, e.g., `Unlock → Start AC → Flash Lights`, with per-step `Auto °C` or `Manual` climate presets, `Seat Heat` level, 8 icons, and 4 colors). Combos can be run directly from **Preferences** or any widget slot.
-  - **4 Selectable `4×3` Battery Card Styles** in **Preferences**:
+  - **4 Selectable `4×2` / `4×3` Battery Card Styles** in **Preferences**:
     1. **Capsule** — Balanced SoC & Range with a capsule progress bar
     2. **Ring** — Circular ring gauge on left with stacked range metrics
     3. **Bento** — Side-by-side Battery and Range KPI tiles

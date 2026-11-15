@@ -830,7 +830,9 @@ public class VehicleWidgetProvider extends AppWidgetProvider {
             if (tallWide) anyTallWide = true;
             int layoutRes = shortWide
                     ? R.layout.widget_vehicle_4x1
-                    : (tallWide ? resolveTallLayoutRes(cfg) : (wide ? R.layout.widget_vehicle : R.layout.widget_vehicle_2x2));
+                    : (tallWide
+                            ? resolveTallLayoutRes(cfg)
+                            : (wide ? resolveWide4x2LayoutRes(cfg) : R.layout.widget_vehicle_2x2));
             RemoteViews views = buildWidgetRemoteViews(
                     context, cfg, layoutRes, wide, shortWide, tallWide, st, lastSyncMs, banner);
             mgr.updateAppWidget(appWidgetId, views);
@@ -899,17 +901,18 @@ public class VehicleWidgetProvider extends AppWidgetProvider {
                 views.setTextViewText(R.id.tvWidgetLastSync, lastSyncText);
                 views.setOnClickPendingIntent(R.id.layoutWidgetBatteryCard, openPi);
                 bindTallBatteryHeader(resCtx, views, st, cfg, distUnit);
-                if (tallWide) {
-                    if (layoutRes == R.layout.widget_vehicle_4x3_ring) {
-                        views.setTextViewText(R.id.tvWidgetEstRangeLabel,
-                                resCtx.getString(R.string.widget_label_estimated_range));
-                    } else {
-                        views.setTextViewText(R.id.tvWidgetRangeLabel, resCtx.getString(R.string.label_range));
-                        if (layoutRes == R.layout.widget_vehicle_4x3_bento
-                                || layoutRes == R.layout.widget_vehicle_4x3_tank) {
-                            views.setTextViewText(R.id.tvWidgetBatteryLabel,
-                                    resCtx.getString(R.string.widget_label_battery));
-                        }
+                if (layoutRes == R.layout.widget_vehicle_4x3_ring
+                        || layoutRes == R.layout.widget_vehicle_4x2_ring) {
+                    views.setTextViewText(R.id.tvWidgetEstRangeLabel,
+                            resCtx.getString(R.string.widget_label_estimated_range));
+                } else if (layoutRes != R.layout.widget_vehicle) {
+                    views.setTextViewText(R.id.tvWidgetRangeLabel, resCtx.getString(R.string.label_range));
+                    if (layoutRes == R.layout.widget_vehicle_4x3_bento
+                            || layoutRes == R.layout.widget_vehicle_4x2_bento
+                            || layoutRes == R.layout.widget_vehicle_4x3_tank
+                            || layoutRes == R.layout.widget_vehicle_4x2_tank) {
+                        views.setTextViewText(R.id.tvWidgetBatteryLabel,
+                                resCtx.getString(R.string.widget_label_battery));
                     }
                 }
 
@@ -1225,6 +1228,21 @@ public class VehicleWidgetProvider extends AppWidgetProvider {
             case ConfigStore.WIDGET_STYLE_CAPSULE:
             default:
                 return R.layout.widget_vehicle_4x3;
+        }
+    }
+
+    static int resolveWide4x2LayoutRes(@Nullable ConfigStore cfg) {
+        int style = cfg != null ? cfg.getWidgetStyle() : ConfigStore.DEFAULT_WIDGET_STYLE;
+        switch (ConfigStore.normalizeWidgetStyle(style)) {
+            case ConfigStore.WIDGET_STYLE_RING:
+                return R.layout.widget_vehicle_4x2_ring;
+            case ConfigStore.WIDGET_STYLE_BENTO:
+                return R.layout.widget_vehicle_4x2_bento;
+            case ConfigStore.WIDGET_STYLE_TANK:
+                return R.layout.widget_vehicle_4x2_tank;
+            case ConfigStore.WIDGET_STYLE_CAPSULE:
+            default:
+                return R.layout.widget_vehicle;
         }
     }
 

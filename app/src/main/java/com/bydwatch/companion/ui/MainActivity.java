@@ -1008,7 +1008,7 @@ public class MainActivity extends AppCompatActivity {
                 updateWidgetStyleUi(style);
                 VehicleWidgetProvider.refreshWidgets(this);
                 String desc = widgetStyleDescFor(style);
-                logMessage("4x3 widget style set to " + desc);
+                logMessage("Widget style set to " + desc);
                 showToast(desc, false);
             });
         }
