@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Asistente de Reloj BYD</string>
-    <string name="header_title">BYD EV</string>
-    <string name="header_subtitle">Asistente Cloud Global</string>
+    <string name="app_name">BYD Open Remote</string>
+    <string name="header_title">BYD Open Remote</string>
+    <string name="header_subtitle">Control Remoto Cloud Open Source</string>
     <string name="auth_notice">Aviso de Seguridad: Se recomienda usar una subcuenta de autorización secundaria (Alternate Vehicle Authorization) de la app oficial BYD. App independiente no oficial.</string>
     <string name="card_account_title">Cuenta BYD y Región</string>
     <string name="label_region">Región / Mercado Cloud</string>

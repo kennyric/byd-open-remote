@@ -28,6 +28,7 @@ import com.bydwatch.companion.protocol.WatchResponse;
 
 import org.json.JSONObject;
 
+import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
 import java.util.Collections;
 import java.util.Date;
@@ -39,7 +40,9 @@ import java.util.concurrent.atomic.AtomicLong;
  * Responsive Material You home-screen widget with 30-minute background auto-sync
  * and direct background controls without opening the app:
  * - 2x2 grid: Battery, Range, plus large Lock / Unlock / Sync buttons.
- * - 4x2 - 5x2 grid: Last Sync Time, Battery, Range, AC Status, plus Lock / Unlock / AC Toggle / Sync.
+ * - 4x1 grid: Single-row Battery %, Range, Progress bar, Status, plus Lock / Unlock / AC / Sync.
+ * - 4x2 grid: Battery %, Range, Progress bar, AC status, Sync time, plus Lock / Unlock / AC / Sync.
+ * - 4x3+ grid: Adds middle reverse-geocoded Car Location card with tap-to-navigate.
  */
 public class VehicleWidgetProvider extends AppWidgetProvider {
 
@@ -50,6 +53,7 @@ public class VehicleWidgetProvider extends AppWidgetProvider {
     public static final String ACTION_WIDGET_AUTO_SYNC = "com.bydwatch.companion.WIDGET_AUTO_SYNC";
 
     static final int WIDE_WIDGET_MIN_WIDTH_DP = 220;
+    static final int SHORT_WIDGET_MAX_HEIGHT_DP = 95;
     static final int TALL_WIDGET_MIN_HEIGHT_DP = 175;
 
     private static final String PREFS_WIDGET = "byd_widget_prefs";
@@ -149,11 +153,23 @@ public class VehicleWidgetProvider extends AppWidgetProvider {
 
     public static void refreshWidgets(Context context) {
         if (context == null) return;
+        if (Looper.myLooper() != Looper.getMainLooper()) {
+            Context appCtx = context.getApplicationContext() != null
+                    ? context.getApplicationContext()
+                    : context;
+            new Handler(Looper.getMainLooper()).post(() -> refreshWidgetsOnMain(appCtx));
+            return;
+        }
+        refreshWidgetsOnMain(context);
+    }
+
+    private static void refreshWidgetsOnMain(Context context) {
+        if (context == null) return;
         BydWatchApp app = resolveApp(context);
         BydRepository repo = app != null ? app.getRepository() : null;
         VehicleStatus live = repo != null ? repo.getCachedStatus() : null;
         if (live != null) {
-            persistStatus(context, live);
+            persistStatus(context, live, false);
         }
         AppWidgetManager mgr = AppWidgetManager.getInstance(context);
         int[] ids = mgr.getAppWidgetIds(new ComponentName(context, VehicleWidgetProvider.class));
@@ -161,6 +177,10 @@ public class VehicleWidgetProvider extends AppWidgetProvider {
             updateAllWidgets(context, mgr, ids);
         }
         LocationWidgetProvider.refreshWidgets(context);
+    }
+
+    public static void recordSuccessfulSync(Context context, VehicleStatus status) {
+        persistStatus(context, status, true);
     }
 
     /**
@@ -194,19 +214,22 @@ public class VehicleWidgetProvider extends AppWidgetProvider {
             cmd.put("id", "wdg_" + System.currentTimeMillis() + "_" + CMD_SEQ.incrementAndGet());
             cmd.put("action", watchAction);
             if (WatchProtocol.ACTION_AC_ON.equals(watchAction)) {
-                cmd.put("tempC", cfg.getDefaultTempC());
+                if (cfg.isManualAcMode()) {
+                    cmd.put("tempGear", cfg.getDefaultTempGear());
+                    cmd.put("fanLevel", cfg.getDefaultFanLevel());
+                    cmd.put("windMode", cfg.getDefaultWindMode());
+                } else {
+                    cmd.put("tempC", cfg.getDefaultTempC());
+                }
             }
             repo.handleWatchJson(cmd.toString(), respStr -> {
                 try {
                     WatchResponse resp = WatchResponse.fromJson(new JSONObject(respStr));
                     if (resp != null && resp.ok && resp.state != null) {
-                        persistStatus(context, resp.state);
+                        persistStatus(context, resp.state, true);
                         clearTransientBanner(context);
                     } else if (showProgressBanner) {
-                        String msg = resp != null && resp.msg != null && !resp.msg.trim().isEmpty()
-                                ? resp.msg.trim()
-                                : (resp != null && resp.err != null ? resp.err : "Failed");
-                        setTransientBanner(context, msg);
+                        setTransientBanner(context, shortWidgetErrorBanner(resp));
                     }
                     refreshWidgets(context);
                 } catch (Exception e) {
@@ -281,8 +304,31 @@ public class VehicleWidgetProvider extends AppWidgetProvider {
         return "Syncing...";
     }
 
+    static String shortWidgetErrorBanner(@Nullable WatchResponse resp) {
+        if (resp == null) return "Sync failed";
+        String err = resp.err != null ? resp.err : "";
+        String msg = resp.msg != null ? resp.msg.trim() : "";
+        String lower = msg.toLowerCase(Locale.US);
+        if ("NOT_CONFIGURED".equals(err)) return "Setup app";
+        if ("PIN_INVALID".equals(err)) return "Check PIN";
+        if ("AUTH_FAILED".equals(err)) return "Sign-in err";
+        if ("CAR_OFFLINE".equals(err)) return "Car offline";
+        if (lower.contains("reach byd cloud") || lower.contains("internet connection")) {
+            return "No internet";
+        }
+        if (lower.contains("unstable") || lower.contains("interrupted")) {
+            return "Weak signal";
+        }
+        if ("TIMEOUT".equals(err) || lower.contains("timed out")) {
+            return "Timed out";
+        }
+        if (lower.contains("busy")) return "Cloud busy";
+        if (!msg.isEmpty() && msg.length() <= 18) return msg;
+        return "Sync failed";
+    }
+
     @Nullable
-    private static BydWatchApp resolveApp(Context context) {
+    static BydWatchApp resolveApp(Context context) {
         BydWatchApp app = BydWatchApp.getInstance();
         if (app == null && context != null && context.getApplicationContext() instanceof BydWatchApp) {
             app = (BydWatchApp) context.getApplicationContext();
@@ -329,7 +375,7 @@ public class VehicleWidgetProvider extends AppWidgetProvider {
         }
     }
 
-    private static void persistStatus(Context context, VehicleStatus status) {
+    private static void persistStatus(Context context, VehicleStatus status, boolean updateLastSyncMs) {
         if (context == null || status == null) return;
         BydWatchApp app = resolveApp(context);
         ConfigStore cfg = app != null ? app.getConfigStore() : null;
@@ -339,7 +385,9 @@ public class VehicleWidgetProvider extends AppWidgetProvider {
                     .vehicles(Collections.emptyList())
                     .build();
             cfg.setWidgetStatusJson(sanitized.toJson().toString());
-            cfg.setWidgetLastSyncMs(System.currentTimeMillis());
+            if (updateLastSyncMs) {
+                cfg.setWidgetLastSyncMs(System.currentTimeMillis());
+            }
         }
         SharedPreferences legacy = context.getSharedPreferences(PREFS_WIDGET, Context.MODE_PRIVATE);
         if (legacy.contains(KEY_LAST_STATUS_JSON) || legacy.contains(KEY_LAST_SYNC_MS)) {
@@ -379,6 +427,12 @@ public class VehicleWidgetProvider extends AppWidgetProvider {
         return minWidthDp >= WIDE_WIDGET_MIN_WIDTH_DP;
     }
 
+    static boolean isShortWidget(AppWidgetManager mgr, int appWidgetId) {
+        Bundle options = mgr != null ? mgr.getAppWidgetOptions(appWidgetId) : null;
+        int minHeightDp = options != null ? options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 0) : 0;
+        return minHeightDp > 0 && minHeightDp <= SHORT_WIDGET_MAX_HEIGHT_DP;
+    }
+
     static boolean isTallWidget(AppWidgetManager mgr, int appWidgetId) {
         Bundle options = mgr != null ? mgr.getAppWidgetOptions(appWidgetId) : null;
         int minHeightDp = options != null ? options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 0) : 0;
@@ -388,10 +442,12 @@ public class VehicleWidgetProvider extends AppWidgetProvider {
     private static void updateAllWidgets(Context context, AppWidgetManager mgr, int[] ids) {
         BydWatchApp app = resolveApp(context);
         ConfigStore cfg = app != null ? app.getConfigStore() : null;
+        Context resCtx = AppLocaleHelper.localizedContext(context, cfg);
         VehicleStatus st = resolveStatus(context);
         String banner = getActiveBanner(context);
 
         String distUnit = cfg != null ? cfg.getDistanceUnit() : UnitPreferences.DIST_KM;
+        int socProgress = st != null ? Math.max(0, Math.min(100, st.soc)) : 0;
         String socText = st != null ? (st.soc + "%") : "--%";
         String rangeText = st != null
                 ? UnitPreferences.formatDistance(st.rangeKm, distUnit)
@@ -399,11 +455,14 @@ public class VehicleWidgetProvider extends AppWidgetProvider {
 
         long lastSyncMs = cfg != null ? cfg.getWidgetLastSyncMs() : 0L;
         String lastSyncText = lastSyncMs > 0L
-                ? "Last sync " + new SimpleDateFormat("HH:mm", Locale.US).format(new Date(lastSyncMs))
-                : "Last sync --:--";
+                ? resCtx.getString(R.string.widget_last_sync_fmt,
+                        new SimpleDateFormat("HH:mm", Locale.US).format(new Date(lastSyncMs)))
+                : resCtx.getString(R.string.widget_last_sync_empty);
 
-        String acStatusText = st == null ? "AC --" : (st.acOn ? "AC On" : "AC Off");
-        String acBtnText = (st != null && st.acOn) ? "AC Off" : "AC On";
+        String acStatusText = st == null
+                ? resCtx.getString(R.string.widget_ac_unknown)
+                : resCtx.getString(st.acOn ? R.string.btn_ac_on : R.string.btn_ac_off);
+        String acBtnText = resCtx.getString((st != null && st.acOn) ? R.string.btn_ac_off : R.string.btn_ac_on);
 
         int flags = Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
                 ? PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
@@ -421,86 +480,105 @@ public class VehicleWidgetProvider extends AppWidgetProvider {
         PendingIntent navPi = PendingIntent.getBroadcast(context, 15,
                 new Intent(context, WidgetActionReceiver.class).setAction(LocationWidgetProvider.ACTION_LOCATION_NAVIGATE), flags);
 
-        boolean anyTall = false;
+        boolean anyTallWide = false;
         for (int appWidgetId : ids) {
             boolean wide = isWideWidget(mgr, appWidgetId);
-            boolean tall = isTallWidget(mgr, appWidgetId);
-            if (tall) anyTall = true;
-            RemoteViews views = new RemoteViews(
-                    context.getPackageName(),
-                    wide ? R.layout.widget_vehicle : R.layout.widget_vehicle_2x2
-            );
+            boolean shortWide = wide && isShortWidget(mgr, appWidgetId);
+            boolean tallWide = wide && !shortWide && isTallWidget(mgr, appWidgetId);
+            if (tallWide) anyTallWide = true;
+            int layoutRes = shortWide
+                    ? R.layout.widget_vehicle_4x1
+                    : (tallWide ? resolveTallLayoutRes(cfg) : (wide ? R.layout.widget_vehicle : R.layout.widget_vehicle_2x2));
+            RemoteViews views = new RemoteViews(context.getPackageName(), layoutRes);
 
             views.setTextViewText(R.id.tvWidgetSoc, socText);
             views.setOnClickPendingIntent(R.id.widgetHeader, openPi);
             views.setOnClickPendingIntent(R.id.btnWidgetLock, lockPi);
             views.setOnClickPendingIntent(R.id.btnWidgetUnlock, unlockPi);
+            views.setOnClickPendingIntent(R.id.btnWidgetAc, acPi);
             views.setOnClickPendingIntent(R.id.btnWidgetRefresh, refreshPi);
-
-            if (tall) {
-                views.setViewVisibility(R.id.layoutWidgetLocationBar, View.VISIBLE);
-                views.setOnClickPendingIntent(R.id.layoutWidgetLocationBar, navPi);
-                String timeSuffix = "";
-                if (st != null && st.hasLocation() && st.gpsTs != null && st.gpsTs > 0) {
-                    long ms = st.gpsTs > 1_000_000_000_000L ? st.gpsTs : st.gpsTs * 1000L;
-                    timeSuffix = " · " + new SimpleDateFormat("HH:mm", Locale.US).format(new Date(ms));
-                }
-                String locLabel = wide ? ("Car Location" + timeSuffix + " · Navigate") : ("Location" + timeSuffix);
-                views.setTextViewText(R.id.tvWidgetLocationLabel, locLabel);
-                String locText;
-                if (st != null && st.hasLocation()) {
-                    String cachedStreet = VehicleLocationHelper.getCachedStreetName(st.latitude, st.longitude);
-                    locText = cachedStreet != null
-                            ? cachedStreet
-                            : VehicleLocationHelper.formatCoordinates(st.latitude, st.longitude);
-                } else {
-                    locText = context.getString(R.string.location_widget_empty);
-                }
-                views.setTextViewText(R.id.tvWidgetLocationText, locText);
-            } else {
-                views.setViewVisibility(R.id.layoutWidgetLocationBar, View.GONE);
-            }
+            views.setTextViewText(R.id.btnWidgetLock, resCtx.getString(R.string.btn_lock));
+            views.setTextViewText(R.id.btnWidgetUnlock, resCtx.getString(R.string.btn_unlock));
+            views.setTextViewText(R.id.btnWidgetAc, acBtnText);
+            views.setTextViewText(R.id.btnWidgetRefresh, resCtx.getString(R.string.btn_sync));
+            views.setOnClickPendingIntent(R.id.tileWidgetLock, lockPi);
+            views.setOnClickPendingIntent(R.id.tileWidgetUnlock, unlockPi);
+            views.setOnClickPendingIntent(R.id.tileWidgetAc, acPi);
+            views.setOnClickPendingIntent(R.id.tileWidgetRefresh, refreshPi);
 
             if (wide) {
+                views.setProgressBar(R.id.pbWidgetSoc, 100, socProgress, false);
                 views.setTextViewText(R.id.tvWidgetRange, rangeText);
-                views.setTextViewText(R.id.tvWidgetAcStatus, acStatusText);
-                views.setTextViewText(R.id.tvWidgetLastSync, lastSyncText);
-                views.setTextViewText(R.id.btnWidgetAc, acBtnText);
-                views.setOnClickPendingIntent(R.id.btnWidgetAc, acPi);
-                String idleStatus;
-                if (st == null) {
-                    idleStatus = "Tap Sync";
+
+                String idleStatus = formatWideIdleStatus(resCtx, st);
+                if (shortWide) {
+                    String compact4x1Banner = banner != null
+                            ? banner
+                            : (st != null ? idleStatus + " · " + acStatusText : idleStatus);
+                    views.setTextViewText(R.id.tvWidgetBanner, compact4x1Banner);
                 } else {
-                    String lockText = st.locked ? "Locked" : "Unlocked";
-                    if (st.isCharging()) {
-                        String power = st.hasChargePowerKw()
-                                ? String.format(Locale.US, "%.1f kW", st.chargePowerKw)
-                                : "";
-                        String rem = formatWidgetChargeEta(st.chargeRemainingMinutes);
-                        if (!power.isEmpty() && !rem.isEmpty()) {
-                            idleStatus = "⚡ " + power + " · " + rem + " · " + lockText;
-                        } else if (!power.isEmpty()) {
-                            idleStatus = "⚡ Charging · " + power + " · " + lockText;
-                        } else if (!rem.isEmpty()) {
-                            idleStatus = "⚡ Charging · " + rem + " · " + lockText;
+                    views.setTextViewText(R.id.tvWidgetAcStatus, acStatusText);
+                    views.setTextViewText(R.id.tvWidgetLastSync, lastSyncText);
+                    views.setOnClickPendingIntent(R.id.layoutWidgetBatteryCard, openPi);
+                    bindTallBatteryHeader(resCtx, views, st, cfg, distUnit);
+                    if (tallWide) {
+                        if (layoutRes == R.layout.widget_vehicle_4x3_ring) {
+                            views.setTextViewText(R.id.tvWidgetEstRangeLabel,
+                                    resCtx.getString(R.string.widget_label_estimated_range));
                         } else {
-                            idleStatus = "⚡ Charging · " + lockText;
+                            views.setTextViewText(R.id.tvWidgetRangeLabel, resCtx.getString(R.string.label_range));
+                            if (layoutRes == R.layout.widget_vehicle_4x3_bento
+                                    || layoutRes == R.layout.widget_vehicle_4x3_tank) {
+                                views.setTextViewText(R.id.tvWidgetBatteryLabel,
+                                        resCtx.getString(R.string.widget_label_battery));
+                            }
                         }
-                    } else if (st.chargingState == VehicleStatus.CHARGING_CONNECTED) {
-                        idleStatus = "Plugged In · " + lockText;
+                    }
+
+                    String statePill = banner != null
+                            ? banner
+                            : (st == null ? resCtx.getString(R.string.widget_tap_sync)
+                                    : formatVehicleStateLabel(resCtx, st));
+                    if (statePill != null) {
+                        views.setViewVisibility(R.id.tvWidgetBanner, View.VISIBLE);
+                        views.setTextViewText(R.id.tvWidgetBanner, statePill);
                     } else {
-                        idleStatus = lockText;
+                        views.setViewVisibility(R.id.tvWidgetBanner, View.GONE);
+                    }
+                    if (st != null) {
+                        views.setViewVisibility(R.id.tvWidgetLockStatus, View.VISIBLE);
+                        views.setTextViewText(R.id.tvWidgetLockStatus,
+                                resCtx.getString(st.locked ? R.string.state_locked : R.string.state_unlocked));
+                        views.setViewVisibility(R.id.tvWidgetAcStatus, View.VISIBLE);
+                    } else {
+                        views.setViewVisibility(R.id.tvWidgetLockStatus, View.GONE);
+                        views.setViewVisibility(R.id.tvWidgetAcStatus, View.GONE);
+                    }
+
+                    if (tallWide) {
+                        views.setViewVisibility(R.id.layoutWidgetLocationBar, View.VISIBLE);
+                        views.setOnClickPendingIntent(R.id.layoutWidgetLocationBar, navPi);
+                        String locText;
+                        if (st != null && st.hasLocation()) {
+                            String cachedStreet = VehicleLocationHelper.getCachedStreetName(st.latitude, st.longitude);
+                            locText = cachedStreet != null
+                                    ? cachedStreet
+                                    : VehicleLocationHelper.formatCoordinates(st.latitude, st.longitude);
+                        } else {
+                            locText = resCtx.getString(R.string.location_widget_empty);
+                        }
+                        views.setTextViewText(R.id.tvWidgetLocationText, locText);
+                    } else {
+                        views.setViewVisibility(R.id.layoutWidgetLocationBar, View.GONE);
                     }
                 }
-                views.setViewVisibility(R.id.tvWidgetBanner, View.VISIBLE);
-                views.setTextViewText(R.id.tvWidgetBanner, banner != null ? banner : idleStatus);
             } else {
                 String compactSubtitle = rangeText;
                 if (st != null && st.isCharging()) {
                     String power = st.hasChargePowerKw()
                             ? String.format(Locale.US, "%.1f kW", st.chargePowerKw)
                             : "";
-                    String rem = formatWidgetChargeEta(st.chargeRemainingMinutes);
+                    String rem = formatWidgetChargeEta(resCtx, st.chargeRemainingMinutes);
                     if (!power.isEmpty() && !rem.isEmpty()) {
                         compactSubtitle = rangeText + "\n⚡ " + power + " · " + rem;
                     } else if (!power.isEmpty()) {
@@ -511,24 +589,119 @@ public class VehicleWidgetProvider extends AppWidgetProvider {
                         compactSubtitle = rangeText + " · ⚡";
                     }
                 } else if (st != null && st.chargingState == VehicleStatus.CHARGING_CONNECTED) {
-                    compactSubtitle = rangeText + " · Plugged";
+                    compactSubtitle = rangeText + " · " + resCtx.getString(R.string.widget_plugged_short);
+                } else if (st != null && st.vehicleOn) {
+                    compactSubtitle = rangeText + "\n" + resCtx.getString(R.string.state_driving_on);
                 }
                 views.setTextViewText(R.id.tvWidgetRange, banner != null ? banner : compactSubtitle);
             }
 
             mgr.updateAppWidget(appWidgetId, views);
         }
-        if (anyTall && st != null && st.hasLocation()
+        if (anyTallWide && st != null && st.hasLocation()
                 && VehicleLocationHelper.getCachedStreetName(st.latitude, st.longitude) == null) {
             VehicleLocationHelper.resolveStreetName(context, st.latitude, st.longitude,
                     street -> refreshWidgets(context));
         }
     }
 
-    private static String formatWidgetChargeEta(Integer totalMinutes) {
+    @Nullable
+    private static String formatVehicleStateLabel(Context resCtx, @Nullable VehicleStatus st) {
+        if (st == null) return null;
+        if (st.isCharging()) {
+            String power = st.hasChargePowerKw()
+                    ? String.format(Locale.US, "%.1f kW", st.chargePowerKw)
+                    : "";
+            String rem = formatWidgetChargeEta(resCtx, st.chargeRemainingMinutes);
+            if (!power.isEmpty() && !rem.isEmpty()) {
+                return "⚡ " + power + " · " + rem;
+            } else if (!power.isEmpty()) {
+                return resCtx.getString(R.string.state_charging) + " · " + power;
+            } else if (!rem.isEmpty()) {
+                return resCtx.getString(R.string.state_charging) + " · " + rem;
+            }
+            return resCtx.getString(R.string.state_charging);
+        }
+        if (st.chargingState == VehicleStatus.CHARGING_CONNECTED) {
+            return resCtx.getString(R.string.state_plugged_in);
+        }
+        if (st.vehicleOn) {
+            return resCtx.getString(R.string.state_driving_on);
+        }
+        return null;
+    }
+
+    private static String formatWideIdleStatus(Context resCtx, @Nullable VehicleStatus st) {
+        if (st == null) {
+            return resCtx.getString(R.string.widget_tap_sync);
+        }
+        String lockText = resCtx.getString(st.locked ? R.string.state_locked : R.string.state_unlocked);
+        String state = formatVehicleStateLabel(resCtx, st);
+        return state != null ? (state + " · " + lockText) : lockText;
+    }
+
+    static int resolveTallLayoutRes(@Nullable ConfigStore cfg) {
+        int style = cfg != null ? cfg.getWidgetStyle() : ConfigStore.DEFAULT_WIDGET_STYLE;
+        switch (ConfigStore.normalizeWidgetStyle(style)) {
+            case ConfigStore.WIDGET_STYLE_RING:
+                return R.layout.widget_vehicle_4x3_ring;
+            case ConfigStore.WIDGET_STYLE_BENTO:
+                return R.layout.widget_vehicle_4x3_bento;
+            case ConfigStore.WIDGET_STYLE_TANK:
+                return R.layout.widget_vehicle_4x3_tank;
+            case ConfigStore.WIDGET_STYLE_CAPSULE:
+            default:
+                return R.layout.widget_vehicle_4x3;
+        }
+    }
+
+    @Nullable
+    static String resolvePreferredModelName(@Nullable ConfigStore cfg) {
+        if (cfg == null) return null;
+        String custom = cfg.getCustomVehicleName();
+        return (custom != null && !custom.trim().isEmpty()) ? custom.trim() : null;
+    }
+
+    private static void bindTallBatteryHeader(
+            Context resCtx,
+            RemoteViews views,
+            @Nullable VehicleStatus st,
+            @Nullable ConfigStore cfg,
+            String distUnit
+    ) {
+        String model = resolvePreferredModelName(cfg);
+        if (model != null) {
+            views.setViewVisibility(R.id.tvWidgetCarModel, View.VISIBLE);
+            views.setTextViewText(R.id.tvWidgetCarModel, model);
+        } else {
+            views.setViewVisibility(R.id.tvWidgetCarModel, View.GONE);
+        }
+
+        if (st == null) {
+            views.setViewVisibility(R.id.tvWidgetBatteryMeta, View.GONE);
+            return;
+        }
+
+        String odoPart = null;
+        if (st.totalMileageKm != null && st.totalMileageKm > 0) {
+            int converted = UnitPreferences.convertDistance(st.totalMileageKm, distUnit);
+            odoPart = NumberFormat.getIntegerInstance(Locale.US).format(converted)
+                    + " " + UnitPreferences.normalizeDistanceUnit(distUnit);
+        }
+        int openings = st.doorsOpenCount + st.windowsOpenCount + (st.trunkOpen ? 1 : 0);
+        String closurePart = openings > 0
+                ? (st.doorsOpenCount + "D " + st.windowsOpenCount + "W" + (st.trunkOpen ? " + Trunk" : "") + " Open")
+                : resCtx.getString(R.string.state_closed);
+
+        views.setViewVisibility(R.id.tvWidgetBatteryMeta, View.VISIBLE);
+        views.setTextViewText(R.id.tvWidgetBatteryMeta,
+                odoPart != null ? (odoPart + " · " + closurePart) : closurePart);
+    }
+
+    private static String formatWidgetChargeEta(Context resCtx, Integer totalMinutes) {
         if (totalMinutes == null || totalMinutes <= 0) return "";
         int hrs = totalMinutes / 60;
         int mins = totalMinutes % 60;
-        return hrs + "h " + mins + "m";
+        return resCtx.getString(R.string.charge_eta_fmt, hrs, mins);
     }
 }

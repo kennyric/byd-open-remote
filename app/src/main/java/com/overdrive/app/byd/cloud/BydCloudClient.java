@@ -422,7 +422,30 @@ public class BydCloudClient {
      * remote_mode=4 (cool/heat auto), default time_span=3 (20 min).
      */
     public boolean startClimate(String vin, double tempCelsius) throws IOException {
+        CloudCapabilities cached = getCachedCloudCapabilities(vin);
+        if (cached != null && cached.isElectricAc()) {
+            int raw = (int) Math.round(tempCelsius);
+            int gear = raw <= 9 ? Math.max(1, raw) : Math.max(1, Math.min(9, raw - 14));
+            return startElectricClimate(vin, gear, 4);
+        }
         return executeRemoteCommand(vin, "OPENAIR", climateStartParams(tempCelsius), true).success;
+    }
+
+    /**
+     * Start electric/manual AC (EleAir, airType=1, no Celsius thermostat) using a
+     * temperature gear (1..9, cold to warm) and fan wind level (1..7).
+     */
+    public boolean startElectricClimate(String vin, int tempGear, int windLevel) throws IOException {
+        return startElectricClimate(vin, tempGear, windLevel, 2);
+    }
+
+    /**
+     * Start electric/manual AC (EleAir, airType=1, no Celsius thermostat) using a
+     * temperature gear (1..9), fan wind level (1..7), and vent windMode (1=Body, 2=Body+Feet, 3=Feet).
+     */
+    public boolean startElectricClimate(String vin, int tempGear, int windLevel, int windMode) throws IOException {
+        return executeRemoteCommand(
+                vin, "OPENAIR", climateStartElectricParams(tempGear, windLevel, windMode, 20), true).success;
     }
 
     /**
@@ -486,6 +509,54 @@ public class BydCloudClient {
             params.put("airSet", JSONObject.NULL);
         } catch (Exception e) {
             throw new IOException("Failed to build OPENAIR control parameters", e);
+        }
+        return params;
+    }
+
+    /**
+     * Build remote OPENAIR parameters for manual/electric AC vehicles without
+     * automatic Celsius climate control (airType == 1, EleAir).
+     */
+    public static JSONObject climateStartElectricParams(int tempGear, int windLevel)
+            throws IOException {
+        return climateStartElectricParams(tempGear, windLevel, 20);
+    }
+
+    /**
+     * Build remote OPENAIR parameters for manual/electric AC vehicles (e.g. Atto 1 / Seagull):
+     * remoteMode=5, airConditioningMode=2, temp gear 1..9, fan windLevel 1..7, acSwitch=2.
+     */
+    public static JSONObject climateStartElectricParams(
+            int tempGear, int windLevel, int durationMinutes) throws IOException {
+        return climateStartElectricParams(tempGear, windLevel, 2, durationMinutes);
+    }
+
+    /**
+     * Build remote OPENAIR parameters for manual/electric AC vehicles (e.g. Atto 1 / Seagull):
+     * remoteMode=5, airConditioningMode=2, temp gear 1..9, fan windLevel 1..7,
+     * windMode (1=Body, 2=Body+Feet, 3=Feet), acSwitch=2.
+     */
+    public static JSONObject climateStartElectricParams(
+            int tempGear, int windLevel, int windMode, int durationMinutes) throws IOException {
+        int gear = Math.max(1, Math.min(9, tempGear));
+        int fan = windLevel <= 0 ? 4 : Math.max(1, Math.min(7, windLevel));
+        int vent = windMode <= 0 ? 1 : Math.max(1, Math.min(5, windMode));
+        int timeSpan = climateDurationToTimeSpan(durationMinutes);
+        JSONObject params = new JSONObject();
+        try {
+            params.put("mainSettingTemp", gear);
+            params.put("copilotSettingTemp", gear);
+            params.put("cycleMode", 2);
+            params.put("timeSpan", timeSpan);
+            params.put("remoteMode", 5);
+            params.put("windLevel", fan);
+            params.put("windMode", vent);
+            params.put("acSwitch", 2);
+            params.put("airAccuracy", 1);
+            params.put("airConditioningMode", 2);
+            params.put("airSet", JSONObject.NULL);
+        } catch (Exception e) {
+            throw new IOException("Failed to build electric OPENAIR control parameters", e);
         }
         return params;
     }

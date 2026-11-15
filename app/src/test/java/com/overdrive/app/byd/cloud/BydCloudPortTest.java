@@ -37,6 +37,58 @@ public class BydCloudPortTest {
         assertEquals(3, params.getInt("mainSettingTemp"));
         assertEquals(3, params.getInt("copilotSettingTemp"));
         assertEquals(1, params.getInt("airConditioningMode"));
+        assertEquals(4, params.getInt("remoteMode"));
+    }
+
+    @Test
+    public void climateStartElectricParamsBuildsEleAirPayloadWithGearAndFan() throws Exception {
+        JSONObject params = BydCloudClient.climateStartElectricParams(3, 5, 10);
+        assertEquals(3, params.getInt("mainSettingTemp"));
+        assertEquals(3, params.getInt("copilotSettingTemp"));
+        assertEquals(5, params.getInt("remoteMode"));
+        assertEquals(2, params.getInt("airConditioningMode"));
+        assertEquals(5, params.getInt("windLevel"));
+        assertEquals(2, params.getInt("windMode"));
+        assertEquals(2, params.getInt("acSwitch"));
+        assertEquals(1, params.getInt("timeSpan"));
+        assertEquals(1, params.getInt("airAccuracy"));
+
+        JSONObject clamped = BydCloudClient.climateStartElectricParams(99, 0);
+        assertEquals(9, clamped.getInt("mainSettingTemp"));
+        assertEquals(4, clamped.getInt("windLevel"));
+
+        JSONObject minClamped = BydCloudClient.climateStartElectricParams(-2, 12);
+        assertEquals(1, minClamped.getInt("mainSettingTemp"));
+        assertEquals(7, minClamped.getInt("windLevel"));
+
+        JSONObject bodyOnly = BydCloudClient.climateStartElectricParams(3, 4, 1, 20);
+        assertEquals(1, bodyOnly.getInt("windMode"));
+
+        JSONObject feetOnly = BydCloudClient.climateStartElectricParams(5, 6, 3, 15);
+        assertEquals(3, feetOnly.getInt("windMode"));
+        assertEquals(2, feetOnly.getInt("timeSpan"));
+    }
+
+    @Test
+    public void cloudCapabilitiesDetectsElectricAcForFunction1015OrAirTypeOne() throws Exception {
+        JSONObject latest1015 = new JSONObject()
+                .put("data", new org.json.JSONArray()
+                        .put(new JSONObject().put("functionNo", "1015")));
+        CloudCapabilities caps1015 = CloudCapabilities.fromResponses("VIN_ATTO1", latest1015, null, 1L);
+        assertTrue(caps1015.supports(CloudCapabilities.Feature.CLIMATE));
+        assertTrue(caps1015.supports(CloudCapabilities.Feature.ELECTRIC_CLIMATE));
+        assertTrue(caps1015.isElectricAc());
+
+        JSONObject latest1001 = new JSONObject()
+                .put("data", new org.json.JSONArray()
+                        .put(new JSONObject().put("functionNo", "1001")));
+        CloudCapabilities capsAuto = CloudCapabilities.fromResponses("VIN_ATTO3", latest1001, null, 1L);
+        assertTrue(capsAuto.supports(CloudCapabilities.Feature.CLIMATE));
+        assertFalse(capsAuto.isElectricAc());
+
+        JSONObject vehicleAirType1 = new JSONObject().put("airType", 1);
+        CloudCapabilities capsAirType = CloudCapabilities.fromResponses("VIN_A1", latest1001, vehicleAirType1, 1L);
+        assertTrue(capsAirType.isElectricAc());
     }
 
     @Test

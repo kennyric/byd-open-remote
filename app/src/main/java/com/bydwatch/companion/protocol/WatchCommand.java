@@ -12,13 +12,29 @@ public final class WatchCommand {
     public final int tempC;
     public final String vin;
     public final int level;
+    public final int tempGear;
+    public final int fanLevel;
+    public final int windMode;
 
     public WatchCommand(String id, String action, int tempC, String vin, int level) {
+        this(id, action, tempC, vin, level, -1, -1, -1);
+    }
+
+    public WatchCommand(String id, String action, int tempC, String vin, int level,
+                        int tempGear, int fanLevel) {
+        this(id, action, tempC, vin, level, tempGear, fanLevel, -1);
+    }
+
+    public WatchCommand(String id, String action, int tempC, String vin, int level,
+                        int tempGear, int fanLevel, int windMode) {
         this.id = id;
         this.action = action;
         this.tempC = tempC;
         this.vin = vin != null ? vin.trim() : "";
         this.level = level;
+        this.tempGear = tempGear;
+        this.fanLevel = fanLevel;
+        this.windMode = windMode;
     }
 
     public WatchCommand(String id, String action, int tempC) {
@@ -56,6 +72,9 @@ public final class WatchCommand {
         WatchCommand that = (WatchCommand) o;
         return tempC == that.tempC
                 && level == that.level
+                && tempGear == that.tempGear
+                && fanLevel == that.fanLevel
+                && windMode == that.windMode
                 && Objects.equals(id, that.id)
                 && Objects.equals(action, that.action)
                 && Objects.equals(vin, that.vin);
@@ -63,7 +82,7 @@ public final class WatchCommand {
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, action, tempC, vin, level);
+        return Objects.hash(id, action, tempC, vin, level, tempGear, fanLevel, windMode);
     }
 
     @Override

@@ -1,8 +1,21 @@
 <resources>
-    <string name="app_name">Watch Companion for BYD</string>
-    <string name="header_title">BYD EV</string>
-    <string name="header_subtitle">Global Cloud Companion</string>
+    <string name="app_name">BYD Open Remote</string>
+    <string name="header_title">BYD Open Remote</string>
+    <string name="header_subtitle">Open-Source Cloud Remote</string>
     <string name="auth_notice">Security Notice: We strongly recommend using an Alternate Vehicle Authorization sub-account (created via the official BYD app) with remote vehicle permissions rather than your primary owner account. Independent unofficial third-party app.</string>
+    <string name="setup_guide_title">First-Time Setup Guide (2nd Account &amp; PIN)</string>
+    <string name="setup_guide_subtitle">How to prepare a secondary BYD account before signing in</string>
+    <string name="btn_show_guide">Show</string>
+    <string name="btn_hide_guide">Hide</string>
+    <string name="setup_guide_warning">Do NOT use your main owner account. Authorize a separate 2nd BYD account in the official BYD App instead — this protects your primary login, prevents forced logouts, and lets you revoke access anytime.</string>
+    <string name="setup_guide_step1_title">1. Create a 2nd BYD Account</string>
+    <string name="setup_guide_step1_body">Sign out of the official BYD App and register a 2nd account with a separate email in the same country/region as your vehicle.</string>
+    <string name="setup_guide_step2_title">2. Authorize Vehicle from Main Account</string>
+    <string name="setup_guide_step2_body">Log into your Main Owner Account in the official BYD App → select your car → Vehicle Management / Vehicle Authorization (Car Sharing) → Add Authorized Account → enter your 2nd account email and enable Remote Control permissions (AC, Lock/Unlock).</string>
+    <string name="setup_guide_step3_title">3. Accept Invite &amp; Set 6-Digit PIN</string>
+    <string name="setup_guide_step3_body">Log into the official BYD App with the 2nd account and accept the share invite. Set a 6-digit Operation PIN under Profile → Settings → Operation Password (or when prompted on first remote Lock/AC), and verify remote Lock/AC works in the official app first.</string>
+    <string name="setup_guide_step4_title">4. Enter 2nd Account Here &amp; Fetch VIN</string>
+    <string name="setup_guide_step4_body">Pick your matching Cloud Region below, enter your 2nd account email, password, and 6-digit PIN, then tap Fetch Vehicles &amp; Test Login (VIN fills automatically).</string>
     <string name="card_account_title">BYD Account &amp; Region</string>
     <string name="label_region">Cloud Region / Market</string>
     <string name="helper_region">Matches where your BYD account was registered (includes China CN)</string>
@@ -42,8 +55,24 @@
     <string name="default_doors">Unknown</string>
     <string name="default_cabin_temp">--°C</string>
     <string name="default_ac_state">AC Off</string>
+    <string name="card_ac_off">Turn AC On</string>
     <string name="default_last_updated">Never</string>
     <string name="default_target_temp">17°C</string>
+    <string name="label_temp">Temp</string>
+    <string name="label_fan_speed">Fan</string>
+    <string name="default_fan_level">Lvl 4</string>
+    <string name="label_vent">Vent</string>
+    <string name="vent_body">Body</string>
+    <string name="vent_body_feet">Body+Feet</string>
+    <string name="vent_feet">Feet</string>
+    <string name="btn_ac_adjust">Adjust</string>
+    <string name="climate_popup_title">Climate Settings</string>
+    <string name="climate_mode_manual">Manual AC</string>
+    <string name="climate_mode_auto">Auto Climate</string>
+    <string name="btn_done">Done</string>
+    <string name="btn_start_ac">Start AC</string>
+    <string name="btn_apply_now">Apply Now</string>
+    <string name="label_manual_ac_toggle">Manual AC Mode (Atto 1: Level 1–9 &amp; Fan 1–7)</string>
 
     <string name="btn_temp_minus">−</string>
     <string name="btn_temp_plus">+</string>
@@ -75,13 +104,24 @@
     <string name="nav_missing_message">No GPS coordinates cached yet. Tap Sync on the widget or open the app to locate your vehicle.</string>
     <string name="btn_open_app">Open App</string>
     <string name="label_units">Units</string>
-    <string name="widget_label">EV Watch Status</string>
+    <string name="widget_label">BYD Remote Status</string>
     <string name="tile_label">EV Quick Lock</string>
     <string name="label_alerts_toggle">Smart Alerts (Unlocked / Open / Charge Done)</string>
     <string name="label_verbose_logs_toggle">Extra Telemetry Logs (Raw Status Codes)</string>
     <string name="label_hide_extra_controls">Hide Extra Controls (Win / Heat)</string>
     <string name="label_watch_edition">Watch App Edition:</string>
     <string name="label_widget_sync_freq">Widget Auto-Sync</string>
+    <string name="label_widget_battery_style">4×3 Widget Style</string>
+    <string name="widget_style_capsule">Capsule</string>
+    <string name="widget_style_ring">Ring</string>
+    <string name="widget_style_bento">Bento</string>
+    <string name="widget_style_tank">Tank</string>
+    <string name="widget_style_desc_capsule">Option 1 · Balanced SoC &amp; Range with capsule bar</string>
+    <string name="widget_style_desc_ring">Option 2 · Circular ring gauge on left + Range stack</string>
+    <string name="widget_style_desc_bento">Option 3 · Side-by-side Battery and Range KPI tiles</string>
+    <string name="widget_style_desc_tank">Option 4 · Full-height tank fill charge card</string>
+    <string name="widget_label_battery">Battery</string>
+    <string name="widget_label_estimated_range">Estimated Range</string>
     <string name="unit_minutes">Min</string>
     <string name="unit_hours">Hr</string>
     <string name="btn_apply">Apply</string>
@@ -99,6 +139,8 @@
     <string name="log_copied_toast">Logs copied to clipboard</string>
 
     <string name="card_bridge_title">Watch Bridge &amp; Event Log</string>
+    <string name="watch_integration_notice">Notice: Huawei Watch integration is currently not working. Phone app controls and home-screen widgets continue to work normally.</string>
+    <string name="watch_integration_notice_short">Huawei Watch integration is currently not working (phone app &amp; widgets work normally).</string>
     <string name="label_event_log">Event Log</string>
     <string name="btn_clear_log">Clear</string>
     <string name="watch_status_ready">Config ready — Waiting for Watch bridge...</string>
@@ -123,8 +165,8 @@
     <string name="battery_opt_prompt">Requesting battery optimization exemption...</string>
     <string name="battery_opt_granted">Battery optimization is already disabled.</string>
 
-    <string name="splash_title">BYD Watch Companion</string>
-    <string name="splash_subtitle">Huawei Watch GT 4 &amp; EV Remote Bridge</string>
+    <string name="splash_title">BYD Open Remote</string>
+    <string name="splash_subtitle">Open-Source BYD Cloud Remote &amp; Widgets</string>
     <string name="splash_creator">Created by Kenny Ricardo</string>
     <string name="splash_non_commercial_title">FREE COMMUNITY APP · NOT FOR SALE</string>
     <string name="splash_non_commercial_body">Open-source &amp; free for personal use.\nTidak diperuntukkan untuk jual beli (Not for commercial sale or resale).</string>
@@ -135,6 +177,58 @@
     <string name="about_non_commercial">Free open-source project — Not for sale / Tidak diperuntukkan untuk jual beli.</string>
     <string name="about_github_companion">GitHub · Companion App</string>
     <string name="about_github_watch">GitHub · Watch GT 4 App</string>
-    <string name="about_github_companion_url">https://github.com/kennyric/byd-android-companion</string>
-    <string name="about_github_watch_url">https://github.com/kennyric/byd-watch-gt4</string>
+    <string name="about_github_companion_url" translatable="false">https://github.com/kennyric/byd-android-companion</string>
+    <string name="about_github_watch_url" translatable="false">https://github.com/kennyric/byd-watch-gt4</string>
+
+    <string name="label_app_language">App Language</string>
+    <string name="lang_option_system">System</string>
+    <string name="lang_option_english">English</string>
+    <string name="lang_option_indonesian">Indonesia</string>
+    <string name="lang_changed_toast">Language: %1$s</string>
+
+    <string name="controls_title_format">%1$s Controls</string>
+    <string name="state_locked">Locked</string>
+    <string name="state_unlocked">Unlocked</string>
+    <string name="state_now">Now</string>
+    <string name="state_charging">⚡ Charging</string>
+    <string name="state_plugged_in">Plugged In</string>
+    <string name="state_driving_on">Driving / On</string>
+    <string name="state_not_charging">Not Charging</string>
+    <string name="state_all_closed">All Closed</string>
+    <string name="state_closed">Closed</string>
+    <string name="card_ac_on_tap_stop">AC On · Tap to Stop</string>
+    <string name="btn_bat_heat_on">Bat Heat: ON</string>
+    <string name="btn_seat_heat_level">Seat: L%1$d</string>
+    <string name="btn_switch_car">Switch Car (%1$d) · %2$s</string>
+    <string name="btn_switch_vehicle_default">Switch Vehicle</string>
+    <string name="dialog_switch_vehicle_title">Switch Active Vehicle</string>
+    <string name="label_active_car">Active Car:</string>
+    <string name="btn_gps">GPS</string>
+    <string name="btn_sync">Sync</string>
+    <string name="widget_ready">Ready</string>
+    <string name="widget_tap_sync">Tap Sync</string>
+    <string name="widget_last_sync_fmt">Last sync %1$s</string>
+    <string name="widget_last_sync_empty">Last sync --:--</string>
+    <string name="widget_ac_unknown">AC --</string>
+    <string name="widget_plugged_short">Plugged</string>
+    <string name="widget_location_navigate_suffix"> · Navigate</string>
+    <string name="climate_level_fmt">Lvl %1$d</string>
+    <string name="climate_preset_manual_fmt">Lvl %1$d · Fan %2$d · %3$s</string>
+    <string name="charge_eta_fmt">%1$dh %2$dm</string>
+    <string name="charge_eta_left_fmt">%1$dh %2$dm left</string>
+    <string name="sync_unit_hr_short">hr</string>
+    <string name="sync_unit_min_short">min</string>
+    <string name="sync_saved_fmt">Widget auto-sync: every %1$s</string>
+    <string name="health_odo_fmt">Odo %1$s</string>
+    <string name="health_odo_empty">Odo --</string>
+    <string name="health_out_fmt">Out %1$s</string>
+    <string name="health_fuel_fmt">Fuel %1$s%%</string>
+    <string name="disclaimer_title">About, Safety &amp; Legal Disclaimer</string>
+    <string name="disclaimer_body">Created by Kenny Ricardo.\nFree open-source community project — not for commercial sale or resale (Tidak diperuntukkan untuk jual beli).\n\nUnofficial independent EV remote utility. Not affiliated with, endorsed by, or sponsored by BYD Auto or Huawei. Always inspect vehicle surroundings visually before operating locks, windows, or climate remotely. Requires your own BYD owner credentials and 6-digit PIN; credentials are stored encrypted on this phone only.</string>
+    <string name="disclaimer_github">GitHub</string>
+    <string name="disclaimer_close">Close</string>
+    <string name="qs_working">Working...</string>
+    <string name="qs_setup_needed">Setup needed</string>
+    <string name="qs_tap_sync">Tap to sync</string>
+    <string name="qs_default_label">EV Remote</string>
 </resources>

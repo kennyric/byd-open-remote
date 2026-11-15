@@ -11,6 +11,8 @@ import org.junit.Test;
 import java.io.IOException;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
+
+import javax.net.ssl.SSLException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -248,6 +250,76 @@ public class BydRepositoryTest {
         assertEquals(350, state.getInt("rangeKm"));
     }
 
+    @Test
+    public void manualAcUsesElectricClimateWithTempGearAndFanLevel() throws Exception {
+        configStore.setDetectedManualAc(true);
+        JSONObject resp = executeCommand(
+                "{\"id\":\"54\",\"action\":\"ac_on\",\"tempGear\":4,\"fanLevel\":6}");
+
+        assertTrue(resp.getBoolean("ok"));
+        assertEquals("ac_on", resp.getString("action"));
+        assertEquals(1, fakeGateway.startElectricClimateCalls.get());
+        assertEquals(0, fakeGateway.startClimateCalls.get());
+        assertEquals(4, fakeGateway.lastTempGear);
+        assertEquals(6, fakeGateway.lastWindLevel);
+        assertEquals(ConfigStore.WIND_MODE_BODY, fakeGateway.lastWindMode);
+        assertEquals(4, configStore.getDefaultTempGear());
+        assertEquals(6, configStore.getDefaultFanLevel());
+        assertEquals(ConfigStore.WIND_MODE_BODY, configStore.getDefaultWindMode());
+        assertTrue(resp.getJSONObject("state").optBoolean("manAc", false));
+
+        JSONObject resp2 = executeCommand(
+                "{\"id\":\"55\",\"action\":\"ac_on\",\"tempGear\":2,\"fanLevel\":5,\"windMode\":2}");
+        assertTrue(resp2.getBoolean("ok"));
+        assertEquals(ConfigStore.WIND_MODE_BODY_FEET, fakeGateway.lastWindMode);
+        assertEquals(ConfigStore.WIND_MODE_BODY_FEET, configStore.getDefaultWindMode());
+    }
+
+    @Test
+    public void mapsFlakyNetworkAndRawApiErrorsToGracefulMessages() throws Exception {
+        fakeGateway.transportError = new UnknownHostException(
+                "Unable to resolve host \"dilinkappoversea-id.byd.auto\": No address associated with hostname");
+        JSONObject dnsResp = executeCommand("{\"id\":\"56\",\"action\":\"status\"}");
+        assertFalse(dnsResp.getBoolean("ok"));
+        assertEquals("TIMEOUT", dnsResp.getString("err"));
+        String dnsMsg = dnsResp.getString("msg");
+        assertTrue(dnsMsg.contains("Unable to reach BYD Cloud"));
+        assertFalse(dnsMsg.contains("dilinkappoversea-id.byd.auto"));
+        assertFalse(dnsMsg.contains("No address associated"));
+
+        fakeGateway.transportError = new IOException("wrapped failure", new SSLException("Connection reset by peer"));
+        JSONObject tlsResp = executeCommand("{\"id\":\"57\",\"action\":\"status\"}");
+        assertFalse(tlsResp.getBoolean("ok"));
+        assertEquals("TIMEOUT", tlsResp.getString("err"));
+        assertTrue(tlsResp.getString("msg").contains("Unstable internet connection"));
+
+        fakeGateway.transportError = new SocketTimeoutException("Read timed out");
+        JSONObject toResp = executeCommand("{\"id\":\"58\",\"action\":\"status\"}");
+        assertFalse(toResp.getBoolean("ok"));
+        assertEquals("TIMEOUT", toResp.getString("err"));
+        assertTrue(toResp.getString("msg").contains("Sync timed out"));
+
+        fakeGateway.transportError = null;
+        fakeGateway.genericError = "Realtime request failed: HTTP 502 /vehicleInfo/vehicle/vehicleRealTimeRequest";
+        JSONObject apiResp = executeCommand("{\"id\":\"59\",\"action\":\"status\"}");
+        assertFalse(apiResp.getBoolean("ok"));
+        assertTrue(apiResp.getString("msg").contains("BYD Cloud is temporarily busy"));
+        assertFalse(apiResp.getString("msg").contains("502"));
+        assertFalse(apiResp.getString("msg").contains("/vehicleInfo"));
+
+        fakeGateway.genericError = null;
+        fakeGateway.transportError = new UnknownHostException(
+                "Unable to resolve host \"dilinkappoversea-id.byd.auto\": No address associated with hostname");
+        CompletableFuture<String> fetchErr = new CompletableFuture<>();
+        repository.fetchVehicles(new BydRepository.VehiclesCallback() {
+            @Override public void onSuccess(List<VehicleSummary> vehicles, VehicleSummary active) {}
+            @Override public void onError(String error) { fetchErr.complete(error); }
+        });
+        String fetchMsg = fetchErr.get(5, TimeUnit.SECONDS);
+        assertTrue(fetchMsg.contains("Unable to reach BYD Cloud"));
+        assertFalse(fetchMsg.contains("dilinkappoversea-id.byd.auto"));
+    }
+
     // ── Test Fakes ─────────────────────────────────────────────────────────
 
     public static class InMemoryConfigStore implements ConfigStore {
@@ -272,6 +344,11 @@ public class BydRepositoryTest {
         private String widgetStatusJson = null;
         private long widgetLastSyncMs = 0L;
         private int defaultTempC = 17;
+        private int defaultTempGear = DEFAULT_TEMP_GEAR;
+        private int defaultFanLevel = DEFAULT_FAN_LEVEL;
+        private int defaultWindMode = DEFAULT_WIND_MODE;
+        private Boolean manualAcOverride = null;
+        private boolean detectedManualAc = false;
 
         @Override public String getUsername() { return username; }
         @Override public void setUsername(String username) { this.username = username; }
@@ -324,6 +401,18 @@ public class BydRepositoryTest {
                     MIN_WIDGET_SYNC_MINUTES, Math.min(MAX_WIDGET_SYNC_MINUTES, minutes));
         }
 
+        private int widgetStyle = DEFAULT_WIDGET_STYLE;
+        @Override public int getWidgetStyle() { return widgetStyle; }
+        @Override public void setWidgetStyle(int style) {
+            this.widgetStyle = ConfigStore.normalizeWidgetStyle(style);
+        }
+
+        private String appLanguage = DEFAULT_APP_LANGUAGE;
+        @Override public String getAppLanguage() { return appLanguage; }
+        @Override public void setAppLanguage(String language) {
+            this.appLanguage = ConfigStore.normalizeAppLanguage(language);
+        }
+
         @Override public boolean isHideExtraControls() { return hideExtraControls; }
         @Override public void setHideExtraControls(boolean hide) { this.hideExtraControls = hide; }
 
@@ -338,6 +427,30 @@ public class BydRepositoryTest {
 
         @Override public int getDefaultTempC() { return defaultTempC; }
         @Override public void setDefaultTempC(int defaultTempC) { this.defaultTempC = defaultTempC; }
+
+        @Override public int getDefaultTempGear() { return defaultTempGear; }
+        @Override public void setDefaultTempGear(int gear) {
+            this.defaultTempGear = Math.max(MIN_TEMP_GEAR, Math.min(MAX_TEMP_GEAR, gear));
+        }
+
+        @Override public int getDefaultFanLevel() { return defaultFanLevel; }
+        @Override public void setDefaultFanLevel(int level) {
+            this.defaultFanLevel = Math.max(MIN_FAN_LEVEL, Math.min(MAX_FAN_LEVEL, level));
+        }
+
+        @Override public int getDefaultWindMode() { return defaultWindMode; }
+        @Override public void setDefaultWindMode(int windMode) {
+            this.defaultWindMode = (windMode == WIND_MODE_BODY || windMode == WIND_MODE_BODY_FEET
+                    || windMode == WIND_MODE_FEET) ? windMode : DEFAULT_WIND_MODE;
+        }
+
+        @Override public boolean isManualAcMode() {
+            return manualAcOverride != null ? manualAcOverride.booleanValue() : detectedManualAc;
+        }
+        @Override public void setManualAcMode(boolean manual) { this.manualAcOverride = Boolean.valueOf(manual); }
+        @Override public Boolean getManualAcOverride() { return manualAcOverride; }
+        @Override public boolean isDetectedManualAc() { return detectedManualAc; }
+        @Override public void setDetectedManualAc(boolean detected) { this.detectedManualAc = detected; }
 
         @Override
         public boolean isConfigured() {
@@ -355,6 +468,11 @@ public class BydRepositoryTest {
             vin = null;
             region = "id";
             defaultTempC = 17;
+            defaultTempGear = DEFAULT_TEMP_GEAR;
+            defaultFanLevel = DEFAULT_FAN_LEVEL;
+            defaultWindMode = DEFAULT_WIND_MODE;
+            manualAcOverride = null;
+            detectedManualAc = false;
         }
     }
 
@@ -365,7 +483,12 @@ public class BydRepositoryTest {
         public final AtomicInteger lockCalls = new AtomicInteger();
         public final AtomicInteger unlockCalls = new AtomicInteger();
         public final AtomicInteger startClimateCalls = new AtomicInteger();
+        public final AtomicInteger startElectricClimateCalls = new AtomicInteger();
         public final AtomicInteger stopClimateCalls = new AtomicInteger();
+        public volatile double lastTempCelsius = -1;
+        public volatile int lastTempGear = -1;
+        public volatile int lastWindLevel = -1;
+        public volatile int lastWindMode = -1;
         public final AtomicInteger flashLightsCalls = new AtomicInteger();
         public final AtomicInteger findCarCalls = new AtomicInteger();
         public final AtomicInteger fetchGpsCalls = new AtomicInteger();
@@ -508,8 +631,38 @@ public class BydRepositoryTest {
             enterOp();
             try {
                 startClimateCalls.incrementAndGet();
-                currentStatus = new VehicleStatus(currentStatus.soc, currentStatus.rangeKm,
-                        currentStatus.locked, true, currentStatus.cabinTempC, (int) Math.round(tempCelsius), System.currentTimeMillis());
+                lastTempCelsius = tempCelsius;
+                currentStatus = new VehicleStatus.Builder(
+                        currentStatus.soc, currentStatus.rangeKm, currentStatus.locked,
+                        true, currentStatus.cabinTempC, (int) Math.round(tempCelsius),
+                        System.currentTimeMillis())
+                        .manualAc(currentStatus.manualAc)
+                        .build();
+                return true;
+            } finally {
+                exitOp();
+            }
+        }
+
+        @Override
+        public boolean startElectricClimate(String vin, int tempGear, int windLevel) throws Exception {
+            return startElectricClimate(vin, tempGear, windLevel, ConfigStore.DEFAULT_WIND_MODE);
+        }
+
+        @Override
+        public boolean startElectricClimate(String vin, int tempGear, int windLevel, int windMode) throws Exception {
+            enterOp();
+            try {
+                startElectricClimateCalls.incrementAndGet();
+                lastTempGear = tempGear;
+                lastWindLevel = windLevel;
+                lastWindMode = windMode;
+                currentStatus = new VehicleStatus.Builder(
+                        currentStatus.soc, currentStatus.rangeKm, currentStatus.locked,
+                        true, currentStatus.cabinTempC, currentStatus.targetTempC,
+                        System.currentTimeMillis())
+                        .manualAc(true)
+                        .build();
                 return true;
             } finally {
                 exitOp();

@@ -41,103 +41,139 @@
             android:textStyle="bold" />
     </LinearLayout>
 
-    <!-- Big Lock & Unlock Row -->
+    <!-- Row 1: Lock & Unlock -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
         android:orientation="horizontal">
 
-        <Button
-            android:id="@+id/btnWidgetLock"
+        <LinearLayout
+            android:id="@+id/tileWidgetLock"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_marginEnd="4dp"
             android:layout_weight="1"
             android:background="@drawable/bg_widget_btn_primary"
-            android:padding="4dp"
-            android:text="Lock"
-            android:textAllCaps="false"
-            android:textColor="@color/widget_on_primary_container"
-            android:textSize="14sp"
-            android:textStyle="bold" />
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:paddingHorizontal="6dp">
 
-        <Button
-            android:id="@+id/btnWidgetUnlock"
+            <Button
+                android:id="@+id/btnWidgetLock"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@android:color/transparent"
+                android:drawablePadding="5dp"
+                android:drawableStart="@drawable/ic_widget_lock_sm"
+                android:gravity="center"
+                android:minWidth="0dp"
+                android:minHeight="0dp"
+                android:padding="0dp"
+                android:stateListAnimator="@null"
+                android:text="Lock"
+                android:textAllCaps="false"
+                android:textColor="@color/widget_on_primary_container"
+                android:textSize="12.5sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/tileWidgetUnlock"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_marginStart="4dp"
             android:layout_weight="1"
             android:background="@drawable/bg_widget_btn_tertiary"
-            android:padding="4dp"
-            android:text="Unlock"
-            android:textAllCaps="false"
-            android:textColor="@color/widget_on_tertiary_container"
-            android:textSize="14sp"
-            android:textStyle="bold" />
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:paddingHorizontal="6dp">
+
+            <Button
+                android:id="@+id/btnWidgetUnlock"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@android:color/transparent"
+                android:drawablePadding="5dp"
+                android:drawableStart="@drawable/ic_widget_unlock_sm"
+                android:gravity="center"
+                android:minWidth="0dp"
+                android:minHeight="0dp"
+                android:padding="0dp"
+                android:stateListAnimator="@null"
+                android:text="Unlock"
+                android:textAllCaps="false"
+                android:textColor="@color/widget_on_tertiary_container"
+                android:textSize="12.5sp"
+                android:textStyle="bold" />
+        </LinearLayout>
     </LinearLayout>
 
-    <!-- Big Full-Width Sync Button -->
-    <Button
-        android:id="@+id/btnWidgetRefresh"
+    <!-- Row 2: AC Toggle & Sync -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_marginTop="8dp"
-        android:layout_weight="0.8"
-        android:background="@drawable/bg_widget_btn_secondary"
-        android:padding="4dp"
-        android:text="Sync"
-        android:textAllCaps="false"
-        android:textColor="@color/widget_on_secondary_container"
-        android:textSize="14sp"
-        android:textStyle="bold" />
-
-    <!-- Shown automatically when resized to 3+ rows -->
-    <LinearLayout
-        android:id="@+id/layoutWidgetLocationBar"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:background="@drawable/bg_widget_chip"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:paddingHorizontal="8dp"
-        android:paddingVertical="6dp"
-        android:visibility="gone">
-
-        <ImageView
-            android:layout_width="16dp"
-            android:layout_height="16dp"
-            android:layout_marginEnd="6dp"
-            android:contentDescription="@string/label_car_location"
-            android:src="@drawable/ic_byd_location" />
+        android:layout_marginTop="7dp"
+        android:layout_weight="1"
+        android:orientation="horizontal">
 
         <LinearLayout
+            android:id="@+id/tileWidgetAc"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_marginEnd="4dp"
             android:layout_weight="1"
-            android:orientation="vertical">
+            android:background="@drawable/bg_widget_btn_secondary"
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:paddingHorizontal="6dp">
 
-            <TextView
-                android:id="@+id/tvWidgetLocationLabel"
-                android:layout_width="match_parent"
+            <Button
+                android:id="@+id/btnWidgetAc"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:ellipsize="end"
-                android:maxLines="1"
-                android:text="Location · Nav"
-                android:textColor="@color/widget_on_surface_variant"
-                android:textSize="10sp"
+                android:background="@android:color/transparent"
+                android:drawablePadding="5dp"
+                android:drawableStart="@drawable/ic_widget_ac_sm"
+                android:gravity="center"
+                android:minWidth="0dp"
+                android:minHeight="0dp"
+                android:padding="0dp"
+                android:stateListAnimator="@null"
+                android:text="AC On"
+                android:textAllCaps="false"
+                android:textColor="@color/widget_on_secondary_container"
+                android:textSize="12.5sp"
                 android:textStyle="bold" />
+        </LinearLayout>
 
-            <TextView
-                android:id="@+id/tvWidgetLocationText"
-                android:layout_width="match_parent"
+        <LinearLayout
+            android:id="@+id/tileWidgetRefresh"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_marginStart="4dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_widget_btn_tonal"
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:paddingHorizontal="6dp">
+
+            <Button
+                android:id="@+id/btnWidgetRefresh"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:ellipsize="end"
-                android:maxLines="1"
-                android:text="@string/location_widget_empty"
-                android:textColor="@color/widget_on_surface"
-                android:textSize="11sp"
+                android:background="@android:color/transparent"
+                android:drawablePadding="5dp"
+                android:drawableStart="@drawable/ic_widget_sync_sm"
+                android:gravity="center"
+                android:minWidth="0dp"
+                android:minHeight="0dp"
+                android:padding="0dp"
+                android:stateListAnimator="@null"
+                android:text="Sync"
+                android:textAllCaps="false"
+                android:textColor="@color/widget_on_surface_variant"
+                android:textSize="12.5sp"
                 android:textStyle="bold" />
         </LinearLayout>
     </LinearLayout>

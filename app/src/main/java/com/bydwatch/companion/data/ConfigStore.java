@@ -29,6 +29,32 @@ public interface ConfigStore {
     int getDefaultTempC();
     void setDefaultTempC(int tempC);
 
+    int DEFAULT_TEMP_GEAR = 3;
+    int MIN_TEMP_GEAR = 1;
+    int MAX_TEMP_GEAR = 9;
+    int DEFAULT_FAN_LEVEL = 4;
+    int MIN_FAN_LEVEL = 1;
+    int MAX_FAN_LEVEL = 7;
+    int WIND_MODE_BODY = 1;
+    int WIND_MODE_BODY_FEET = 2;
+    int WIND_MODE_FEET = 3;
+    int DEFAULT_WIND_MODE = WIND_MODE_BODY;
+
+    default int getDefaultTempGear() { return DEFAULT_TEMP_GEAR; }
+    default void setDefaultTempGear(int gear) {}
+
+    default int getDefaultFanLevel() { return DEFAULT_FAN_LEVEL; }
+    default void setDefaultFanLevel(int level) {}
+
+    default int getDefaultWindMode() { return DEFAULT_WIND_MODE; }
+    default void setDefaultWindMode(int windMode) {}
+
+    default boolean isManualAcMode() { return false; }
+    default void setManualAcMode(boolean manual) {}
+    default Boolean getManualAcOverride() { return null; }
+    default boolean isDetectedManualAc() { return false; }
+    default void setDetectedManualAc(boolean detected) {}
+
     default String getCountryCode() { return ""; }
     default void setCountryCode(String countryCode) {}
 
@@ -63,14 +89,53 @@ public interface ConfigStore {
     int MIN_WIDGET_SYNC_MINUTES = 1;
     int MAX_WIDGET_SYNC_MINUTES = 1440;
 
+    int WIDGET_STYLE_CAPSULE = 1;
+    int WIDGET_STYLE_RING = 2;
+    int WIDGET_STYLE_BENTO = 3;
+    int WIDGET_STYLE_TANK = 4;
+    int DEFAULT_WIDGET_STYLE = WIDGET_STYLE_CAPSULE;
+
     default int getWidgetSyncIntervalMinutes() { return DEFAULT_WIDGET_SYNC_MINUTES; }
     default void setWidgetSyncIntervalMinutes(int minutes) {}
+
+    default int getWidgetStyle() { return DEFAULT_WIDGET_STYLE; }
+    default void setWidgetStyle(int style) {}
+
+    static int normalizeWidgetStyle(int style) {
+        if (style >= WIDGET_STYLE_CAPSULE && style <= WIDGET_STYLE_TANK) {
+            return style;
+        }
+        return DEFAULT_WIDGET_STYLE;
+    }
 
     default boolean isHideExtraControls() { return false; }
     default void setHideExtraControls(boolean hide) {}
 
     default boolean isVerboseLogsEnabled() { return false; }
     default void setVerboseLogsEnabled(boolean enabled) {}
+
+    String LANG_SYSTEM = "system";
+    String LANG_EN = "en";
+    String LANG_ID = "id";
+    String DEFAULT_APP_LANGUAGE = LANG_SYSTEM;
+
+    default String getAppLanguage() { return DEFAULT_APP_LANGUAGE; }
+    default void setAppLanguage(String language) {}
+
+    static String normalizeAppLanguage(String language) {
+        if (language == null) {
+            return DEFAULT_APP_LANGUAGE;
+        }
+        String clean = language.trim().toLowerCase(java.util.Locale.US);
+        if (clean.equals("id") || clean.equals("in") || clean.startsWith("id-") || clean.startsWith("in-")
+                || clean.equals("indonesian") || clean.equals("bahasa")) {
+            return LANG_ID;
+        }
+        if (clean.equals("en") || clean.startsWith("en-")) {
+            return LANG_EN;
+        }
+        return LANG_SYSTEM;
+    }
 
     default String getWidgetStatusJson() { return null; }
     default void setWidgetStatusJson(String json) {}

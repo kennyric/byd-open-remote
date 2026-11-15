@@ -51,6 +51,10 @@ public final class VehicleStatus {
     public final boolean canWindows;
     public final boolean canBatteryHeat;
     public final boolean canSeatClimate;
+    public final boolean manualAc;
+    public final Integer targetTempGear;
+    public final Integer fanLevel;
+    public final Integer windMode;
     public final String distanceUnit;
     public final String tempUnit;
     public final String pressureUnit;
@@ -101,6 +105,10 @@ public final class VehicleStatus {
         this.canWindows = b.canWindows;
         this.canBatteryHeat = b.canBatteryHeat;
         this.canSeatClimate = b.canSeatClimate;
+        this.manualAc = b.manualAc;
+        this.targetTempGear = b.targetTempGear;
+        this.fanLevel = b.fanLevel;
+        this.windMode = b.windMode;
         this.distanceUnit = UnitPreferences.normalizeDistanceUnit(b.distanceUnit);
         this.tempUnit = UnitPreferences.normalizeTempUnit(b.tempUnit);
         this.pressureUnit = UnitPreferences.normalizePressureUnit(b.pressureUnit);
@@ -166,6 +174,8 @@ public final class VehicleStatus {
                 .batteryHeatOn(batteryHeatOn)
                 .driverSeatLevel(driverSeatLevel)
                 .capabilities(canWindows, canBatteryHeat, canSeatClimate)
+                .manualAc(manualAc)
+                .acPreset(targetTempGear, fanLevel, windMode)
                 .units(distanceUnit, tempUnit, pressureUnit)
                 .location(latitude, longitude, gpsTs)
                 .vehicles(vehicles);
@@ -212,6 +222,10 @@ public final class VehicleStatus {
             obj.put("capWin", canWindows);
             obj.put("capBatHeat", canBatteryHeat);
             obj.put("capSeat", canSeatClimate);
+            if (manualAc) obj.put("manAc", true);
+            if (targetTempGear != null) obj.put("tempGear", targetTempGear);
+            if (fanLevel != null) obj.put("fanLevel", fanLevel);
+            if (windMode != null) obj.put("windMode", windMode);
             obj.put("uDist", distanceUnit);
             obj.put("uTemp", tempUnit);
             obj.put("uPres", pressureUnit);
@@ -287,6 +301,13 @@ public final class VehicleStatus {
                 json.optBoolean("capBatHeat", false),
                 json.optBoolean("capSeat", false)
         );
+        if (json.optBoolean("manAc", false)) {
+            b.manualAc(true);
+        }
+        Integer gear = (json.has("tempGear") && !json.isNull("tempGear")) ? json.optInt("tempGear") : null;
+        Integer fan = (json.has("fanLevel") && !json.isNull("fanLevel")) ? json.optInt("fanLevel") : null;
+        Integer vent = (json.has("windMode") && !json.isNull("windMode")) ? json.optInt("windMode") : null;
+        b.acPreset(gear, fan, vent);
         b.units(
                 json.optString("uDist", UnitPreferences.DIST_KM),
                 json.optString("uTemp", UnitPreferences.TEMP_C),
@@ -331,6 +352,10 @@ public final class VehicleStatus {
                 && canWindows == that.canWindows
                 && canBatteryHeat == that.canBatteryHeat
                 && canSeatClimate == that.canSeatClimate
+                && manualAc == that.manualAc
+                && Objects.equals(targetTempGear, that.targetTempGear)
+                && Objects.equals(fanLevel, that.fanLevel)
+                && Objects.equals(windMode, that.windMode)
                 && Objects.equals(cabinTempC, that.cabinTempC)
                 && Objects.equals(vin, that.vin)
                 && Objects.equals(modelName, that.modelName)
@@ -362,7 +387,8 @@ public final class VehicleStatus {
                 outsideTempC, fuelPercent, fuelRangeKm,
                 tireLfKpa, tireRfKpa, tireLrKpa, tireRrKpa,
                 batteryHeatOn, driverSeatLevel,
-                canWindows, canBatteryHeat, canSeatClimate,
+                canWindows, canBatteryHeat, canSeatClimate, manualAc,
+                targetTempGear, fanLevel, windMode,
                 distanceUnit, tempUnit, pressureUnit, latitude, longitude, gpsTs, vehicles);
     }
 
@@ -410,6 +436,10 @@ public final class VehicleStatus {
         private boolean canWindows = true;
         private boolean canBatteryHeat;
         private boolean canSeatClimate;
+        private boolean manualAc;
+        private Integer targetTempGear;
+        private Integer fanLevel;
+        private Integer windMode;
         private String distanceUnit = UnitPreferences.DIST_KM;
         private String tempUnit = UnitPreferences.TEMP_C;
         private String pressureUnit = UnitPreferences.PRES_KPA;
@@ -463,6 +493,16 @@ public final class VehicleStatus {
             this.canWindows = win;
             this.canBatteryHeat = batHeat;
             this.canSeatClimate = seat;
+            return this;
+        }
+        public Builder manualAc(boolean manualAc) {
+            this.manualAc = manualAc;
+            return this;
+        }
+        public Builder acPreset(Integer tempGear, Integer fanLevel, Integer windMode) {
+            this.targetTempGear = (tempGear != null && tempGear >= 1 && tempGear <= 9) ? tempGear : null;
+            this.fanLevel = (fanLevel != null && fanLevel >= 1 && fanLevel <= 7) ? fanLevel : null;
+            this.windMode = (windMode != null && windMode >= 1 && windMode <= 3) ? windMode : null;
             return this;
         }
         public Builder units(String dist, String temp, String pres) {

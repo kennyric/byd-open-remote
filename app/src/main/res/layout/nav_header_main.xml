@@ -24,7 +24,7 @@
             android:contentDescription="@string/header_title"
             android:padding="8dp"
             android:scaleType="fitCenter"
-            android:src="@drawable/ic_byd_logo"
+            android:src="@drawable/ic_ev_watch_logo"
             app:tint="?attr/colorOnPrimaryContainer" />
     </com.google.android.material.card.MaterialCardView>
 

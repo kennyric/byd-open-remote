@@ -363,8 +363,10 @@ public class CloudBydGatewayTest {
         assertFalse(parked.vehicleOn);
         assertEquals(VehicleStatus.CHARGING_NONE, parked.chargingState);
         assertFalse(parked.acOn);
+        assertTrue(parked.manualAc);
         assertNull(parked.cabinTempC);
         assertEquals(Integer.valueOf(33), parked.outsideTempC);
+        assertTrue(configStore.isManualAcMode());
 
         configStore.setVerboseLogsEnabled(true);
         fakeClient.realtimeResult.put("powerGear", 3);
@@ -383,6 +385,77 @@ public class CloudBydGatewayTest {
         assertFalse(driving.diagSummary.contains("LC0SECRET123"));
         assertFalse(driving.diagSummary.contains("tok_secret"));
         assertFalse(driving.diagSummary.contains("latitude="));
+
+        configStore.setDefaultTempGear(2);
+        configStore.setDefaultFanLevel(6);
+        configStore.setDefaultWindMode(ConfigStore.WIND_MODE_BODY);
+        assertTrue(gateway.startClimate("LGX_ATTO_1", 17.0));
+        assertEquals(2, fakeClient.lastElectricGear);
+        assertEquals(6, fakeClient.lastElectricWind);
+        assertEquals(ConfigStore.WIND_MODE_BODY, fakeClient.lastElectricWindMode);
+
+        // Switching to a car WITH automatic climate control resets manual AC detection cleanly
+        fakeClient.realtimeResult = new JSONObject()
+                .put("elecPercent", 85.0)
+                .put("enduranceMileage", 400)
+                .put("leftFrontDoorLock", 2)
+                .put("rightFrontDoorLock", 2)
+                .put("leftRearDoorLock", 2)
+                .put("rightRearDoorLock", 2)
+                .put("tempInCar", 26.0)
+                .put("autoAirConditioning", 1);
+        fakeClient.hvacResult = new JSONObject()
+                .put("statusNow", new JSONObject()
+                        .put("airType", 0)
+                        .put("airConditioningMode", 1)
+                        .put("status", 2));
+        VehicleStatus autoCar = gateway.fetchVehicleRealtime("LGX_ATTO_3");
+        assertFalse(autoCar.manualAc);
+        assertFalse(configStore.isManualAcMode());
+        assertTrue(gateway.startClimate("LGX_ATTO_3", 21.0));
+        assertEquals(21.0, fakeClient.lastAutoClimateTemp, 0.01);
+    }
+
+    @Test
+    public void fetchRealtimeAlwaysQueriesHvacWhenAcOnAndParsesLiveManualAndAutoAcSettings() throws Exception {
+        FakeClient fakeClient = new FakeClient();
+        // Realtime payload already says airConditionStatus=1 (AC On); getStatusNow has actual temp=1, fan=4, vent=Body
+        fakeClient.realtimeResult = new JSONObject()
+                .put("elecPercent", 62)
+                .put("enduranceMileageV2", 185)
+                .put("airConditionStatus", 1)
+                .put("airType", 1);
+        fakeClient.hvacResult = new JSONObject()
+                .put("statusNow", new JSONObject()
+                        .put("status", 1)
+                        .put("airConditioningMode", 2)
+                        .put("mainSettingTemp", 1)
+                        .put("windLevel", 4)
+                        .put("windMode", 1));
+
+        CloudBydGateway gateway = new CloudBydGateway(configStore, cfg -> fakeClient);
+        VehicleStatus manualLive = gateway.fetchVehicleRealtime("LGX_ATTO_1");
+        assertTrue(manualLive.acOn);
+        assertTrue(manualLive.manualAc);
+        assertEquals(Integer.valueOf(1), manualLive.targetTempGear);
+        assertEquals(Integer.valueOf(4), manualLive.fanLevel);
+        assertEquals(Integer.valueOf(ConfigStore.WIND_MODE_BODY), manualLive.windMode);
+
+        // Auto-climate car: getStatusNow raw mainSettingTemp=8 maps to 22C (8 + 14)
+        fakeClient.realtimeResult = new JSONObject()
+                .put("elecPercent", 80)
+                .put("enduranceMileageV2", 310)
+                .put("airConditionStatus", 1)
+                .put("tempInCar", 25);
+        fakeClient.hvacResult = new JSONObject()
+                .put("statusNow", new JSONObject()
+                        .put("status", 1)
+                        .put("airType", 0)
+                        .put("mainSettingTemp", 8));
+        VehicleStatus autoLive = gateway.fetchVehicleRealtime("LGX_ATTO_3");
+        assertTrue(autoLive.acOn);
+        assertFalse(autoLive.manualAc);
+        assertEquals(22, autoLive.targetTempC);
     }
 
     // ── Fake BydCloudClient ───────────────────────────────────────────────
@@ -439,8 +512,28 @@ public class CloudBydGatewayTest {
 
         @Override
         public boolean startClimate(String vin, double tempCelsius) {
+            lastAutoClimateTemp = tempCelsius;
             return true;
         }
+
+        double lastAutoClimateTemp = Double.NaN;
+
+        @Override
+        public boolean startElectricClimate(String vin, int tempGear, int windLevel) {
+            return startElectricClimate(vin, tempGear, windLevel, ConfigStore.WIND_MODE_BODY_FEET);
+        }
+
+        @Override
+        public boolean startElectricClimate(String vin, int tempGear, int windLevel, int windMode) {
+            lastElectricGear = tempGear;
+            lastElectricWind = windLevel;
+            lastElectricWindMode = windMode;
+            return true;
+        }
+
+        int lastElectricGear = -1;
+        int lastElectricWind = -1;
+        int lastElectricWindMode = -1;
 
         @Override
         public boolean stopClimate(String vin) {

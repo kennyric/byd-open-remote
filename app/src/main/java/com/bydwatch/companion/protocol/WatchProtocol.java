@@ -104,8 +104,29 @@ public final class WatchProtocol {
 
         String vin = obj.optString("vin", "").trim();
         int level = obj.has("level") && !obj.isNull("level") ? obj.optInt("level", -1) : -1;
+        int tempGear = -1;
+        if (obj.has("tempGear") && !obj.isNull("tempGear")) {
+            int rawGear = obj.optInt("tempGear", -1);
+            if (rawGear > 0) {
+                tempGear = Math.max(1, Math.min(9, rawGear));
+            }
+        }
+        int fanLevel = -1;
+        if (obj.has("fanLevel") && !obj.isNull("fanLevel")) {
+            int rawFan = obj.optInt("fanLevel", -1);
+            if (rawFan > 0) {
+                fanLevel = Math.max(1, Math.min(7, rawFan));
+            }
+        }
+        int windMode = -1;
+        if (obj.has("windMode") && !obj.isNull("windMode")) {
+            int rawWind = obj.optInt("windMode", -1);
+            if (rawWind > 0) {
+                windMode = Math.max(1, Math.min(5, rawWind));
+            }
+        }
 
-        return new WatchCommand(id, action, tempC, vin, level);
+        return new WatchCommand(id, action, tempC, vin, level, tempGear, fanLevel, windMode);
     }
 
     /**

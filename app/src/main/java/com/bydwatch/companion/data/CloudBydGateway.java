@@ -47,6 +47,7 @@ public class CloudBydGateway implements BydGateway {
 
     private BydCloudClient client;
     private BydCloudConfig config;
+    private final java.util.Map<String, Boolean> electricAcByVin = new java.util.HashMap<>();
 
     private String lastUsername;
     private String lastPassword;
@@ -189,12 +190,10 @@ public class CloudBydGateway implements BydGateway {
         }
 
         JSONObject hvac = null;
-        if (!extractAcOn(vi, null)) {
-            try {
-                hvac = client.fetchHvacStatusFast(vin);
-            } catch (Exception ignored) {
-                // Best-effort HVAC lookup: never fail status refresh if getStatusNow is unavailable
-            }
+        try {
+            hvac = client.fetchHvacStatusFast(vin);
+        } catch (Exception ignored) {
+            // Best-effort HVAC lookup: never fail status refresh if getStatusNow is unavailable
         }
 
         ensureVehicleMetadataIfNeeded(vin);
@@ -278,7 +277,47 @@ public class CloudBydGateway implements BydGateway {
     @Override
     public synchronized boolean startClimate(String vin, double tempCelsius) throws Exception {
         syncConfigToClient();
-        return client != null && client.startClimate(vin, tempCelsius);
+        if (client == null) return false;
+        if (isElectricAcVin(vin)) {
+            int gear = configStore != null
+                    ? configStore.getDefaultTempGear()
+                    : ConfigStore.DEFAULT_TEMP_GEAR;
+            int fan = configStore != null
+                    ? configStore.getDefaultFanLevel()
+                    : ConfigStore.DEFAULT_FAN_LEVEL;
+            int windMode = configStore != null
+                    ? configStore.getDefaultWindMode()
+                    : ConfigStore.DEFAULT_WIND_MODE;
+            return client.startElectricClimate(vin, gear, fan, windMode);
+        }
+        return client.startClimate(vin, tempCelsius);
+    }
+
+    @Override
+    public synchronized boolean startElectricClimate(String vin, int tempGear, int windLevel) throws Exception {
+        int windMode = configStore != null ? configStore.getDefaultWindMode() : ConfigStore.DEFAULT_WIND_MODE;
+        return startElectricClimate(vin, tempGear, windLevel, windMode);
+    }
+
+    @Override
+    public synchronized boolean startElectricClimate(String vin, int tempGear, int windLevel, int windMode) throws Exception {
+        syncConfigToClient();
+        return client != null && client.startElectricClimate(vin, tempGear, windLevel, windMode);
+    }
+
+    private boolean isElectricAcVin(String vin) {
+        if (vin != null && !vin.isEmpty()) {
+            Boolean remembered = electricAcByVin.get(vin);
+            if (remembered != null) {
+                return remembered.booleanValue();
+            }
+        }
+        CloudCapabilities caps = (client != null && vin != null && !vin.isEmpty())
+                ? client.getCachedCloudCapabilities(vin) : null;
+        if (caps != null && caps.isElectricAc()) {
+            return true;
+        }
+        return configStore != null && configStore.isManualAcMode();
     }
 
     @Override
@@ -512,7 +551,28 @@ public class CloudBydGateway implements BydGateway {
                 },
                 "tempOutCar", -50.0, 75.0);
 
-        int targetTempC = vi.optInt("targetTempC", configStore != null ? configStore.getDefaultTempC() : 17);
+        JSONObject[] hvacFirstSources = new JSONObject[]{
+                hvac != null ? hvac.optJSONObject("statusNow") : null,
+                hvac,
+                vi != null ? vi.optJSONObject("statusNow") : null,
+                vi
+        };
+        boolean manualAc = (caps != null && caps.isElectricAc()) || extractManualAc(vi, hvac);
+        int defaultTempC = configStore != null ? configStore.getDefaultTempC() : 17;
+        Integer liveAutoTempC = manualAc ? null : extractAutoTargetTempC(hvacFirstSources);
+        int targetTempC = liveAutoTempC != null ? liveAutoTempC : vi.optInt("targetTempC", defaultTempC);
+        Integer liveTempGear = (acOn && manualAc)
+                ? extractBoundedIntFromSources(hvacFirstSources, 1, 9,
+                "tempGear", "mainSettingTemp", "mainSettingTempNew")
+                : null;
+        Integer liveFanLevel = (acOn && manualAc)
+                ? extractBoundedIntFromSources(hvacFirstSources, 1, 7,
+                "windLevel", "windGear", "fanLevel", "wind", "airWindLevel")
+                : null;
+        Integer liveWindMode = (acOn && manualAc)
+                ? extractBoundedIntFromSources(hvacFirstSources, 1, 3,
+                "windMode", "airWindMode")
+                : null;
         long ts = vi.optLong("ts", vi.optLong("time", System.currentTimeMillis() / 1000L));
 
         int powerGear = vi.optInt("powerGear", -1);
@@ -636,6 +696,16 @@ public class CloudBydGateway implements BydGateway {
         }
 
         boolean verboseLogs = configStore != null && configStore.isVerboseLogsEnabled();
+        if (activeVin != null && !activeVin.isEmpty()) {
+            electricAcByVin.put(activeVin, manualAc);
+        }
+        if (configStore != null) {
+            if (manualAc) {
+                configStore.setDetectedManualAc(true);
+            } else if ((caps != null && !caps.isElectricAc()) || extractAutoAc(vi, hvac)) {
+                configStore.setDetectedManualAc(false);
+            }
+        }
 
         return new VehicleStatus.Builder(soc, rangeKm, locked, acOn, cabinTempC, targetTempC, ts)
                 .vin(activeVin)
@@ -656,6 +726,8 @@ public class CloudBydGateway implements BydGateway {
                 .batteryHeatOn(batHeatOn)
                 .driverSeatLevel(driverSeatLevel)
                 .capabilities(canWin, canBat, canSeat)
+                .manualAc(manualAc)
+                .acPreset(liveTempGear, liveFanLevel, liveWindMode)
                 .units(uDist, uTemp, uPres)
                 .location(lat, lng, gpsTs)
                 .vehicles(cars)
@@ -669,6 +741,48 @@ public class CloudBydGateway implements BydGateway {
                 double val = src.optDouble(key, -129.0);
                 if (!Double.isNaN(val) && !Double.isInfinite(val) && val >= minValid && val <= maxValid) {
                     return (int) Math.round(val);
+                }
+            }
+        }
+        return null;
+    }
+
+    private static Integer extractBoundedIntFromSources(JSONObject[] sources, int minVal, int maxVal, String... keys) {
+        if (sources == null || keys == null) return null;
+        for (JSONObject src : sources) {
+            if (src == null) continue;
+            for (String key : keys) {
+                if (src.has(key) && !src.isNull(key)) {
+                    double val = src.optDouble(key, Double.NaN);
+                    if (!Double.isNaN(val) && !Double.isInfinite(val)) {
+                        int rounded = (int) Math.round(val);
+                        if (rounded >= minVal && rounded <= maxVal) {
+                            return rounded;
+                        }
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    private static Integer extractAutoTargetTempC(JSONObject[] sources) {
+        if (sources == null) return null;
+        Integer explicit = extractTempFromSources(sources, "targetTempC", 15.0, 31.0);
+        if (explicit != null) return explicit;
+        Integer newTemp = extractTempFromSources(sources, "mainSettingTempNew", 15.0, 32.0);
+        if (newTemp != null) return Math.max(15, Math.min(31, newTemp));
+        for (JSONObject src : sources) {
+            if (src != null && src.has("mainSettingTemp") && !src.isNull("mainSettingTemp")) {
+                double val = src.optDouble("mainSettingTemp", Double.NaN);
+                if (!Double.isNaN(val) && !Double.isInfinite(val)) {
+                    int rounded = (int) Math.round(val);
+                    if (rounded >= 1 && rounded <= 17) {
+                        return rounded + 14; // BYD raw HVAC scale: 1=15C .. 17=31C
+                    }
+                    if (rounded >= 18 && rounded <= 31) {
+                        return rounded;
+                    }
                 }
             }
         }
@@ -719,6 +833,75 @@ public class CloudBydGateway implements BydGateway {
             }
             if (src.has("isAirConditioning") && !src.isNull("isAirConditioning")) {
                 if (src.optBoolean("isAirConditioning", false) || src.optInt("isAirConditioning", -1) == 1) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static boolean extractManualAc(JSONObject vi, JSONObject hvac) {
+        if (vi != null && vi.optBoolean("manAc", false)) {
+            return true;
+        }
+        JSONObject[] sources = new JSONObject[]{
+                vi,
+                vi != null ? vi.optJSONObject("statusNow") : null,
+                hvac,
+                hvac != null ? hvac.optJSONObject("statusNow") : null
+        };
+        boolean sawEleSwitch = false;
+        boolean sawAutoAc = false;
+        boolean sawTempInCar = false;
+        for (JSONObject src : sources) {
+            if (src == null) continue;
+            if (src.has("airType") && !src.isNull("airType") && src.optInt("airType", -1) == 1) {
+                return true;
+            }
+            if (src.has("airConditioningMode") && !src.isNull("airConditioningMode")
+                    && src.optInt("airConditioningMode", -1) == 2) {
+                return true;
+            }
+            if (src.has("eleAirACSwitch") && !src.isNull("eleAirACSwitch")
+                    && src.optInt("eleAirACSwitch", -1) >= 0) {
+                sawEleSwitch = true;
+            }
+            if (src.has("autoAirConditioning") && !src.isNull("autoAirConditioning")
+                    && src.optInt("autoAirConditioning", -1) > 0) {
+                sawAutoAc = true;
+            }
+            if (src.has("tempInCar") && !src.isNull("tempInCar")) {
+                double t = src.optDouble("tempInCar", Double.NaN);
+                if (!Double.isNaN(t) && t >= -40.0 && t <= 80.0 && Math.abs(t + 129.0) > 0.1) {
+                    sawTempInCar = true;
+                }
+            }
+        }
+        return sawEleSwitch && !sawAutoAc && !sawTempInCar;
+    }
+
+    private static boolean extractAutoAc(JSONObject vi, JSONObject hvac) {
+        if (vi != null && vi.has("manAc") && !vi.isNull("manAc") && !vi.optBoolean("manAc", false)) {
+            return true;
+        }
+        JSONObject[] sources = new JSONObject[]{
+                vi,
+                vi != null ? vi.optJSONObject("statusNow") : null,
+                hvac,
+                hvac != null ? hvac.optJSONObject("statusNow") : null
+        };
+        for (JSONObject src : sources) {
+            if (src == null) continue;
+            if (src.has("airType") && !src.isNull("airType") && src.optInt("airType", -1) == 0) {
+                return true;
+            }
+            if (src.has("autoAirConditioning") && !src.isNull("autoAirConditioning")
+                    && src.optInt("autoAirConditioning", -1) > 0) {
+                return true;
+            }
+            if (src.has("tempInCar") && !src.isNull("tempInCar")) {
+                double t = src.optDouble("tempInCar", Double.NaN);
+                if (!Double.isNaN(t) && t >= -40.0 && t <= 80.0 && Math.abs(t + 129.0) > 0.1) {
                     return true;
                 }
             }

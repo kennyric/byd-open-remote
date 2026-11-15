@@ -1,10 +1,12 @@
 package com.bydwatch.companion.ui;
 
+import android.content.Context;
 import android.content.Intent;
 import android.service.quicksettings.Tile;
 import android.service.quicksettings.TileService;
 
 import com.bydwatch.companion.BydWatchApp;
+import com.bydwatch.companion.R;
 import com.bydwatch.companion.data.BydRepository;
 import com.bydwatch.companion.data.ConfigStore;
 import com.bydwatch.companion.model.VehicleStatus;
@@ -47,9 +49,10 @@ public class QuickControlTileService extends TileService {
                 ? WatchProtocol.ACTION_LOCK
                 : WatchProtocol.ACTION_STATUS;
 
+        Context resCtx = AppLocaleHelper.localizedContext(this, cfg);
         Tile tile = getQsTile();
         if (tile != null) {
-            tile.setSubtitle("Working...");
+            tile.setSubtitle(resCtx.getString(R.string.qs_working));
             tile.updateTile();
         }
 
@@ -73,21 +76,23 @@ public class QuickControlTileService extends TileService {
         if (tile == null) return;
         BydWatchApp app = BydWatchApp.getInstance();
         ConfigStore cfg = app != null ? app.getConfigStore() : null;
+        Context resCtx = AppLocaleHelper.localizedContext(this, cfg);
         BydRepository repo = app != null ? app.getRepository() : null;
         VehicleStatus st = repo != null ? repo.getCachedStatus() : null;
 
         if (cfg == null || !cfg.isConfigured()) {
             tile.setState(Tile.STATE_INACTIVE);
-            tile.setLabel("EV Remote");
-            tile.setSubtitle("Setup needed");
+            tile.setLabel(resCtx.getString(R.string.qs_default_label));
+            tile.setSubtitle(resCtx.getString(R.string.qs_setup_needed));
         } else if (st != null) {
             tile.setState(st.locked ? Tile.STATE_ACTIVE : Tile.STATE_INACTIVE);
             tile.setLabel(cfg.getVehicleName());
-            tile.setSubtitle((st.locked ? "Locked" : "Unlocked") + " • " + st.soc + "%");
+            tile.setSubtitle(resCtx.getString(st.locked ? R.string.state_locked : R.string.state_unlocked)
+                    + " • " + st.soc + "%");
         } else {
             tile.setState(Tile.STATE_INACTIVE);
             tile.setLabel(cfg.getVehicleName());
-            tile.setSubtitle("Tap to sync");
+            tile.setSubtitle(resCtx.getString(R.string.qs_tap_sync));
         }
         tile.updateTile();
     }

@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Watch-Begleiter für BYD</string>
-    <string name="header_title">BYD EV</string>
-    <string name="header_subtitle">Globaler Cloud-Begleiter</string>
+    <string name="app_name">BYD Open Remote</string>
+    <string name="header_title">BYD Open Remote</string>
+    <string name="header_subtitle">Open-Source Cloud-Fernsteuerung</string>
     <string name="auth_notice">Sicherheitshinweis: Verwenden Sie vorzugsweise ein Unterkonto (Alternate Vehicle Authorization) aus der offiziellen BYD-App. Unabhängige Drittanbieter-App.</string>
     <string name="card_account_title">BYD-Konto &amp; Region</string>
     <string name="label_region">Cloud-Region / Markt</string>

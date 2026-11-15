@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Single-Row Location Bar: Pin Icon left, Street Name middle, Navigation Arrow right -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/layoutWidgetLocationBar"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="7dp"
+    android:background="@drawable/bg_widget_subcard"
+    android:gravity="center_vertical"
+    android:minHeight="40dp"
+    android:orientation="horizontal"
+    android:paddingHorizontal="10dp"
+    android:paddingVertical="6dp"
+    android:visibility="visible">
+
+    <FrameLayout
+        android:layout_width="28dp"
+        android:layout_height="28dp"
+        android:layout_marginEnd="10dp"
+        android:background="@drawable/bg_widget_pin_badge">
+
+        <ImageView
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:layout_gravity="center"
+            android:contentDescription="@string/label_car_location"
+            android:src="@drawable/ic_widget_pin" />
+    </FrameLayout>
+
+    <TextView
+        android:id="@+id/tvWidgetLocationText"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:text="@string/location_widget_empty"
+        android:textColor="@color/widget_on_surface"
+        android:textSize="12.5sp"
+        android:textStyle="bold" />
+
+    <FrameLayout
+        android:layout_width="26dp"
+        android:layout_height="26dp"
+        android:layout_marginStart="8dp"
+        android:background="@drawable/bg_widget_chevron_badge">
+
+        <ImageView
+            android:layout_width="14dp"
+            android:layout_height="14dp"
+            android:layout_gravity="center"
+            android:contentDescription="@string/nav_dialog_confirm"
+            android:src="@drawable/ic_widget_chevron" />
+    </FrameLayout>
+</LinearLayout>

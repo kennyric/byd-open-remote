@@ -19,6 +19,7 @@ import com.bydwatch.companion.BydWatchApp;
 import com.bydwatch.companion.R;
 import com.bydwatch.companion.data.BydRepository;
 import com.bydwatch.companion.data.BydRepositoryTest;
+import com.bydwatch.companion.data.ConfigStore;
 import com.bydwatch.companion.model.VehicleStatus;
 import com.bydwatch.companion.wear.WearBridgeService;
 import com.bydwatch.companion.wear.WearEngineBridge;
@@ -37,6 +38,7 @@ import org.robolectric.android.controller.ServiceController;
 import org.robolectric.annotation.Config;
 import org.robolectric.shadows.ShadowActivity;
 import org.robolectric.shadows.ShadowApplication;
+import org.robolectric.shadows.ShadowDialog;
 import org.robolectric.shadows.ShadowLooper;
 import org.robolectric.shadows.ShadowToast;
 
@@ -119,20 +121,29 @@ public class MainActivityTest {
 
     @Test
     public void displaysAlternateAuthNoticeAndDefault17CTemp() {
-        TextView tempView = activity.findViewById(R.id.tvTargetTemp);
+        TextView presetView = activity.findViewById(R.id.tvAcTogglePreset);
+        TextView toggleTitle = activity.findViewById(R.id.tvAcToggleTitle);
         TextView authNotice = activity.findViewById(R.id.tvAuthNotice);
 
-        assertNotNull(tempView);
+        assertNotNull(presetView);
+        assertNotNull(toggleTitle);
         assertNotNull(authNotice);
-        assertEquals("17°C", tempView.getText().toString());
+        assertEquals("Turn AC On", toggleTitle.getText().toString());
+        assertEquals("17°C", presetView.getText().toString());
         assertTrue(authNotice.getText().toString().contains("Alternate Vehicle Authorization"));
     }
 
     @Test
     public void tempButtonsClampBetween17And31() {
-        TextView tempView = activity.findViewById(R.id.tvTargetTemp);
-        Button btnMinus = activity.findViewById(R.id.btnTempMinus);
-        Button btnPlus = activity.findViewById(R.id.btnTempPlus);
+        View btnAdjust = activity.findViewById(R.id.btnAcAdjust);
+        btnAdjust.performClick();
+        ShadowLooper.idleMainLooper();
+
+        AlertDialog dialog = (AlertDialog) ShadowDialog.getLatestDialog();
+        assertNotNull(dialog);
+        TextView tempView = dialog.findViewById(R.id.tvTargetTemp);
+        Button btnMinus = dialog.findViewById(R.id.btnTempMinus);
+        Button btnPlus = dialog.findViewById(R.id.btnTempPlus);
 
         assertEquals("17°C", tempView.getText().toString());
 
@@ -158,6 +169,7 @@ public class MainActivityTest {
         btnMinus.performClick();
         ShadowLooper.idleMainLooper();
         assertEquals("30°C", tempView.getText().toString());
+        assertEquals("30°C", ((TextView) activity.findViewById(R.id.tvAcTogglePreset)).getText().toString());
     }
 
     @Test
@@ -297,30 +309,40 @@ public class MainActivityTest {
 
     @Test
     public void acOnButtonSendsAcOnCommandWithTargetTemp() {
-        Button btnPlus = activity.findViewById(R.id.btnTempPlus);
+        activity.findViewById(R.id.btnAcAdjust).performClick();
+        ShadowLooper.idleMainLooper();
+        AlertDialog dialog = (AlertDialog) ShadowDialog.getLatestDialog();
+        Button btnPlus = dialog.findViewById(R.id.btnTempPlus);
         btnPlus.performClick(); // 18°C
         btnPlus.performClick(); // 19°C
+        dialog.findViewById(R.id.btnClimateDone).performClick();
         ShadowLooper.idleMainLooper();
 
-        Button btnAcOn = activity.findViewById(R.id.btnAcOn);
+        View btnAcToggle = activity.findViewById(R.id.btnAcToggle);
         TextView tvAcState = activity.findViewById(R.id.tvAcState);
         TextView tvLog = activity.findViewById(R.id.tvStatusLog);
 
-        btnAcOn.performClick();
+        btnAcToggle.performClick();
         awaitAsyncWork();
 
         assertEquals(1, fakeGateway.startClimateCalls.get());
+        assertEquals(19.0, fakeGateway.lastTempCelsius, 0.01);
         assertEquals("AC On", tvAcState.getText().toString());
         assertTrue(tvLog.getText().toString().contains("AC") || tvLog.getText().toString().contains("started"));
     }
 
     @Test
     public void acOffButtonSendsAcOffCommand() {
-        Button btnAcOff = activity.findViewById(R.id.btnAcOff);
+        View btnAcToggle = activity.findViewById(R.id.btnAcToggle);
         TextView tvAcState = activity.findViewById(R.id.tvAcState);
         TextView tvLog = activity.findViewById(R.id.tvStatusLog);
 
-        btnAcOff.performClick();
+        // Turn AC On first so quick toggle transitions to AC On, then tap again to turn AC Off
+        btnAcToggle.performClick();
+        awaitAsyncWork();
+        assertEquals("AC On", tvAcState.getText().toString());
+
+        btnAcToggle.performClick();
         awaitAsyncWork();
 
         assertEquals(1, fakeGateway.stopClimateCalls.get());
@@ -385,8 +407,8 @@ public class MainActivityTest {
         controller = Robolectric.buildActivity(MainActivity.class).setup();
         MainActivity newActivity = controller.get();
 
-        TextView tempView = newActivity.findViewById(R.id.tvTargetTemp);
-        assertEquals("17°C", tempView.getText().toString());
+        TextView presetView = newActivity.findViewById(R.id.tvAcTogglePreset);
+        assertEquals("17°C", presetView.getText().toString());
     }
 
     @Test
@@ -527,8 +549,7 @@ public class MainActivityTest {
         Button btnRefresh = newActivity.findViewById(R.id.btnRefresh);
         Button btnLock = newActivity.findViewById(R.id.btnLock);
         Button btnUnlock = newActivity.findViewById(R.id.btnUnlock);
-        Button btnAcOn = newActivity.findViewById(R.id.btnAcOn);
-        Button btnAcOff = newActivity.findViewById(R.id.btnAcOff);
+        View btnAcToggle = newActivity.findViewById(R.id.btnAcToggle);
         Button btnLights = newActivity.findViewById(R.id.btnLights);
         Button btnHorn = newActivity.findViewById(R.id.btnHorn);
 
@@ -544,11 +565,11 @@ public class MainActivityTest {
         awaitAsyncWork();
         assertEquals(1, fakeGateway.unlockCalls.get());
 
-        btnAcOn.performClick();
+        btnAcToggle.performClick();
         awaitAsyncWork();
         assertEquals(1, fakeGateway.startClimateCalls.get());
 
-        btnAcOff.performClick();
+        btnAcToggle.performClick();
         awaitAsyncWork();
         assertEquals(1, fakeGateway.stopClimateCalls.get());
 
@@ -1045,6 +1066,304 @@ public class MainActivityTest {
         assertNotNull(watchIntent);
         assertEquals(Intent.ACTION_VIEW, watchIntent.getAction());
         assertEquals("https://github.com/kennyric/byd-watch-gt4", watchIntent.getDataString());
+    }
+
+    @Test
+    public void changingTempWhileAcOnTriggersDebouncedAcOnCommand() {
+        View btnAcToggle = activity.findViewById(R.id.btnAcToggle);
+        View btnAcAdjust = activity.findViewById(R.id.btnAcAdjust);
+        TextView tvPreset = activity.findViewById(R.id.tvAcTogglePreset);
+
+        btnAcToggle.performClick();
+        awaitAsyncWork();
+        assertEquals(1, fakeGateway.startClimateCalls.get());
+        assertEquals(17.0, fakeGateway.lastTempCelsius, 0.01);
+
+        btnAcAdjust.performClick();
+        ShadowLooper.idleMainLooper();
+        AlertDialog dialog = (AlertDialog) ShadowDialog.getLatestDialog();
+        Button btnTempPlus = dialog.findViewById(R.id.btnTempPlus);
+        TextView tvTargetTemp = dialog.findViewById(R.id.tvTargetTemp);
+
+        // Two rapid taps while AC is running should debounce into one live update
+        btnTempPlus.performClick();
+        btnTempPlus.performClick();
+        ShadowLooper.idleMainLooper(300, TimeUnit.MILLISECONDS);
+        assertEquals("19°C", tvTargetTemp.getText().toString());
+        assertEquals("19°C", tvPreset.getText().toString());
+        assertEquals(1, fakeGateway.startClimateCalls.get());
+
+        ShadowLooper.idleMainLooper(600, TimeUnit.MILLISECONDS);
+        awaitAsyncWork();
+        assertEquals(2, fakeGateway.startClimateCalls.get());
+        assertEquals(19.0, fakeGateway.lastTempCelsius, 0.01);
+        dialog.dismiss();
+    }
+
+    @Test
+    public void manualAcDisplaysTempGearFanAndVentControlsInPopupAndUpdatesLive() {
+        fakeGateway.currentStatus = fakeGateway.currentStatus.toBuilder()
+                .manualAc(true)
+                .build();
+        Button btnRefresh = activity.findViewById(R.id.btnRefresh);
+        btnRefresh.performClick();
+        awaitAsyncWork();
+
+        TextView tvPreset = activity.findViewById(R.id.tvAcTogglePreset);
+        assertEquals("Lvl 3 · Fan 4 · Body", tvPreset.getText().toString());
+
+        activity.findViewById(R.id.btnAcAdjust).performClick();
+        ShadowLooper.idleMainLooper();
+        AlertDialog dialog = (AlertDialog) ShadowDialog.getLatestDialog();
+        assertNotNull(dialog);
+
+        View layoutFan = dialog.findViewById(R.id.layoutFanControl);
+        View layoutVent = dialog.findViewById(R.id.layoutVentControl);
+        TextView tvTargetTemp = dialog.findViewById(R.id.tvTargetTemp);
+        TextView tvFanLevel = dialog.findViewById(R.id.tvFanLevel);
+        Button btnTempPlus = dialog.findViewById(R.id.btnTempPlus);
+        Button btnTempMinus = dialog.findViewById(R.id.btnTempMinus);
+        Button btnFanPlus = dialog.findViewById(R.id.btnFanPlus);
+        Button btnVentBodyFeet = dialog.findViewById(R.id.btnVentBodyFeet);
+        Button btnDone = dialog.findViewById(R.id.btnClimateDone);
+
+        assertEquals(View.VISIBLE, layoutFan.getVisibility());
+        assertEquals(View.VISIBLE, layoutVent.getVisibility());
+        assertEquals("Lvl 3", tvTargetTemp.getText().toString());
+        assertEquals("Lvl 4", tvFanLevel.getText().toString());
+
+        btnTempPlus.performClick();
+        btnFanPlus.performClick();
+        btnVentBodyFeet.performClick();
+        assertEquals("Lvl 4", tvTargetTemp.getText().toString());
+        assertEquals("Lvl 5", tvFanLevel.getText().toString());
+        assertEquals("Lvl 4 · Fan 5 · Body+Feet", tvPreset.getText().toString());
+        assertEquals(0, fakeGateway.startElectricClimateCalls.get());
+        btnDone.performClick();
+        ShadowLooper.idleMainLooper();
+
+        // Main screen toggle uses the persisted manual-AC preset (temp gear, fan level, vent mode)
+        View btnAcToggle = activity.findViewById(R.id.btnAcToggle);
+        btnAcToggle.performClick();
+        awaitAsyncWork();
+        assertEquals(1, fakeGateway.startElectricClimateCalls.get());
+        assertEquals(0, fakeGateway.startClimateCalls.get());
+        assertEquals(4, fakeGateway.lastTempGear);
+        assertEquals(5, fakeGateway.lastWindLevel);
+        assertEquals(ConfigStore.WIND_MODE_BODY_FEET, fakeGateway.lastWindMode);
+
+        // Adjusting temp/fan/vent while AC is ON sends debounced electric climate update
+        activity.findViewById(R.id.btnAcAdjust).performClick();
+        ShadowLooper.idleMainLooper();
+        dialog = (AlertDialog) ShadowDialog.getLatestDialog();
+        dialog.findViewById(R.id.btnTempMinus).performClick();
+        dialog.findViewById(R.id.btnFanPlus).performClick();
+        dialog.findViewById(R.id.btnVentFeet).performClick();
+        assertEquals("Lvl 3", ((TextView) dialog.findViewById(R.id.tvTargetTemp)).getText().toString());
+        assertEquals("Lvl 6", ((TextView) dialog.findViewById(R.id.tvFanLevel)).getText().toString());
+
+        ShadowLooper.idleMainLooper(800, TimeUnit.MILLISECONDS);
+        awaitAsyncWork();
+        assertEquals(2, fakeGateway.startElectricClimateCalls.get());
+        assertEquals(3, fakeGateway.lastTempGear);
+        assertEquals(6, fakeGateway.lastWindLevel);
+        assertEquals(ConfigStore.WIND_MODE_FEET, fakeGateway.lastWindMode);
+        dialog.dismiss();
+
+        // Switching to a car WITH climate control restores °C display, hides manual fan/vent controls,
+        // and routes quick AC toggle back through auto-climate startClimate()
+        fakeGateway.currentStatus = new VehicleStatus.Builder(80, 320, true, false, 26, 17, 1700000600L)
+                .manualAc(false)
+                .build();
+        btnRefresh.performClick();
+        awaitAsyncWork();
+        assertEquals("17°C", tvPreset.getText().toString());
+
+        activity.findViewById(R.id.btnAcAdjust).performClick();
+        ShadowLooper.idleMainLooper();
+        dialog = (AlertDialog) ShadowDialog.getLatestDialog();
+        assertEquals(View.GONE, dialog.findViewById(R.id.layoutFanControl).getVisibility());
+        assertEquals(View.GONE, dialog.findViewById(R.id.layoutVentControl).getVisibility());
+        assertEquals("17°C", ((TextView) dialog.findViewById(R.id.tvTargetTemp)).getText().toString());
+        dialog.findViewById(R.id.btnClimateApply).performClick();
+        awaitAsyncWork();
+        assertEquals(1, fakeGateway.startClimateCalls.get());
+        assertEquals(17.0, fakeGateway.lastTempCelsius, 0.01);
+    }
+
+    @Test
+    public void refreshUpdatesActiveManualAcTempGearFanAndVentFromCloudTelemetry() {
+        configStore.setManualAcMode(true);
+        configStore.setDefaultTempGear(1);
+        configStore.setDefaultFanLevel(2);
+        configStore.setDefaultWindMode(ConfigStore.WIND_MODE_BODY);
+
+        fakeGateway.currentStatus = new VehicleStatus.Builder(60, 180, true, true, null, 17, 1700000700L)
+                .manualAc(true)
+                .acPreset(1, 4, ConfigStore.WIND_MODE_BODY)
+                .build();
+
+        activity.findViewById(R.id.btnRefresh).performClick();
+        awaitAsyncWork();
+
+        assertEquals("Lvl 1 · Fan 4 · Body",
+                ((TextView) activity.findViewById(R.id.tvAcTogglePreset)).getText().toString());
+        assertEquals(1, configStore.getDefaultTempGear());
+        assertEquals(4, configStore.getDefaultFanLevel());
+
+        activity.findViewById(R.id.btnAcAdjust).performClick();
+        ShadowLooper.idleMainLooper();
+        AlertDialog dialog = (AlertDialog) ShadowDialog.getLatestDialog();
+        assertNotNull(dialog);
+        assertEquals("Lvl 1", ((TextView) dialog.findViewById(R.id.tvTargetTemp)).getText().toString());
+        assertEquals("Lvl 4", ((TextView) dialog.findViewById(R.id.tvFanLevel)).getText().toString());
+        dialog.dismiss();
+    }
+
+    @Test
+    public void flakyInternetRefreshShowsGracefulMessageWithoutRawHostname() {
+        fakeGateway.transportError = new java.net.UnknownHostException(
+                "Unable to resolve host \"dilinkappoversea-id.byd.auto\": No address associated with hostname");
+
+        activity.findViewById(R.id.btnRefresh).performClick();
+        awaitAsyncWork();
+
+        String logText = ((TextView) activity.findViewById(R.id.tvStatusLog)).getText().toString();
+        String latestToast = ShadowToast.getTextOfLatestToast();
+        assertTrue(logText.contains("Unable to reach BYD Cloud"));
+        assertFalse(logText.contains("dilinkappoversea-id.byd.auto"));
+        assertFalse(logText.contains("No address associated"));
+        assertNotNull(latestToast);
+        assertTrue(latestToast.contains("Unable to reach BYD Cloud"));
+        assertFalse(latestToast.contains("dilinkappoversea-id.byd.auto"));
+    }
+
+    @Test
+    public void accountSetupGuideStartsExpandedWhenUnconfiguredAndTogglesWhenConfigured() {
+        View guideSteps = activity.findViewById(R.id.layoutSetupGuideSteps);
+        Button btnToggleGuide = activity.findViewById(R.id.btnToggleSetupGuide);
+        TextView tvWarning = activity.findViewById(R.id.tvSetupGuideWarning);
+
+        assertNotNull(guideSteps);
+        assertNotNull(btnToggleGuide);
+        assertNotNull(tvWarning);
+        assertEquals(View.GONE, guideSteps.getVisibility());
+        assertEquals("Show", btnToggleGuide.getText().toString());
+
+        btnToggleGuide.performClick();
+        ShadowLooper.idleMainLooper();
+        assertEquals(View.VISIBLE, guideSteps.getVisibility());
+        assertEquals("Hide", btnToggleGuide.getText().toString());
+        assertTrue(tvWarning.getText().toString().contains("Do NOT use your main owner account"));
+        assertTrue(tvWarning.getText().toString().contains("2nd BYD account"));
+
+        // Fresh unconfigured launch expands setup guide and credential form automatically
+        ActivityController<MainActivity> freshController = null;
+        try {
+            configStore.clear();
+            freshController = Robolectric.buildActivity(MainActivity.class).setup();
+            MainActivity freshActivity = freshController.get();
+            ShadowLooper.idleMainLooper();
+
+            assertEquals(View.VISIBLE, freshActivity.findViewById(R.id.cardAccount).getVisibility());
+            assertEquals(View.VISIBLE, freshActivity.findViewById(R.id.layoutSetupGuideSteps).getVisibility());
+            assertEquals(View.VISIBLE, freshActivity.findViewById(R.id.layoutAccountFields).getVisibility());
+        } finally {
+            if (freshController != null) {
+                freshController.destroy();
+            }
+        }
+    }
+
+    @Test
+    public void displaysNoticeThatHuaweiWatchIntegrationIsNotWorking() {
+        TextView watchNotice = activity.findViewById(R.id.tvWatchIntegrationNotice);
+        assertNotNull(watchNotice);
+        String msg = watchNotice.getText().toString().toLowerCase();
+        assertTrue(msg.contains("huawei watch"));
+        assertTrue(msg.contains("not working"));
+
+        try (ActivityController<SplashActivity> splashController =
+                     Robolectric.buildActivity(SplashActivity.class).setup()) {
+            SplashActivity splash = splashController.get();
+            TextView splashWatchNotice = splash.findViewById(R.id.tvSplashWatchNotice);
+            assertNotNull(splashWatchNotice);
+            String splashMsg = splashWatchNotice.getText().toString().toLowerCase();
+            assertTrue(splashMsg.contains("huawei watch"));
+            assertTrue(splashMsg.contains("not working"));
+        }
+    }
+
+    @Test
+    public void widgetStyleSelectorSwitchesAllFourOptionsInSettings() {
+        Button btnCapsule = activity.findViewById(R.id.btnWidgetStyleCapsule);
+        Button btnRing = activity.findViewById(R.id.btnWidgetStyleRing);
+        Button btnBento = activity.findViewById(R.id.btnWidgetStyleBento);
+        Button btnTank = activity.findViewById(R.id.btnWidgetStyleTank);
+        TextView tvDesc = activity.findViewById(R.id.tvWidgetStyleDesc);
+
+        assertEquals(com.bydwatch.companion.data.ConfigStore.WIDGET_STYLE_CAPSULE, configStore.getWidgetStyle());
+        assertEquals(activity.getString(R.string.widget_style_desc_capsule), tvDesc.getText().toString());
+
+        btnRing.performClick();
+        ShadowLooper.idleMainLooper();
+        assertEquals(com.bydwatch.companion.data.ConfigStore.WIDGET_STYLE_RING, configStore.getWidgetStyle());
+        assertEquals(activity.getString(R.string.widget_style_desc_ring), tvDesc.getText().toString());
+
+        btnBento.performClick();
+        ShadowLooper.idleMainLooper();
+        assertEquals(com.bydwatch.companion.data.ConfigStore.WIDGET_STYLE_BENTO, configStore.getWidgetStyle());
+        assertEquals(activity.getString(R.string.widget_style_desc_bento), tvDesc.getText().toString());
+
+        btnTank.performClick();
+        ShadowLooper.idleMainLooper();
+        assertEquals(com.bydwatch.companion.data.ConfigStore.WIDGET_STYLE_TANK, configStore.getWidgetStyle());
+        assertEquals(activity.getString(R.string.widget_style_desc_tank), tvDesc.getText().toString());
+
+        btnCapsule.performClick();
+        ShadowLooper.idleMainLooper();
+        assertEquals(com.bydwatch.companion.data.ConfigStore.WIDGET_STYLE_CAPSULE, configStore.getWidgetStyle());
+        assertEquals(activity.getString(R.string.widget_style_desc_capsule), tvDesc.getText().toString());
+    }
+
+    @Test
+    public void languageSelectorInSettingsSwitchesBetweenSystemEnglishAndIndonesian() {
+        try {
+            Button btnSystem = activity.findViewById(R.id.btnLangSystem);
+            Button btnEnglish = activity.findViewById(R.id.btnLangEnglish);
+            Button btnIndonesian = activity.findViewById(R.id.btnLangIndonesian);
+            assertNotNull(btnSystem);
+            assertNotNull(btnEnglish);
+            assertNotNull(btnIndonesian);
+            assertEquals(com.bydwatch.companion.data.ConfigStore.LANG_SYSTEM, configStore.getAppLanguage());
+
+            btnIndonesian.performClick();
+            ShadowLooper.idleMainLooper();
+            assertEquals(com.bydwatch.companion.data.ConfigStore.LANG_ID, configStore.getAppLanguage());
+            String tagId = androidx.appcompat.app.AppCompatDelegate.getApplicationLocales().toLanguageTags();
+            assertTrue("Expected id locale tag but was: " + tagId,
+                    tagId.startsWith("id") || tagId.startsWith("in"));
+
+            android.content.Context idCtx = AppLocaleHelper.localizedContext(activity, configStore);
+            assertEquals("Kunci", idCtx.getString(R.string.btn_lock));
+            assertEquals("Bahasa Aplikasi", idCtx.getString(R.string.label_app_language));
+            assertEquals("Preferensi", idCtx.getString(R.string.card_preferences_title));
+
+            btnEnglish.performClick();
+            ShadowLooper.idleMainLooper();
+            assertEquals(com.bydwatch.companion.data.ConfigStore.LANG_EN, configStore.getAppLanguage());
+            assertEquals("en", androidx.appcompat.app.AppCompatDelegate.getApplicationLocales().toLanguageTags());
+            android.content.Context enCtx = AppLocaleHelper.localizedContext(activity, configStore);
+            assertEquals("Lock", enCtx.getString(R.string.btn_lock));
+
+            btnSystem.performClick();
+            ShadowLooper.idleMainLooper();
+            assertEquals(com.bydwatch.companion.data.ConfigStore.LANG_SYSTEM, configStore.getAppLanguage());
+            assertTrue(androidx.appcompat.app.AppCompatDelegate.getApplicationLocales().isEmpty());
+        } finally {
+            androidx.appcompat.app.AppCompatDelegate.setApplicationLocales(
+                    androidx.core.os.LocaleListCompat.getEmptyLocaleList());
+        }
     }
 
     private static boolean containsTextViewWithText(View view, String target) {

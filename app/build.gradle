@@ -16,7 +16,7 @@ android {
     compileSdk 34
 
     defaultConfig {
-        applicationId 'com.bydwatch.companion'
+        applicationId 'com.bydopenremote.app'
         minSdk 26
         targetSdk 34
         versionCode 1
@@ -44,6 +44,12 @@ android {
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    applicationVariants.all { variant ->
+        variant.outputs.all {
+            outputFileName = "byd-open-remote-v${variant.versionName}-${variant.buildType.name}.apk"
         }
     }
 

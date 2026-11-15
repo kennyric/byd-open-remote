@@ -7,13 +7,18 @@ import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.content.res.ColorStateList;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.Looper;
 import android.os.PersistableBundle;
 import android.os.PowerManager;
 import android.provider.Settings;
+import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
@@ -22,6 +27,7 @@ import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -51,6 +57,10 @@ import com.bydwatch.companion.protocol.WatchProtocol;
 import com.bydwatch.companion.protocol.WatchResponse;
 import com.bydwatch.companion.wear.WearBridgeService;
 import com.bydwatch.companion.wear.WearEngineBridge;
+import com.google.android.material.button.MaterialButton;
+import com.google.android.material.button.MaterialButtonToggleGroup;
+import com.google.android.material.card.MaterialCardView;
+import com.google.android.material.color.MaterialColors;
 import com.google.android.material.navigation.NavigationView;
 import com.google.android.material.textfield.TextInputLayout;
 
@@ -80,10 +90,24 @@ public class MainActivity extends AppCompatActivity {
     private WearBridgeService.ServiceStateListener serviceStateListener;
 
     private static final int RC_PERMISSIONS = 1001;
+    private static final long CLIMATE_DEBOUNCE_MS = 700L;
+    private static final String STATE_CURRENT_PAGE_ID = "state_current_page_id";
+
+    private int restoredPageId = 0;
 
     private int targetTempC = WatchProtocol.DEFAULT_TEMP_C;
+    private int targetTempGear = ConfigStore.DEFAULT_TEMP_GEAR;
+    private int targetFanLevel = ConfigStore.DEFAULT_FAN_LEVEL;
+    private int targetWindMode = ConfigStore.DEFAULT_WIND_MODE;
+    private boolean updatingManualAcSwitch = false;
     private boolean syncIntervalUnitHours = false;
     private VehicleStatus lastStatus;
+    private final Handler climateDebounceHandler = new Handler(Looper.getMainLooper());
+    private final Runnable pendingClimateSend = () -> {
+        if (!isFinishing() && !isDestroyed()) {
+            sendCurrentAcOnCommand();
+        }
+    };
 
     // UI references
     private DrawerLayout drawerLayout;
@@ -101,6 +125,9 @@ public class MainActivity extends AppCompatActivity {
     private View cardPreferences;
     private View cardBridge;
     private View layoutAccountFields;
+    private View layoutSetupGuideHeader;
+    private View layoutSetupGuideSteps;
+    private Button btnToggleSetupGuide;
     private TextView tvAccountSummary;
     private Button btnToggleAccount;
     private TextView tvAuthNotice;
@@ -130,11 +157,21 @@ public class MainActivity extends AppCompatActivity {
     private Button btnRefresh;
     private Button btnLock;
     private Button btnUnlock;
-    private Button btnTempMinus;
-    private TextView tvTargetTemp;
-    private Button btnTempPlus;
-    private Button btnAcOn;
-    private Button btnAcOff;
+    private MaterialCardView btnAcToggle;
+    private ImageView ivAcToggleIcon;
+    private TextView tvAcToggleTitle;
+    private TextView tvAcTogglePreset;
+    private Button btnAcAdjust;
+    private AlertDialog climateSettingsDialog;
+    private TextView tvClimateModeBadge;
+    private TextView tvPopupTargetTemp;
+    private View layoutPopupFanControl;
+    private TextView tvPopupFanLevel;
+    private View layoutPopupVentControl;
+    private MaterialButton btnPopupVentBody;
+    private MaterialButton btnPopupVentBodyFeet;
+    private MaterialButton btnPopupVentFeet;
+    private Button btnPopupApply;
     private Button btnLights;
     private Button btnHorn;
     private View layoutComfortRow1;
@@ -170,6 +207,12 @@ public class MainActivity extends AppCompatActivity {
     private Button btnApplySyncInterval;
     private EditText etCustomModelName;
     private Button btnSaveCustomModel;
+    private MaterialButtonToggleGroup toggleWidgetStyle;
+    private TextView tvWidgetStyleDesc;
+    private boolean updatingWidgetStyleUi = false;
+    private MaterialButtonToggleGroup toggleAppLanguage;
+    private boolean updatingAppLanguageUi = false;
+    private SwitchCompat switchManualAc;
     private SwitchCompat switchHideExtraControls;
     private SwitchCompat switchSmartAlerts;
     private SwitchCompat switchVerboseLogs;
@@ -188,6 +231,9 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        restoredPageId = savedInstanceState != null
+                ? savedInstanceState.getInt(STATE_CURRENT_PAGE_ID, 0)
+                : 0;
         // Explicitly allow screenshots on companion UI while keeping saved secrets unexposed.
         getWindow().clearFlags(WindowManager.LayoutParams.FLAG_SECURE);
         setContentView(R.layout.activity_main);
@@ -197,6 +243,10 @@ public class MainActivity extends AppCompatActivity {
             app = BydWatchApp.getInstance();
         }
         configStore = app.getConfigStore();
+        if (com.bydwatch.companion.BuildConfig.DEBUG && getIntent() != null && getIntent().hasExtra("demo_lang")) {
+            configStore.setAppLanguage(getIntent().getStringExtra("demo_lang"));
+        }
+        AppLocaleHelper.applyLanguage(configStore.getAppLanguage());
         gateway = app.getGateway();
         repository = app.getRepository();
         bridge = app.getWearEngineBridge();
@@ -216,6 +266,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putInt(STATE_CURRENT_PAGE_ID, currentPageId);
+    }
+
+    @Override
     protected void onResume() {
         super.onResume();
         updateWatchStatus();
@@ -223,6 +279,11 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
+        climateDebounceHandler.removeCallbacks(pendingClimateSend);
+        if (climateSettingsDialog != null && climateSettingsDialog.isShowing()) {
+            climateSettingsDialog.dismiss();
+        }
+        climateSettingsDialog = null;
         if (bridge != null && stateListener != null) {
             bridge.removeStateListener(stateListener);
         }
@@ -234,6 +295,11 @@ public class MainActivity extends AppCompatActivity {
 
     private void bindViews() {
         drawerLayout = findViewById(R.id.drawerLayout);
+        if (drawerLayout != null) {
+            int statusScrim = ContextCompat.getColor(this, R.color.bg_obsidian);
+            drawerLayout.setStatusBarBackgroundColor(statusScrim);
+            getWindow().setStatusBarColor(statusScrim);
+        }
         navView = findViewById(R.id.navView);
         btnHamburger = findViewById(R.id.btnHamburger);
         if (navView != null && navView.getHeaderCount() > 0) {
@@ -250,6 +316,9 @@ public class MainActivity extends AppCompatActivity {
         cardPreferences = findViewById(R.id.cardPreferences);
         cardBridge = findViewById(R.id.cardBridge);
         layoutAccountFields = findViewById(R.id.layoutAccountFields);
+        layoutSetupGuideHeader = findViewById(R.id.layoutSetupGuideHeader);
+        layoutSetupGuideSteps = findViewById(R.id.layoutSetupGuideSteps);
+        btnToggleSetupGuide = findViewById(R.id.btnToggleSetupGuide);
         tvAccountSummary = findViewById(R.id.tvAccountSummary);
         btnToggleAccount = findViewById(R.id.btnToggleAccount);
         tvAuthNotice = findViewById(R.id.tvAuthNotice);
@@ -279,11 +348,11 @@ public class MainActivity extends AppCompatActivity {
         btnRefresh = findViewById(R.id.btnRefresh);
         btnLock = findViewById(R.id.btnLock);
         btnUnlock = findViewById(R.id.btnUnlock);
-        btnTempMinus = findViewById(R.id.btnTempMinus);
-        tvTargetTemp = findViewById(R.id.tvTargetTemp);
-        btnTempPlus = findViewById(R.id.btnTempPlus);
-        btnAcOn = findViewById(R.id.btnAcOn);
-        btnAcOff = findViewById(R.id.btnAcOff);
+        btnAcToggle = findViewById(R.id.btnAcToggle);
+        ivAcToggleIcon = findViewById(R.id.ivAcToggleIcon);
+        tvAcToggleTitle = findViewById(R.id.tvAcToggleTitle);
+        tvAcTogglePreset = findViewById(R.id.tvAcTogglePreset);
+        btnAcAdjust = findViewById(R.id.btnAcAdjust);
         btnLights = findViewById(R.id.btnLights);
         btnHorn = findViewById(R.id.btnHorn);
         layoutComfortRow1 = findViewById(R.id.layoutComfortRow1);
@@ -319,6 +388,10 @@ public class MainActivity extends AppCompatActivity {
         btnApplySyncInterval = findViewById(R.id.btnApplySyncInterval);
         etCustomModelName = findViewById(R.id.etCustomModelName);
         btnSaveCustomModel = findViewById(R.id.btnSaveCustomModel);
+        toggleWidgetStyle = findViewById(R.id.toggleWidgetStyle);
+        tvWidgetStyleDesc = findViewById(R.id.tvWidgetStyleDesc);
+        toggleAppLanguage = findViewById(R.id.toggleAppLanguage);
+        switchManualAc = findViewById(R.id.switchManualAc);
         switchHideExtraControls = findViewById(R.id.switchHideExtraControls);
         switchSmartAlerts = findViewById(R.id.switchSmartAlerts);
         switchVerboseLogs = findViewById(R.id.switchVerboseLogs);
@@ -379,6 +452,14 @@ public class MainActivity extends AppCompatActivity {
             if (targetTempC < WatchProtocol.MIN_TEMP_C || targetTempC > WatchProtocol.MAX_TEMP_C) {
                 targetTempC = WatchProtocol.DEFAULT_TEMP_C;
             }
+            targetTempGear = configStore.getDefaultTempGear();
+            targetFanLevel = configStore.getDefaultFanLevel();
+            targetWindMode = configStore.getDefaultWindMode();
+            if (switchManualAc != null) {
+                updatingManualAcSwitch = true;
+                switchManualAc.setChecked(configStore.isManualAcMode());
+                updatingManualAcSwitch = false;
+            }
             if (switchSmartAlerts != null) {
                 switchSmartAlerts.setChecked(configStore.isAlertsEnabled());
             }
@@ -398,8 +479,10 @@ public class MainActivity extends AppCompatActivity {
             if (etCustomModelName != null) {
                 etCustomModelName.setText(configStore.getCustomVehicleName());
             }
+            updateWidgetStyleUi(configStore.getWidgetStyle());
+            updateAppLanguageUi(configStore.getAppLanguage());
         }
-        updateTargetTempLabel();
+        updateClimateControlsUi();
         updateUnitButtons();
         updateWatchTargetLabel();
         updateHeaderVehicleInfo(null);
@@ -411,9 +494,105 @@ public class MainActivity extends AppCompatActivity {
 
         boolean configured = configStore != null && configStore.isConfigured();
         setAccountExpanded(!configured);
+        setSetupGuideExpanded(!configured);
         updateAccountUiState();
         updateWatchStatus();
-        showPage(configured ? R.id.nav_controls : R.id.nav_account);
+        int initialPage = restoredPageId != 0
+                ? restoredPageId
+                : (configured ? R.id.nav_controls : R.id.nav_account);
+        showPage(initialPage);
+
+        if (com.bydwatch.companion.BuildConfig.DEBUG && getIntent() != null
+                && getIntent().getBooleanExtra("demo_mode", false)) {
+            applyDebugDemoState(getIntent());
+        }
+    }
+
+    private void applyDebugDemoState(Intent intent) {
+        if (!com.bydwatch.companion.BuildConfig.DEBUG || configStore == null) {
+            return;
+        }
+        configStore.setRegion("id");
+        configStore.setUsername("demo.driver@example.com");
+        configStore.setPassword("DemoPass123!");
+        configStore.setPin("000000");
+        configStore.setVin("LGX0DEMO000000001");
+        configStore.setVehicleName("BYD Atto 1");
+        configStore.setCustomVehicleName("BYD Atto 1");
+        configStore.setManualAcMode(true);
+        configStore.setDefaultTempGear(2);
+        configStore.setDefaultFanLevel(4);
+        configStore.setDefaultWindMode(ConfigStore.WIND_MODE_BODY_FEET);
+        if (intent.hasExtra("demo_widget_style")) {
+            configStore.setWidgetStyle(intent.getIntExtra("demo_widget_style", ConfigStore.WIDGET_STYLE_CAPSULE));
+        }
+        targetTempGear = 2;
+        targetFanLevel = 4;
+        targetWindMode = ConfigStore.WIND_MODE_BODY_FEET;
+        if (switchManualAc != null) {
+            updatingManualAcSwitch = true;
+            switchManualAc.setChecked(true);
+            updatingManualAcSwitch = false;
+        }
+
+        double demoLat = -6.19500;
+        double demoLng = 106.82300;
+        VehicleLocationHelper.seedStreetCacheForDebug(demoLat, demoLng, "Jl. M. H. Thamrin, Jakarta");
+
+        VehicleStatus demo = new VehicleStatus.Builder(78, 268, true, true, 23, 18, System.currentTimeMillis() / 1000L)
+                .vin("LGX0DEMO000000001")
+                .modelName("BYD Atto 1")
+                .chargingState(VehicleStatus.CHARGING_ACTIVE)
+                .chargePowerKw(7.2)
+                .chargeRemainingMinutes(95)
+                .totalMileageKm(12450)
+                .outsideTempC(31)
+                .tirePressuresKpa(245, 245, 240, 240)
+                .manualAc(true)
+                .acPreset(2, 4, ConfigStore.WIND_MODE_BODY_FEET)
+                .capabilities(true, true, true)
+                .location(demoLat, demoLng, System.currentTimeMillis() / 1000L)
+                .build();
+
+        if (repository != null) {
+            repository.setCachedStatus(demo);
+        }
+        VehicleWidgetProvider.recordSuccessfulSync(this, demo);
+        VehicleWidgetProvider.refreshWidgets(this);
+
+        if (etUsername != null) etUsername.setText("demo.driver@example.com");
+        if (etVin != null) etVin.setText("LGX0DEMO000000001");
+        if (etCustomModelName != null) etCustomModelName.setText("BYD Atto 1");
+        updateAccountUiState();
+        updateWidgetStyleUi(configStore.getWidgetStyle());
+        updateAppLanguageUi(configStore.getAppLanguage());
+        updateTelemetryUi(demo);
+        updateHeaderVehicleInfo(demo);
+        updateClimateControlsUi();
+        setAccountExpanded(false);
+        setSetupGuideExpanded(intent.getBooleanExtra("demo_setup_guide", false));
+
+        String page = intent.getStringExtra("demo_page");
+        if ("account".equalsIgnoreCase(page)) {
+            showPage(R.id.nav_account);
+        } else if ("preferences".equalsIgnoreCase(page)) {
+            showPage(R.id.nav_preferences);
+        } else if ("watch".equalsIgnoreCase(page)) {
+            showPage(R.id.nav_watch_bridge);
+        } else {
+            showPage(R.id.nav_controls);
+        }
+
+        if (intent.getBooleanExtra("demo_climate_dialog", false)) {
+            new Handler(Looper.getMainLooper()).post(this::showClimateSettingsPopup);
+        } else if (intent.getBooleanExtra("demo_pin_widget", false)
+                && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            android.appwidget.AppWidgetManager awm = android.appwidget.AppWidgetManager.getInstance(this);
+            if (awm != null && awm.isRequestPinAppWidgetSupported()) {
+                awm.requestPinAppWidget(new android.content.ComponentName(this, VehicleWidgetProvider.class),
+                        null, null);
+            }
+        }
     }
 
     private void setAccountExpanded(boolean expanded) {
@@ -422,6 +601,15 @@ public class MainActivity extends AppCompatActivity {
         }
         if (btnToggleAccount != null) {
             btnToggleAccount.setText(expanded ? R.string.btn_hide_account : R.string.btn_edit_account);
+        }
+    }
+
+    private void setSetupGuideExpanded(boolean expanded) {
+        if (layoutSetupGuideSteps != null) {
+            layoutSetupGuideSteps.setVisibility(expanded ? View.VISIBLE : View.GONE);
+        }
+        if (btnToggleSetupGuide != null) {
+            btnToggleSetupGuide.setText(expanded ? R.string.btn_hide_guide : R.string.btn_show_guide);
         }
     }
 
@@ -605,6 +793,17 @@ public class MainActivity extends AppCompatActivity {
                 setAccountExpanded(!isExpanded);
             });
         }
+        View.OnClickListener setupGuideToggle = v -> {
+            boolean isExpanded = layoutSetupGuideSteps != null
+                    && layoutSetupGuideSteps.getVisibility() == View.VISIBLE;
+            setSetupGuideExpanded(!isExpanded);
+        };
+        if (btnToggleSetupGuide != null) {
+            btnToggleSetupGuide.setOnClickListener(setupGuideToggle);
+        }
+        if (layoutSetupGuideHeader != null) {
+            layoutSetupGuideHeader.setOnClickListener(setupGuideToggle);
+        }
         if (btnCopyLog != null) {
             btnCopyLog.setOnClickListener(v -> copyEventLog());
         }
@@ -618,31 +817,16 @@ public class MainActivity extends AppCompatActivity {
         btnSaveCredentials.setOnClickListener(v -> saveCredentials());
         btnFetchVin.setOnClickListener(v -> fetchVinAndTestLogin());
 
-        btnTempMinus.setOnClickListener(v -> {
-            if (targetTempC > WatchProtocol.MIN_TEMP_C) {
-                targetTempC--;
-                updateTargetTempLabel();
-                if (configStore != null) {
-                    configStore.setDefaultTempC(targetTempC);
-                }
-            }
-        });
-
-        btnTempPlus.setOnClickListener(v -> {
-            if (targetTempC < WatchProtocol.MAX_TEMP_C) {
-                targetTempC++;
-                updateTargetTempLabel();
-                if (configStore != null) {
-                    configStore.setDefaultTempC(targetTempC);
-                }
-            }
-        });
+        if (btnAcToggle != null) {
+            btnAcToggle.setOnClickListener(v -> toggleAcState());
+        }
+        if (btnAcAdjust != null) {
+            btnAcAdjust.setOnClickListener(v -> showClimateSettingsPopup());
+        }
 
         btnRefresh.setOnClickListener(v -> executeWatchAction(WatchProtocol.ACTION_STATUS, -1));
         btnLock.setOnClickListener(v -> executeWatchAction(WatchProtocol.ACTION_LOCK, -1));
         btnUnlock.setOnClickListener(v -> executeWatchAction(WatchProtocol.ACTION_UNLOCK, -1));
-        btnAcOn.setOnClickListener(v -> executeWatchAction(WatchProtocol.ACTION_AC_ON, targetTempC));
-        btnAcOff.setOnClickListener(v -> executeWatchAction(WatchProtocol.ACTION_AC_OFF, -1));
         btnLights.setOnClickListener(v -> executeWatchAction(WatchProtocol.ACTION_LIGHTS, -1));
         btnHorn.setOnClickListener(v -> executeWatchAction(WatchProtocol.ACTION_HORN, -1));
 
@@ -696,6 +880,46 @@ public class MainActivity extends AppCompatActivity {
         }
         if (btnSaveCustomModel != null) {
             btnSaveCustomModel.setOnClickListener(v -> saveCustomModelName());
+        }
+        if (toggleAppLanguage != null) {
+            toggleAppLanguage.addOnButtonCheckedListener((group, checkedId, isChecked) -> {
+                if (!isChecked || updatingAppLanguageUi) return;
+                String lang = appLanguageForButtonId(checkedId);
+                if (configStore != null) {
+                    configStore.setAppLanguage(lang);
+                }
+                updateAppLanguageUi(lang);
+                VehicleWidgetProvider.refreshWidgets(this);
+                LocationWidgetProvider.refreshWidgets(this);
+                Context resCtx = AppLocaleHelper.localizedContext(this, configStore);
+                String label = appLanguageDisplayLabel(resCtx, lang);
+                showToast(resCtx.getString(R.string.lang_changed_toast, label), false);
+                AppLocaleHelper.applyLanguage(lang);
+            });
+        }
+        if (toggleWidgetStyle != null) {
+            toggleWidgetStyle.addOnButtonCheckedListener((group, checkedId, isChecked) -> {
+                if (!isChecked || updatingWidgetStyleUi) return;
+                int style = widgetStyleForButtonId(checkedId);
+                if (configStore != null) {
+                    configStore.setWidgetStyle(style);
+                }
+                updateWidgetStyleUi(style);
+                VehicleWidgetProvider.refreshWidgets(this);
+                String desc = widgetStyleDescFor(style);
+                logMessage("4x3 widget style set to " + desc);
+                showToast(desc, false);
+            });
+        }
+        if (switchManualAc != null) {
+            switchManualAc.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                if (updatingManualAcSwitch) return;
+                if (configStore != null) {
+                    configStore.setManualAcMode(isChecked);
+                }
+                updateClimateControlsUi();
+                logMessage("Manual AC mode (Atto 1) " + (isChecked ? "enabled" : "disabled") + ".");
+            });
         }
         if (switchHideExtraControls != null) {
             switchHideExtraControls.setOnCheckedChangeListener((buttonView, isChecked) -> {
@@ -974,11 +1198,174 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    private void toggleAcState() {
+        climateDebounceHandler.removeCallbacks(pendingClimateSend);
+        if (lastStatus != null && lastStatus.acOn) {
+            executeWatchAction(WatchProtocol.ACTION_AC_OFF, -1);
+        } else {
+            sendCurrentAcOnCommand();
+        }
+    }
+
+    private void showClimateSettingsPopup() {
+        if (isFinishing() || isDestroyed()) return;
+        if (climateSettingsDialog != null && climateSettingsDialog.isShowing()) {
+            updateClimatePopupUi();
+            return;
+        }
+        View popupView = LayoutInflater.from(this).inflate(R.layout.dialog_climate_settings, null);
+        tvClimateModeBadge = popupView.findViewById(R.id.tvClimateModeBadge);
+        tvPopupTargetTemp = popupView.findViewById(R.id.tvTargetTemp);
+        layoutPopupFanControl = popupView.findViewById(R.id.layoutFanControl);
+        tvPopupFanLevel = popupView.findViewById(R.id.tvFanLevel);
+        layoutPopupVentControl = popupView.findViewById(R.id.layoutVentControl);
+        btnPopupVentBody = popupView.findViewById(R.id.btnVentBody);
+        btnPopupVentBodyFeet = popupView.findViewById(R.id.btnVentBodyFeet);
+        btnPopupVentFeet = popupView.findViewById(R.id.btnVentFeet);
+        btnPopupApply = popupView.findViewById(R.id.btnClimateApply);
+
+        Button btnMinus = popupView.findViewById(R.id.btnTempMinus);
+        Button btnPlus = popupView.findViewById(R.id.btnTempPlus);
+        Button btnFanMinus = popupView.findViewById(R.id.btnFanMinus);
+        Button btnFanPlus = popupView.findViewById(R.id.btnFanPlus);
+        ImageButton btnClose = popupView.findViewById(R.id.btnClimateClose);
+        Button btnDone = popupView.findViewById(R.id.btnClimateDone);
+
+        if (btnMinus != null) {
+            btnMinus.setOnClickListener(v -> adjustTargetTemp(-1));
+        }
+        if (btnPlus != null) {
+            btnPlus.setOnClickListener(v -> adjustTargetTemp(1));
+        }
+        if (btnFanMinus != null) {
+            btnFanMinus.setOnClickListener(v -> adjustFanLevel(-1));
+        }
+        if (btnFanPlus != null) {
+            btnFanPlus.setOnClickListener(v -> adjustFanLevel(1));
+        }
+        if (btnPopupVentBody != null) {
+            btnPopupVentBody.setOnClickListener(v -> selectWindMode(ConfigStore.WIND_MODE_BODY));
+        }
+        if (btnPopupVentBodyFeet != null) {
+            btnPopupVentBodyFeet.setOnClickListener(v -> selectWindMode(ConfigStore.WIND_MODE_BODY_FEET));
+        }
+        if (btnPopupVentFeet != null) {
+            btnPopupVentFeet.setOnClickListener(v -> selectWindMode(ConfigStore.WIND_MODE_FEET));
+        }
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setView(popupView)
+                .create();
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        }
+        dialog.setOnDismissListener(d -> clearClimatePopupRefs());
+
+        if (btnClose != null) {
+            btnClose.setOnClickListener(v -> dialog.dismiss());
+        }
+        if (btnDone != null) {
+            btnDone.setOnClickListener(v -> dialog.dismiss());
+        }
+        if (btnPopupApply != null) {
+            btnPopupApply.setOnClickListener(v -> {
+                climateDebounceHandler.removeCallbacks(pendingClimateSend);
+                sendCurrentAcOnCommand();
+                dialog.dismiss();
+            });
+        }
+
+        climateSettingsDialog = dialog;
+        updateClimatePopupUi();
+        dialog.show();
+    }
+
+    private void clearClimatePopupRefs() {
+        climateSettingsDialog = null;
+        tvClimateModeBadge = null;
+        tvPopupTargetTemp = null;
+        layoutPopupFanControl = null;
+        tvPopupFanLevel = null;
+        layoutPopupVentControl = null;
+        btnPopupVentBody = null;
+        btnPopupVentBodyFeet = null;
+        btnPopupVentFeet = null;
+        btnPopupApply = null;
+    }
+
+    private void adjustTargetTemp(int delta) {
+        if (isManualAcActive()) {
+            int next = Math.max(ConfigStore.MIN_TEMP_GEAR, Math.min(ConfigStore.MAX_TEMP_GEAR, targetTempGear + delta));
+            if (next != targetTempGear) {
+                targetTempGear = next;
+                if (configStore != null) {
+                    configStore.setDefaultTempGear(targetTempGear);
+                }
+                updateClimateControlsUi();
+                scheduleDebouncedClimateUpdateIfAcOn();
+            }
+        } else {
+            int next = Math.max(WatchProtocol.MIN_TEMP_C, Math.min(WatchProtocol.MAX_TEMP_C, targetTempC + delta));
+            if (next != targetTempC) {
+                targetTempC = next;
+                if (configStore != null) {
+                    configStore.setDefaultTempC(targetTempC);
+                }
+                updateClimateControlsUi();
+                scheduleDebouncedClimateUpdateIfAcOn();
+            }
+        }
+    }
+
+    private void adjustFanLevel(int delta) {
+        int next = Math.max(ConfigStore.MIN_FAN_LEVEL, Math.min(ConfigStore.MAX_FAN_LEVEL, targetFanLevel + delta));
+        if (next != targetFanLevel) {
+            targetFanLevel = next;
+            if (configStore != null) {
+                configStore.setDefaultFanLevel(targetFanLevel);
+            }
+            updateClimateControlsUi();
+            scheduleDebouncedClimateUpdateIfAcOn();
+        }
+    }
+
+    private void selectWindMode(int windMode) {
+        if (windMode != targetWindMode) {
+            targetWindMode = windMode;
+            if (configStore != null) {
+                configStore.setDefaultWindMode(targetWindMode);
+            }
+            updateClimateControlsUi();
+            scheduleDebouncedClimateUpdateIfAcOn();
+        }
+    }
+
+    private void scheduleDebouncedClimateUpdateIfAcOn() {
+        climateDebounceHandler.removeCallbacks(pendingClimateSend);
+        if (lastStatus != null && lastStatus.acOn) {
+            climateDebounceHandler.postDelayed(pendingClimateSend, CLIMATE_DEBOUNCE_MS);
+        }
+    }
+
+    private void sendCurrentAcOnCommand() {
+        if (isManualAcActive()) {
+            executeWatchAction(WatchProtocol.ACTION_AC_ON, targetTempC, null, -1,
+                    targetTempGear, targetFanLevel, targetWindMode);
+        } else {
+            executeWatchAction(WatchProtocol.ACTION_AC_ON, targetTempC);
+        }
+    }
+
     private void executeWatchAction(String action, int tempC) {
-        executeWatchAction(action, tempC, null, -1);
+        executeWatchAction(action, tempC, null, -1, -1, -1, -1);
     }
 
     private void executeWatchAction(String action, int tempC, String vinOverride, int level) {
+        executeWatchAction(action, tempC, vinOverride, level, -1, -1, -1);
+    }
+
+    private void executeWatchAction(String action, int tempC, String vinOverride, int level,
+                                    int tempGear, int fanLevel, int windMode) {
         if (configStore != null && !configStore.isConfigured()) {
             logMessage(action + " failed: BYD credentials are not configured.");
             showToast("BYD credentials are not configured", false);
@@ -992,6 +1379,17 @@ public class MainActivity extends AppCompatActivity {
             json.put("action", action);
             if (WatchProtocol.ACTION_AC_ON.equals(action)) {
                 json.put("tempC", tempC >= WatchProtocol.MIN_TEMP_C ? tempC : targetTempC);
+                if (tempGear >= ConfigStore.MIN_TEMP_GEAR && tempGear <= ConfigStore.MAX_TEMP_GEAR) {
+                    json.put("tempGear", tempGear);
+                }
+                if (fanLevel >= ConfigStore.MIN_FAN_LEVEL && fanLevel <= ConfigStore.MAX_FAN_LEVEL) {
+                    json.put("fanLevel", fanLevel);
+                }
+                if (windMode == ConfigStore.WIND_MODE_BODY
+                        || windMode == ConfigStore.WIND_MODE_BODY_FEET
+                        || windMode == ConfigStore.WIND_MODE_FEET) {
+                    json.put("windMode", windMode);
+                }
             }
             if (vinOverride != null && !vinOverride.trim().isEmpty()) {
                 json.put("vin", vinOverride.trim());
@@ -1028,7 +1426,8 @@ public class MainActivity extends AppCompatActivity {
                                 logMessage("[raw] " + diag);
                             }
                         }
-                        updateTelemetryUi(resp.state);
+                        VehicleWidgetProvider.recordSuccessfulSync(this, resp.state);
+                        updateTelemetryUi(resp.state, !WatchProtocol.ACTION_AC_ON.equals(resp.action));
                     }
                     String toastMsg = WatchProtocol.ACTION_STATUS.equals(resp.action)
                             ? "Status updated"
@@ -1076,8 +1475,31 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void updateTelemetryUi(VehicleStatus status) {
+        updateTelemetryUi(status, true);
+    }
+
+    private void updateTelemetryUi(VehicleStatus status, boolean syncActiveClimatePreset) {
         if (status == null) return;
         this.lastStatus = status;
+        if (syncActiveClimatePreset && status.acOn) {
+            if (status.manualAc || isManualAcActive()) {
+                if (status.targetTempGear != null) {
+                    targetTempGear = status.targetTempGear;
+                    if (configStore != null) configStore.setDefaultTempGear(targetTempGear);
+                }
+                if (status.fanLevel != null) {
+                    targetFanLevel = status.fanLevel;
+                    if (configStore != null) configStore.setDefaultFanLevel(targetFanLevel);
+                }
+                if (status.windMode != null) {
+                    targetWindMode = status.windMode;
+                    if (configStore != null) configStore.setDefaultWindMode(targetWindMode);
+                }
+            } else if (status.targetTempC >= 17 && status.targetTempC <= 31) {
+                targetTempC = status.targetTempC;
+                if (configStore != null) configStore.setDefaultTempC(targetTempC);
+            }
+        }
 
         String distUnit = configStore != null ? configStore.getDistanceUnit() : status.distanceUnit;
         String tempUnit = configStore != null ? configStore.getTempUnit() : status.tempUnit;
@@ -1100,7 +1522,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         tvRange.setText(UnitPreferences.formatDistance(status.rangeKm, distUnit));
-        tvLockState.setText(status.locked ? "Locked" : "Unlocked");
+        tvLockState.setText(status.locked ? R.string.state_locked : R.string.state_unlocked);
         tvLockState.setTextColor(ContextCompat.getColor(
                 this, status.locked ? R.color.accent_emerald : R.color.accent_amber));
         if (status.cabinTempC != null) {
@@ -1114,18 +1536,18 @@ public class MainActivity extends AppCompatActivity {
             }
             tvCabinTemp.setText("--°" + UnitPreferences.normalizeTempUnit(tempUnit));
         }
-        tvAcState.setText(status.acOn ? "AC On" : "AC Off");
+        tvAcState.setText(status.acOn ? R.string.btn_ac_on : R.string.btn_ac_off);
         if (status.ts > 0) {
             long millis = status.ts > 1_000_000_000_000L ? status.ts : status.ts * 1000L;
             tvLastUpdated.setText(timeFormat.format(new Date(millis)));
         } else {
-            tvLastUpdated.setText("Now");
+            tvLastUpdated.setText(R.string.state_now);
         }
 
         if (tvChargingBadge != null) {
             tvChargingBadge.setVisibility(View.VISIBLE);
             if (status.chargingState == VehicleStatus.CHARGING_ACTIVE) {
-                StringBuilder badge = new StringBuilder("⚡ Charging");
+                StringBuilder badge = new StringBuilder(getString(R.string.state_charging));
                 if (status.hasChargePowerKw()) {
                     badge.append(" · ").append(formatChargePowerKw(status.chargePowerKw));
                 }
@@ -1136,13 +1558,13 @@ public class MainActivity extends AppCompatActivity {
                 tvChargingBadge.setText(badge.toString());
                 tvChargingBadge.setTextColor(ContextCompat.getColor(this, R.color.accent_emerald));
             } else if (status.chargingState == VehicleStatus.CHARGING_CONNECTED) {
-                tvChargingBadge.setText("Plugged In");
+                tvChargingBadge.setText(R.string.state_plugged_in);
                 tvChargingBadge.setTextColor(ContextCompat.getColor(this, R.color.accent_cyan));
             } else if (status.vehicleOn) {
-                tvChargingBadge.setText("Driving / On");
+                tvChargingBadge.setText(R.string.state_driving_on);
                 tvChargingBadge.setTextColor(ContextCompat.getColor(this, R.color.accent_cyan));
             } else {
-                tvChargingBadge.setText("Not Charging");
+                tvChargingBadge.setText(R.string.state_not_charging);
                 tvChargingBadge.setTextColor(ContextCompat.getColor(this, R.color.text_muted));
             }
         }
@@ -1151,7 +1573,7 @@ public class MainActivity extends AppCompatActivity {
             tvOpeningBadge.setVisibility(View.VISIBLE);
             int openings = status.doorsOpenCount + status.windowsOpenCount + (status.trunkOpen ? 1 : 0);
             if (openings == 0) {
-                tvOpeningBadge.setText("All Closed");
+                tvOpeningBadge.setText(R.string.state_all_closed);
                 tvOpeningBadge.setTextColor(ContextCompat.getColor(this, R.color.accent_emerald));
             } else {
                 tvOpeningBadge.setText(status.doorsOpenCount + "D " + status.windowsOpenCount + "W"
@@ -1163,15 +1585,18 @@ public class MainActivity extends AppCompatActivity {
         if (tvHealthMeta != null) {
             StringBuilder meta = new StringBuilder();
             if (status.totalMileageKm != null && status.totalMileageKm > 0) {
-                meta.append("Odo ").append(UnitPreferences.formatDistance(status.totalMileageKm, distUnit));
+                meta.append(getString(R.string.health_odo_fmt,
+                        UnitPreferences.formatDistance(status.totalMileageKm, distUnit)));
             } else {
-                meta.append("Odo --");
+                meta.append(getString(R.string.health_odo_empty));
             }
             if (status.outsideTempC != null) {
-                meta.append("  •  Out ").append(UnitPreferences.formatTemp(status.outsideTempC, tempUnit));
+                meta.append("  •  ").append(getString(R.string.health_out_fmt,
+                        UnitPreferences.formatTemp(status.outsideTempC, tempUnit)));
             }
             if (status.fuelPercent != null && status.fuelPercent > 0) {
-                meta.append("  •  Fuel ").append(status.fuelPercent).append("%");
+                meta.append("  •  ").append(getString(R.string.health_fuel_fmt,
+                        String.valueOf(status.fuelPercent)));
             }
             tvHealthMeta.setText(meta.toString());
         }
@@ -1184,12 +1609,12 @@ public class MainActivity extends AppCompatActivity {
         if (btnBatHeat != null) {
             btnBatHeat.setEnabled(status.canBatteryHeat);
             boolean batOn = Boolean.TRUE.equals(status.batteryHeatOn);
-            btnBatHeat.setText(batOn ? "Bat Heat: ON" : getString(R.string.btn_bat_heat));
+            btnBatHeat.setText(batOn ? R.string.btn_bat_heat_on : R.string.btn_bat_heat);
         }
         if (btnSeatHeat != null) {
             btnSeatHeat.setEnabled(status.canSeatClimate);
             btnSeatHeat.setText(status.driverSeatLevel > 0
-                    ? ("Seat: L" + status.driverSeatLevel)
+                    ? getString(R.string.btn_seat_heat_level, status.driverSeatLevel)
                     : getString(R.string.btn_seat_heat));
         }
 
@@ -1198,6 +1623,7 @@ public class MainActivity extends AppCompatActivity {
             etVin.setText(status.vin);
         }
 
+        updateClimateControlsUi();
         updateHeaderVehicleInfo(status);
         updateMultiCarBar(status);
         updateLocationCard(status);
@@ -1210,11 +1636,11 @@ public class MainActivity extends AppCompatActivity {
         return String.format(Locale.US, "%.1f kW", kw);
     }
 
-    private static String formatChargeRemaining(Integer totalMinutes) {
+    private String formatChargeRemaining(Integer totalMinutes) {
         if (totalMinutes == null || totalMinutes <= 0) return "";
         int hrs = totalMinutes / 60;
         int mins = totalMinutes % 60;
-        return hrs + "h " + mins + "m left";
+        return getString(R.string.charge_eta_left_fmt, hrs, mins);
     }
 
     private void updateExtraControlsVisibility() {
@@ -1254,9 +1680,12 @@ public class MainActivity extends AppCompatActivity {
 
     private void onLocationCardClicked() {
         if (lastStatus != null && lastStatus.hasLocation()) {
-            String carLabel = (lastStatus.modelName != null && !lastStatus.modelName.trim().isEmpty())
-                    ? lastStatus.modelName.trim()
-                    : (configStore != null ? configStore.getVehicleName() : "BYD Vehicle");
+            String preferred = VehicleWidgetProvider.resolvePreferredModelName(configStore);
+            String carLabel = preferred != null
+                    ? preferred
+                    : ((lastStatus.modelName != null && !lastStatus.modelName.trim().isEmpty())
+                            ? lastStatus.modelName.trim()
+                            : (configStore != null ? configStore.getVehicleName() : "BYD Vehicle"));
             VehicleLocationHelper.showNavigatePromptDialog(
                     this, lastStatus.latitude, lastStatus.longitude, carLabel, null);
         } else {
@@ -1264,10 +1693,119 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void updateTargetTempLabel() {
-        if (tvTargetTemp == null) return;
+    private boolean isManualAcActive() {
+        if (configStore != null && configStore.getManualAcOverride() != null) {
+            return configStore.getManualAcOverride().booleanValue();
+        }
+        if (lastStatus != null) {
+            return lastStatus.manualAc;
+        }
+        return configStore != null && configStore.isDetectedManualAc();
+    }
+
+    private void updateClimateControlsUi() {
+        boolean manual = isManualAcActive();
+        boolean acOn = lastStatus != null && lastStatus.acOn;
+        if (switchManualAc != null && switchManualAc.isChecked() != manual) {
+            updatingManualAcSwitch = true;
+            switchManualAc.setChecked(manual);
+            updatingManualAcSwitch = false;
+        }
+        if (tvAcToggleTitle != null) {
+            tvAcToggleTitle.setText(acOn ? R.string.card_ac_on_tap_stop : R.string.card_ac_off);
+        }
+        if (tvAcTogglePreset != null) {
+            tvAcTogglePreset.setText(formatActiveClimatePreset(manual));
+        }
+        if (btnAcToggle != null) {
+            int bgColor = MaterialColors.getColor(btnAcToggle,
+                    acOn ? com.google.android.material.R.attr.colorPrimaryContainer
+                            : com.google.android.material.R.attr.colorSurfaceContainer);
+            int strokeColor = MaterialColors.getColor(btnAcToggle,
+                    acOn ? com.google.android.material.R.attr.colorPrimary
+                            : com.google.android.material.R.attr.colorOutlineVariant);
+            int titleColor = MaterialColors.getColor(btnAcToggle,
+                    acOn ? com.google.android.material.R.attr.colorOnPrimaryContainer
+                            : com.google.android.material.R.attr.colorOnSurface);
+            int subColor = MaterialColors.getColor(btnAcToggle,
+                    acOn ? com.google.android.material.R.attr.colorOnPrimaryContainer
+                            : com.google.android.material.R.attr.colorOnSurfaceVariant);
+            int iconColor = MaterialColors.getColor(btnAcToggle,
+                    acOn ? com.google.android.material.R.attr.colorOnPrimaryContainer
+                            : com.google.android.material.R.attr.colorPrimary);
+            btnAcToggle.setCardBackgroundColor(bgColor);
+            btnAcToggle.setStrokeColor(strokeColor);
+            if (tvAcToggleTitle != null) tvAcToggleTitle.setTextColor(titleColor);
+            if (tvAcTogglePreset != null) tvAcTogglePreset.setTextColor(subColor);
+            if (ivAcToggleIcon != null) ivAcToggleIcon.setColorFilter(iconColor);
+        }
+        updateClimatePopupUi();
+    }
+
+    private String formatActiveClimatePreset(boolean manual) {
+        if (manual) {
+            return getString(R.string.climate_preset_manual_fmt,
+                    targetTempGear, targetFanLevel, formatWindModeLabel(targetWindMode));
+        }
         String tempUnit = configStore != null ? configStore.getTempUnit() : UnitPreferences.TEMP_C;
-        tvTargetTemp.setText(UnitPreferences.formatTemp(targetTempC, tempUnit));
+        return UnitPreferences.formatTemp(targetTempC, tempUnit);
+    }
+
+    private String formatWindModeLabel(int windMode) {
+        if (windMode == ConfigStore.WIND_MODE_BODY_FEET) return getString(R.string.vent_body_feet);
+        if (windMode == ConfigStore.WIND_MODE_FEET) return getString(R.string.vent_feet);
+        return getString(R.string.vent_body);
+    }
+
+    private void updateClimatePopupUi() {
+        boolean manual = isManualAcActive();
+        boolean acOn = lastStatus != null && lastStatus.acOn;
+        if (tvClimateModeBadge != null) {
+            tvClimateModeBadge.setText(manual ? R.string.climate_mode_manual : R.string.climate_mode_auto);
+        }
+        if (layoutPopupFanControl != null) {
+            layoutPopupFanControl.setVisibility(manual ? View.VISIBLE : View.GONE);
+        }
+        if (layoutPopupVentControl != null) {
+            layoutPopupVentControl.setVisibility(manual ? View.VISIBLE : View.GONE);
+        }
+        if (tvPopupFanLevel != null) {
+            tvPopupFanLevel.setText(getString(R.string.climate_level_fmt, targetFanLevel));
+        }
+        if (tvPopupTargetTemp != null) {
+            if (manual) {
+                tvPopupTargetTemp.setText(getString(R.string.climate_level_fmt, targetTempGear));
+            } else {
+                String tempUnit = configStore != null ? configStore.getTempUnit() : UnitPreferences.TEMP_C;
+                tvPopupTargetTemp.setText(UnitPreferences.formatTemp(targetTempC, tempUnit));
+            }
+        }
+        styleVentChip(btnPopupVentBody, targetWindMode == ConfigStore.WIND_MODE_BODY);
+        styleVentChip(btnPopupVentBodyFeet, targetWindMode == ConfigStore.WIND_MODE_BODY_FEET);
+        styleVentChip(btnPopupVentFeet, targetWindMode == ConfigStore.WIND_MODE_FEET);
+        if (btnPopupApply != null) {
+            btnPopupApply.setText(acOn ? R.string.btn_apply_now : R.string.btn_start_ac);
+        }
+    }
+
+    private static void styleVentChip(MaterialButton btn, boolean selected) {
+        if (btn == null) return;
+        int bgColor = MaterialColors.getColor(btn,
+                selected ? com.google.android.material.R.attr.colorPrimaryContainer
+                        : com.google.android.material.R.attr.colorSurfaceContainer);
+        int textColor = MaterialColors.getColor(btn,
+                selected ? com.google.android.material.R.attr.colorOnPrimaryContainer
+                        : com.google.android.material.R.attr.colorOnSurfaceVariant);
+        int strokeColor = MaterialColors.getColor(btn,
+                selected ? com.google.android.material.R.attr.colorPrimary
+                        : com.google.android.material.R.attr.colorOutlineVariant);
+        btn.setBackgroundTintList(ColorStateList.valueOf(bgColor));
+        btn.setTextColor(textColor);
+        btn.setStrokeColor(ColorStateList.valueOf(strokeColor));
+    }
+
+    private void updateTargetTempLabel() {
+        updateClimateControlsUi();
     }
 
     private void updateUnitButtons() {
@@ -1328,8 +1866,8 @@ public class MainActivity extends AppCompatActivity {
         updateSyncIntervalUnitButton();
         if (tvSyncIntervalLabel != null) {
             String summary = (totalMinutes >= 60 && totalMinutes % 60 == 0)
-                    ? (totalMinutes / 60) + " hr"
-                    : totalMinutes + " min";
+                    ? (totalMinutes / 60) + " " + getString(R.string.sync_unit_hr_short)
+                    : totalMinutes + " " + getString(R.string.sync_unit_min_short);
             tvSyncIntervalLabel.setText(getString(R.string.label_widget_sync_freq) + " (" + summary + ")");
         }
     }
@@ -1367,6 +1905,67 @@ public class MainActivity extends AppCompatActivity {
         showToast(msg, false);
     }
 
+    private int widgetStyleForButtonId(int viewId) {
+        if (viewId == R.id.btnWidgetStyleRing) return ConfigStore.WIDGET_STYLE_RING;
+        if (viewId == R.id.btnWidgetStyleBento) return ConfigStore.WIDGET_STYLE_BENTO;
+        if (viewId == R.id.btnWidgetStyleTank) return ConfigStore.WIDGET_STYLE_TANK;
+        return ConfigStore.WIDGET_STYLE_CAPSULE;
+    }
+
+    private String widgetStyleDescFor(int style) {
+        switch (ConfigStore.normalizeWidgetStyle(style)) {
+            case ConfigStore.WIDGET_STYLE_RING:
+                return getString(R.string.widget_style_desc_ring);
+            case ConfigStore.WIDGET_STYLE_BENTO:
+                return getString(R.string.widget_style_desc_bento);
+            case ConfigStore.WIDGET_STYLE_TANK:
+                return getString(R.string.widget_style_desc_tank);
+            case ConfigStore.WIDGET_STYLE_CAPSULE:
+            default:
+                return getString(R.string.widget_style_desc_capsule);
+        }
+    }
+
+    private String appLanguageForButtonId(int viewId) {
+        if (viewId == R.id.btnLangEnglish) return ConfigStore.LANG_EN;
+        if (viewId == R.id.btnLangIndonesian) return ConfigStore.LANG_ID;
+        return ConfigStore.LANG_SYSTEM;
+    }
+
+    private String appLanguageDisplayLabel(Context ctx, String lang) {
+        String normalized = ConfigStore.normalizeAppLanguage(lang);
+        if (ConfigStore.LANG_EN.equals(normalized)) return ctx.getString(R.string.lang_option_english);
+        if (ConfigStore.LANG_ID.equals(normalized)) return ctx.getString(R.string.lang_option_indonesian);
+        return ctx.getString(R.string.lang_option_system);
+    }
+
+    private void updateAppLanguageUi(String language) {
+        if (toggleAppLanguage == null) return;
+        String normalized = ConfigStore.normalizeAppLanguage(language);
+        int btnId = R.id.btnLangSystem;
+        if (ConfigStore.LANG_EN.equals(normalized)) btnId = R.id.btnLangEnglish;
+        else if (ConfigStore.LANG_ID.equals(normalized)) btnId = R.id.btnLangIndonesian;
+        updatingAppLanguageUi = true;
+        toggleAppLanguage.check(btnId);
+        updatingAppLanguageUi = false;
+    }
+
+    private void updateWidgetStyleUi(int style) {
+        int normalized = ConfigStore.normalizeWidgetStyle(style);
+        if (toggleWidgetStyle != null) {
+            int btnId = R.id.btnWidgetStyleCapsule;
+            if (normalized == ConfigStore.WIDGET_STYLE_RING) btnId = R.id.btnWidgetStyleRing;
+            else if (normalized == ConfigStore.WIDGET_STYLE_BENTO) btnId = R.id.btnWidgetStyleBento;
+            else if (normalized == ConfigStore.WIDGET_STYLE_TANK) btnId = R.id.btnWidgetStyleTank;
+            updatingWidgetStyleUi = true;
+            toggleWidgetStyle.check(btnId);
+            updatingWidgetStyleUi = false;
+        }
+        if (tvWidgetStyleDesc != null) {
+            tvWidgetStyleDesc.setText(widgetStyleDescFor(normalized));
+        }
+    }
+
     private void saveCustomModelName() {
         if (configStore == null || etCustomModelName == null) return;
         String custom = etCustomModelName.getText() != null
@@ -1376,6 +1975,8 @@ public class MainActivity extends AppCompatActivity {
         etCustomModelName.setText(custom);
         etCustomModelName.clearFocus();
         updateHeaderVehicleInfo(lastStatus);
+        VehicleWidgetProvider.refreshWidgets(this);
+        LocationWidgetProvider.refreshWidgets(this);
         String msg = custom.isEmpty()
                 ? "Car model reset to auto-detect"
                 : ("Car model set to " + custom);
@@ -1396,7 +1997,7 @@ public class MainActivity extends AppCompatActivity {
             tvDrawerCarModel.setText(displayModel);
         }
         if (tvControlsTitle != null) {
-            tvControlsTitle.setText(displayModel + " Controls");
+            tvControlsTitle.setText(getString(R.string.controls_title_format, displayModel));
         }
     }
 
@@ -1433,7 +2034,7 @@ public class MainActivity extends AppCompatActivity {
             String activeVin = status != null && status.vin != null && !status.vin.isEmpty()
                     ? status.vin
                     : (configStore != null ? configStore.getVin() : "");
-            btnSwitchActiveCar.setText("Switch Car (" + list.size() + ") · " + maskVin(activeVin));
+            btnSwitchActiveCar.setText(getString(R.string.btn_switch_car, list.size(), maskVin(activeVin)));
         } else {
             layoutMultiCarBar.setVisibility(View.GONE);
         }
@@ -1453,7 +2054,7 @@ public class MainActivity extends AppCompatActivity {
             labels[i] = v.watchShortLabel() + " (" + maskVin(v.vin) + ")";
         }
         new AlertDialog.Builder(this)
-                .setTitle("Switch Active Vehicle")
+                .setTitle(R.string.dialog_switch_vehicle_title)
                 .setItems(labels, (dialog, which) -> {
                     VehicleSummary picked = list.get(which);
                     executeWatchAction(WatchProtocol.ACTION_SWITCH_CAR, -1, picked.vin, -1);
@@ -1508,14 +2109,11 @@ public class MainActivity extends AppCompatActivity {
 
     private void showDisclaimerDialog() {
         new AlertDialog.Builder(this)
-                .setTitle("About, Safety & Legal Disclaimer")
-                .setMessage("Created by Kenny Ricardo.\n"
-                        + "Free open-source community project — not for commercial sale or resale (Tidak diperuntukkan untuk jual beli).\n\n"
-                        + "Unofficial independent EV remote utility. Not affiliated with, endorsed by, or sponsored by BYD Auto or Huawei. "
-                        + "Always inspect vehicle surroundings visually before operating locks, windows, or climate remotely. "
-                        + "Requires your own BYD owner credentials and 6-digit PIN; credentials are stored encrypted on this phone only.")
-                .setNeutralButton("GitHub", (d, w) -> openExternalUrl(getString(R.string.about_github_companion_url)))
-                .setPositiveButton("Close", null)
+                .setTitle(R.string.disclaimer_title)
+                .setMessage(R.string.disclaimer_body)
+                .setNeutralButton(R.string.disclaimer_github,
+                        (d, w) -> openExternalUrl(getString(R.string.about_github_companion_url)))
+                .setPositiveButton(R.string.disclaimer_close, null)
                 .show();
     }
 

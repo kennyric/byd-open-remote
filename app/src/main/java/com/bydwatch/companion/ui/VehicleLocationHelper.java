@@ -90,6 +90,14 @@ public final class VehicleLocationHelper {
         return STREET_CACHE.get(cacheKey(latitude, longitude));
     }
 
+    @VisibleForTesting
+    public static void seedStreetCacheForDebug(double latitude, double longitude, String streetName) {
+        if (!BuildConfig.DEBUG || streetName == null || streetName.trim().isEmpty()) {
+            return;
+        }
+        STREET_CACHE.put(cacheKey(latitude, longitude), streetName.trim());
+    }
+
     public static void resolveStreetName(
             @Nullable Context context,
             double latitude,

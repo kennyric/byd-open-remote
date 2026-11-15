@@ -30,6 +30,11 @@ public class SecureConfigStore implements ConfigStore {
     private static final String PREF_CUSTOM_VEHICLE_NAME = "byd_custom_vehicle_name";
     private static final String PREF_VEHICLES_JSON = "byd_vehicles_json";
     private static final String PREF_DEFAULT_TEMP_C = "byd_default_temp_c";
+    private static final String PREF_DEFAULT_TEMP_GEAR = "byd_default_temp_gear";
+    private static final String PREF_DEFAULT_FAN_LEVEL = "byd_default_fan_level";
+    private static final String PREF_DEFAULT_WIND_MODE = "byd_default_wind_mode";
+    private static final String PREF_MANUAL_AC_OVERRIDE = "byd_manual_ac_override";
+    private static final String PREF_MANUAL_AC_DETECTED = "byd_manual_ac_detected";
     private static final String PREF_DIST_UNIT = "byd_dist_unit";
     private static final String PREF_TEMP_UNIT = "byd_temp_unit";
     private static final String PREF_PRES_UNIT = "byd_pres_unit";
@@ -37,8 +42,10 @@ public class SecureConfigStore implements ConfigStore {
     private static final String PREF_ALERTS_ENABLED = "byd_alerts_enabled";
     private static final String PREF_DISCLAIMER_ACCEPTED = "byd_disclaimer_accepted";
     private static final String PREF_WIDGET_SYNC_MINUTES = "byd_widget_sync_minutes";
+    private static final String PREF_WIDGET_STYLE = "byd_widget_style";
     private static final String PREF_HIDE_EXTRA_CONTROLS = "byd_hide_extra_controls";
     private static final String PREF_VERBOSE_LOGS = "byd_verbose_logs";
+    private static final String PREF_APP_LANGUAGE = "byd_app_language";
     private static final String PREF_WIDGET_STATUS_JSON = "byd_widget_status_json";
     private static final String PREF_WIDGET_LAST_SYNC_MS = "byd_widget_last_sync_ms";
 
@@ -105,7 +112,14 @@ public class SecureConfigStore implements ConfigStore {
 
     @Override
     public void setVin(String vin) {
-        prefs.edit().putString(PREF_VIN, vin).apply();
+        String prev = getVin();
+        String next = vin != null ? vin.trim() : null;
+        SharedPreferences.Editor editor = prefs.edit().putString(PREF_VIN, next);
+        if (prev != null && !prev.trim().isEmpty() && next != null && !next.isEmpty()
+                && !prev.trim().equals(next)) {
+            editor.putBoolean(PREF_MANUAL_AC_DETECTED, false);
+        }
+        editor.apply();
     }
 
     @Override
@@ -131,6 +145,76 @@ public class SecureConfigStore implements ConfigStore {
         if (clamped < 17) clamped = 17;
         else if (clamped > 31) clamped = 31;
         prefs.edit().putInt(PREF_DEFAULT_TEMP_C, clamped).apply();
+    }
+
+    @Override
+    public int getDefaultTempGear() {
+        int raw = prefs.getInt(PREF_DEFAULT_TEMP_GEAR, DEFAULT_TEMP_GEAR);
+        return Math.max(MIN_TEMP_GEAR, Math.min(MAX_TEMP_GEAR, raw));
+    }
+
+    @Override
+    public void setDefaultTempGear(int gear) {
+        int clamped = Math.max(MIN_TEMP_GEAR, Math.min(MAX_TEMP_GEAR, gear));
+        prefs.edit().putInt(PREF_DEFAULT_TEMP_GEAR, clamped).apply();
+    }
+
+    @Override
+    public int getDefaultFanLevel() {
+        int raw = prefs.getInt(PREF_DEFAULT_FAN_LEVEL, DEFAULT_FAN_LEVEL);
+        return Math.max(MIN_FAN_LEVEL, Math.min(MAX_FAN_LEVEL, raw));
+    }
+
+    @Override
+    public void setDefaultFanLevel(int level) {
+        int clamped = Math.max(MIN_FAN_LEVEL, Math.min(MAX_FAN_LEVEL, level));
+        prefs.edit().putInt(PREF_DEFAULT_FAN_LEVEL, clamped).apply();
+    }
+
+    @Override
+    public int getDefaultWindMode() {
+        int raw = prefs.getInt(PREF_DEFAULT_WIND_MODE, DEFAULT_WIND_MODE);
+        if (raw == WIND_MODE_BODY || raw == WIND_MODE_BODY_FEET || raw == WIND_MODE_FEET) {
+            return raw;
+        }
+        return DEFAULT_WIND_MODE;
+    }
+
+    @Override
+    public void setDefaultWindMode(int windMode) {
+        int clamped = (windMode == WIND_MODE_BODY || windMode == WIND_MODE_BODY_FEET || windMode == WIND_MODE_FEET)
+                ? windMode
+                : DEFAULT_WIND_MODE;
+        prefs.edit().putInt(PREF_DEFAULT_WIND_MODE, clamped).apply();
+    }
+
+    @Override
+    public boolean isManualAcMode() {
+        Boolean override = getManualAcOverride();
+        return override != null ? override.booleanValue() : isDetectedManualAc();
+    }
+
+    @Override
+    public void setManualAcMode(boolean manual) {
+        prefs.edit().putInt(PREF_MANUAL_AC_OVERRIDE, manual ? 1 : 0).apply();
+    }
+
+    @Override
+    public Boolean getManualAcOverride() {
+        int state = prefs.getInt(PREF_MANUAL_AC_OVERRIDE, -1);
+        if (state == 1) return Boolean.TRUE;
+        if (state == 0) return Boolean.FALSE;
+        return null;
+    }
+
+    @Override
+    public boolean isDetectedManualAc() {
+        return prefs.getBoolean(PREF_MANUAL_AC_DETECTED, false);
+    }
+
+    @Override
+    public void setDetectedManualAc(boolean detected) {
+        prefs.edit().putBoolean(PREF_MANUAL_AC_DETECTED, detected).apply();
     }
 
     @Override
@@ -253,6 +337,17 @@ public class SecureConfigStore implements ConfigStore {
     }
 
     @Override
+    public int getWidgetStyle() {
+        return ConfigStore.normalizeWidgetStyle(
+                prefs.getInt(PREF_WIDGET_STYLE, DEFAULT_WIDGET_STYLE));
+    }
+
+    @Override
+    public void setWidgetStyle(int style) {
+        prefs.edit().putInt(PREF_WIDGET_STYLE, ConfigStore.normalizeWidgetStyle(style)).apply();
+    }
+
+    @Override
     public boolean isHideExtraControls() {
         return prefs.getBoolean(PREF_HIDE_EXTRA_CONTROLS, false);
     }
@@ -270,6 +365,17 @@ public class SecureConfigStore implements ConfigStore {
     @Override
     public void setVerboseLogsEnabled(boolean enabled) {
         prefs.edit().putBoolean(PREF_VERBOSE_LOGS, enabled).apply();
+    }
+
+    @Override
+    public String getAppLanguage() {
+        return ConfigStore.normalizeAppLanguage(
+                prefs.getString(PREF_APP_LANGUAGE, ConfigStore.DEFAULT_APP_LANGUAGE));
+    }
+
+    @Override
+    public void setAppLanguage(String language) {
+        prefs.edit().putString(PREF_APP_LANGUAGE, ConfigStore.normalizeAppLanguage(language)).apply();
     }
 
     @Override

@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widgetRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/bg_widget_card"
+    android:orientation="vertical"
+    android:paddingHorizontal="12dp"
+    android:paddingVertical="9dp">
+
+    <include layout="@layout/include_widget_4x3_header" />
+
+    <!-- Option 3: Side-by-Side Split KPI Tiles (Bento) -->
+    <LinearLayout
+        android:id="@+id/layoutWidgetBatteryCard"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginBottom="7dp"
+        android:layout_weight="1"
+        android:orientation="horizontal">
+
+        <!-- Left Bento Tile: Battery SoC -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_marginEnd="3.5dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_widget_tile_emerald"
+            android:gravity="center_vertical"
+            android:orientation="vertical"
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="8dp">
+
+            <TextView
+                android:id="@+id/tvWidgetBatteryLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:includeFontPadding="false"
+                android:text="@string/widget_label_battery"
+                android:textColor="@color/widget_on_primary_container"
+                android:textSize="10.5sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvWidgetSoc"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="1dp"
+                android:includeFontPadding="false"
+                android:text="--%"
+                android:textColor="@color/widget_on_primary_container"
+                android:textSize="26sp"
+                android:textStyle="bold" />
+
+            <ProgressBar
+                android:id="@+id/pbWidgetSoc"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="match_parent"
+                android:layout_height="7dp"
+                android:layout_marginTop="6dp"
+                android:max="100"
+                android:progress="0"
+                android:progressDrawable="@drawable/progress_widget_soc_on_card" />
+        </LinearLayout>
+
+        <!-- Right Bento Tile: Range, Meta & Last Sync -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_marginStart="3.5dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_widget_subcard"
+            android:gravity="center_vertical"
+            android:orientation="vertical"
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="8dp">
+
+            <TextView
+                android:id="@+id/tvWidgetRangeLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:includeFontPadding="false"
+                android:text="@string/label_range"
+                android:textColor="@color/widget_on_surface_variant"
+                android:textSize="10.5sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvWidgetRange"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="1dp"
+                android:ellipsize="end"
+                android:includeFontPadding="false"
+                android:maxLines="1"
+                android:text="-- km"
+                android:textColor="@color/widget_on_surface"
+                android:textSize="22sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvWidgetBatteryMeta"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textColor="@color/widget_on_surface_variant"
+                android:textSize="10.5sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/tvWidgetLastSync"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="1dp"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="Last sync --:--"
+                android:textColor="@color/widget_on_surface_variant"
+                android:textSize="10.5sp" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <include layout="@layout/include_widget_4x3_location" />
+
+    <include layout="@layout/include_widget_4x3_actions" />
+</LinearLayout>

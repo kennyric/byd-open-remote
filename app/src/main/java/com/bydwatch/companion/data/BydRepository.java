@@ -7,11 +7,15 @@ import com.bydwatch.companion.protocol.WatchProtocol;
 
 import org.json.JSONObject;
 
+import java.io.EOFException;
 import java.io.InterruptedIOException;
 import java.net.ConnectException;
 import java.net.NoRouteToHostException;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
+import java.util.Locale;
+
+import javax.net.ssl.SSLException;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashSet;
@@ -160,7 +164,7 @@ public class BydRepository {
                     }
                 }
             } catch (Exception e) {
-                String msg = e.getMessage() != null ? e.getMessage() : e.toString();
+                String msg = toFriendlyErrorMessage(e, classifyErrorCode(e));
                 if (cb != null) {
                     cb.onError(msg);
                 }
@@ -202,7 +206,7 @@ public class BydRepository {
                     }
                 }
             } catch (Exception e) {
-                String msg = e.getMessage() != null ? e.getMessage() : e.toString();
+                String msg = toFriendlyErrorMessage(e, classifyErrorCode(e));
                 if (cb != null) {
                     cb.onError(msg);
                 }
@@ -253,6 +257,7 @@ public class BydRepository {
                     this.lastStatusDiag = (fresh != null && fresh.diagSummary != null)
                             ? fresh.diagSummary : "";
                     if (fresh != null) {
+                        syncConfigStoreFromLiveAc(fresh);
                         fresh = enrichedStatus(fresh);
                         setCachedStatus(fresh);
                     }
@@ -278,8 +283,36 @@ public class BydRepository {
                 }
                 case WatchProtocol.ACTION_AC_ON: {
                     gateway.verifyControlPassword(vin);
-                    int temp = cmd.tempC;
-                    boolean ok = gateway.startClimate(vin, temp);
+                    VehicleStatus prev = cachedStatus.get();
+                    Boolean manualOverride = configStore.getManualAcOverride();
+                    boolean useManualAc = manualOverride != null
+                            ? manualOverride.booleanValue()
+                            : ((prev != null && prev.manualAc)
+                                    || configStore.isDetectedManualAc()
+                                    || cmd.tempGear > 0
+                                    || cmd.fanLevel > 0
+                                    || cmd.windMode > 0);
+                    boolean ok;
+                    if (useManualAc) {
+                        int gear = (cmd.tempGear >= ConfigStore.MIN_TEMP_GEAR && cmd.tempGear <= ConfigStore.MAX_TEMP_GEAR)
+                                ? cmd.tempGear
+                                : configStore.getDefaultTempGear();
+                        int fan = (cmd.fanLevel >= ConfigStore.MIN_FAN_LEVEL && cmd.fanLevel <= ConfigStore.MAX_FAN_LEVEL)
+                                ? cmd.fanLevel
+                                : configStore.getDefaultFanLevel();
+                        int windMode = (cmd.windMode == ConfigStore.WIND_MODE_BODY
+                                || cmd.windMode == ConfigStore.WIND_MODE_BODY_FEET
+                                || cmd.windMode == ConfigStore.WIND_MODE_FEET)
+                                ? cmd.windMode
+                                : configStore.getDefaultWindMode();
+                        configStore.setDefaultTempGear(gear);
+                        configStore.setDefaultFanLevel(fan);
+                        configStore.setDefaultWindMode(windMode);
+                        ok = gateway.startElectricClimate(vin, gear, fan, windMode);
+                    } else {
+                        int temp = cmd.tempC;
+                        ok = gateway.startClimate(vin, temp);
+                    }
                     if (!ok) {
                         return WatchProtocol.error(cmd.id, cmd.action, "ERROR", "Failed to start AC");
                     }
@@ -380,6 +413,9 @@ public class BydRepository {
                     if (!isAllowedVehicleVin(targetVin, list, vin)) {
                         return WatchProtocol.error(cmd.id, cmd.action, "BAD_REQUEST", "Unknown VIN not linked to account");
                     }
+                    if (!targetVin.equals(vin)) {
+                        configStore.setDetectedManualAc(false);
+                    }
                     configStore.setVin(targetVin);
                     String resolvedName = configStore.getVehicleName();
                     if (list != null) {
@@ -441,9 +477,14 @@ public class BydRepository {
             lng = prev.longitude;
             gpsTs = prev.gpsTs;
         }
+        Boolean manualOverride = configStore.getManualAcOverride();
+        boolean manualAc = manualOverride != null
+                ? manualOverride.booleanValue()
+                : (base.manualAc || configStore.isDetectedManualAc());
         return base.toBuilder()
                 .vin(activeVin)
                 .modelName(modelName)
+                .manualAc(manualAc)
                 .units(configStore.getDistanceUnit(), configStore.getTempUnit(), configStore.getPressureUnit())
                 .location(lat, lng, gpsTs)
                 .vehicles(cars)
@@ -492,6 +533,23 @@ public class BydRepository {
         return 0;
     }
 
+    private void syncConfigStoreFromLiveAc(VehicleStatus status) {
+        if (status == null || !status.acOn || configStore == null) return;
+        if (status.manualAc) {
+            if (status.targetTempGear != null) {
+                configStore.setDefaultTempGear(status.targetTempGear);
+            }
+            if (status.fanLevel != null) {
+                configStore.setDefaultFanLevel(status.fanLevel);
+            }
+            if (status.windMode != null) {
+                configStore.setDefaultWindMode(status.windMode);
+            }
+        } else if (status.targetTempC >= 17 && status.targetTempC <= 31) {
+            configStore.setDefaultTempC(status.targetTempC);
+        }
+    }
+
     private VehicleStatus autoRefresh(String vin) {
         try {
             VehicleStatus fresh = gateway.fetchVehicleRealtime(vin);
@@ -506,51 +564,221 @@ public class BydRepository {
     }
 
     private String mapExceptionToError(String id, String action, Exception e) {
-        String msg = e.getMessage() != null ? e.getMessage() : e.toString();
         String errCode = classifyErrorCode(e);
+        String msg = toFriendlyErrorMessage(e, errCode);
         return WatchProtocol.error(id, action, errCode, msg);
     }
 
     private String classifyErrorCode(Exception e) {
-        String msg = e.getMessage() != null ? e.getMessage() : "";
+        if (e == null) {
+            return "ERROR";
+        }
+        String combinedLower = collectCauseMessagesLower(e);
 
-        // Immediate offline-phone transport failures or read timeouts
-        if (e instanceof SocketTimeoutException
-                || e instanceof InterruptedIOException
-                || e instanceof TimeoutException
-                || e instanceof UnknownHostException
-                || e instanceof ConnectException
-                || e instanceof NoRouteToHostException
-                || msg.contains("TIMEOUT")
-                || msg.contains("timed out")
-                || msg.contains("timeout")
-                || msg.contains("UnknownHostException")
-                || msg.contains("ConnectException")
-                || msg.contains("NoRouteToHostException")
-                || msg.contains("Network unreachable")) {
+        // Immediate offline-phone transport failures, flaky sockets, or read timeouts
+        if (hasCauseInstance(e,
+                SocketTimeoutException.class,
+                InterruptedIOException.class,
+                TimeoutException.class,
+                UnknownHostException.class,
+                ConnectException.class,
+                NoRouteToHostException.class,
+                SSLException.class,
+                EOFException.class)
+                || containsAny(combinedLower,
+                        "timeout",
+                        "timed out",
+                        "unable to resolve host",
+                        "no address associated with hostname",
+                        "host is unresolved",
+                        "failed to connect",
+                        "unknownhostexception",
+                        "connectexception",
+                        "noroutetohostexception",
+                        "no route to host",
+                        "network unreachable",
+                        "network is unreachable",
+                        "connection refused",
+                        "connection reset",
+                        "broken pipe",
+                        "software caused connection abort",
+                        "unexpected end of stream",
+                        "sslhandshake",
+                        "chain validation",
+                        "realtime telemetry unavailable")) {
             return "TIMEOUT";
         }
 
+        String msg = e.getMessage() != null ? e.getMessage() : "";
+
         // Specific PIN invalidity matching (avoid false matches on ping, mapping, etc.)
-        if (PIN_PATTERN.matcher(msg).find()) {
+        if (PIN_PATTERN.matcher(msg).find() || PIN_PATTERN.matcher(combinedLower).find()) {
             return "PIN_INVALID";
         }
 
-        if (msg.contains("Login failed")
-                || msg.contains("AUTH_FAILED")
-                || msg.contains("unauthorized")
-                || msg.contains("401")
-                || msg.contains("token")) {
+        if (containsAny(combinedLower,
+                "login failed",
+                "auth_failed",
+                "unauthorized",
+                "401",
+                "token")) {
             return "AUTH_FAILED";
         }
 
-        if (msg.contains("CAR_OFFLINE")
-                || msg.contains("offline")
-                || msg.contains("Vehicle T-Box is offline")) {
+        if (containsAny(combinedLower,
+                "car_offline",
+                "offline",
+                "vehicle t-box is offline")) {
             return "CAR_OFFLINE";
         }
 
         return "ERROR";
+    }
+
+    public static String toFriendlyErrorMessage(Throwable e) {
+        return toFriendlyErrorMessage(e, null);
+    }
+
+    public static String toFriendlyErrorMessage(Throwable e, String errCode) {
+        String combinedLower = collectCauseMessagesLower(e);
+
+        if ("PIN_INVALID".equals(errCode)) {
+            return "Incorrect 6-digit Remote Control PIN. Check your PIN in BYD Account.";
+        }
+        if ("AUTH_FAILED".equals(errCode)) {
+            return "BYD Cloud sign-in failed. Check your email/phone, password, and selected region.";
+        }
+        if ("CAR_OFFLINE".equals(errCode)) {
+            return "Vehicle is currently offline or out of cellular coverage.";
+        }
+
+        boolean dnsOrConnectFailure = hasCauseInstance(e,
+                UnknownHostException.class,
+                ConnectException.class,
+                NoRouteToHostException.class)
+                || containsAny(combinedLower,
+                        "unable to resolve host",
+                        "no address associated with hostname",
+                        "host is unresolved",
+                        "failed to connect",
+                        "network is unreachable",
+                        "network unreachable",
+                        "connection refused",
+                        "no route to host",
+                        "enetunreach",
+                        "ehostunreach");
+        if (dnsOrConnectFailure) {
+            return "Unable to reach BYD Cloud. Check your internet connection and try again.";
+        }
+
+        boolean interruptedOrSsl = hasCauseInstance(e, SSLException.class, EOFException.class)
+                || containsAny(combinedLower,
+                        "connection reset",
+                        "broken pipe",
+                        "software caused connection abort",
+                        "unexpected end of stream",
+                        "sslhandshake",
+                        "chain validation",
+                        "trust anchor");
+        if (interruptedOrSsl) {
+            return "Unstable internet connection interrupted the sync. Please try again.";
+        }
+
+        boolean timeoutFailure = "TIMEOUT".equals(errCode)
+                || hasCauseInstance(e,
+                        SocketTimeoutException.class,
+                        InterruptedIOException.class,
+                        TimeoutException.class)
+                || containsAny(combinedLower,
+                        "timed out",
+                        "timeout",
+                        "realtime telemetry unavailable");
+        if (timeoutFailure) {
+            return "Sync timed out — signal may be weak or BYD Cloud is slow. Please try again.";
+        }
+
+        if (containsAny(combinedLower,
+                "1009",
+                "temporarily unavailable",
+                "too many requests",
+                "http 429",
+                "http 500",
+                "http 502",
+                "http 503",
+                "http 504")) {
+            return "BYD Cloud is temporarily busy. Please wait a moment and try again.";
+        }
+
+        if (containsAny(combinedLower,
+                "no vehicles found",
+                "no vehicle with vin")) {
+            return "No vehicles found on this BYD account. Check your selected region and vehicle authorization.";
+        }
+
+        String raw = e != null && e.getMessage() != null ? e.getMessage().replaceAll("\\s+", " ").trim() : "";
+        if (raw.isEmpty() || looksLikeRawTechnicalError(raw)) {
+            return "Could not complete BYD Cloud sync. Please try again.";
+        }
+        return raw;
+    }
+
+    private static boolean looksLikeRawTechnicalError(String raw) {
+        String lower = raw.toLowerCase(Locale.US);
+        return containsAny(lower,
+                ".byd.auto",
+                "http ",
+                "code=",
+                "responddata",
+                "envelope",
+                "json",
+                "exception",
+                "java.",
+                "okhttp",
+                "/app/",
+                "/control/",
+                "/vehicle");
+    }
+
+    private static String collectCauseMessagesLower(Throwable e) {
+        StringBuilder sb = new StringBuilder();
+        Throwable cur = e;
+        int depth = 0;
+        while (cur != null && depth < 8) {
+            String msg = cur.getMessage();
+            if (msg != null && !msg.isEmpty()) {
+                if (sb.length() > 0) sb.append(' ');
+                sb.append(msg.toLowerCase(Locale.US));
+            }
+            cur = cur.getCause();
+            depth++;
+        }
+        return sb.toString();
+    }
+
+    @SafeVarargs
+    private static boolean hasCauseInstance(Throwable e, Class<? extends Throwable>... types) {
+        Throwable cur = e;
+        int depth = 0;
+        while (cur != null && depth < 8) {
+            for (Class<? extends Throwable> type : types) {
+                if (type.isInstance(cur)) {
+                    return true;
+                }
+            }
+            cur = cur.getCause();
+            depth++;
+        }
+        return false;
+    }
+
+    private static boolean containsAny(String haystackLower, String... needles) {
+        if (haystackLower == null || haystackLower.isEmpty()) return false;
+        for (String needle : needles) {
+            if (haystackLower.contains(needle)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private String extractFieldOrFallback(String rawJson, String fieldName, String fallback) {

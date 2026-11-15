@@ -2,6 +2,8 @@
 <resources>
     <style name="Theme.BydWatch" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="colorPrimary">@color/accent_emerald</item>
+        <item name="colorPrimaryDark">@color/bg_obsidian</item>
+        <item name="android:colorPrimaryDark">@color/bg_obsidian</item>
         <item name="colorOnPrimary">@color/bg_obsidian</item>
         <item name="colorPrimaryContainer">@color/widget_primary_container</item>
         <item name="colorOnPrimaryContainer">@color/widget_on_primary_container</item>
@@ -11,8 +13,8 @@
         <item name="colorTertiaryContainer">@color/widget_tertiary_container</item>
         <item name="colorOnTertiaryContainer">@color/widget_on_tertiary_container</item>
         <item name="android:windowBackground">?attr/colorSurface</item>
-        <item name="android:statusBarColor">@android:color/transparent</item>
-        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:statusBarColor">@color/bg_obsidian</item>
+        <item name="android:navigationBarColor">@color/bg_obsidian</item>
         <item name="android:windowLightStatusBar">false</item>
         <item name="textInputStyle">@style/Widget.BydWatch.TextInputLayout</item>
     </style>

@@ -9,7 +9,9 @@ import android.content.Intent;
 import android.os.Build;
 import android.widget.RemoteViews;
 
+import com.bydwatch.companion.BydWatchApp;
 import com.bydwatch.companion.R;
+import com.bydwatch.companion.data.ConfigStore;
 import com.bydwatch.companion.model.VehicleStatus;
 import com.bydwatch.companion.protocol.WatchProtocol;
 
@@ -64,9 +66,13 @@ public class LocationWidgetProvider extends AppWidgetProvider {
             Intent prompt = new Intent(context, NavigationPromptActivity.class)
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
             if (st != null && st.hasLocation()) {
+                BydWatchApp app = VehicleWidgetProvider.resolveApp(context);
+                ConfigStore cfg = app != null ? app.getConfigStore() : null;
+                String preferred = VehicleWidgetProvider.resolvePreferredModelName(cfg);
+                String navLabel = preferred != null ? preferred : st.modelName;
                 prompt.putExtra(NavigationPromptActivity.EXTRA_LAT, st.latitude);
                 prompt.putExtra(NavigationPromptActivity.EXTRA_LNG, st.longitude);
-                prompt.putExtra(NavigationPromptActivity.EXTRA_LABEL, st.modelName);
+                prompt.putExtra(NavigationPromptActivity.EXTRA_LABEL, navLabel);
             }
             context.startActivity(prompt);
         }
@@ -89,6 +95,9 @@ public class LocationWidgetProvider extends AppWidgetProvider {
     }
 
     static void updateLocationWidgets(Context context, AppWidgetManager mgr, int[] ids) {
+        BydWatchApp app = VehicleWidgetProvider.resolveApp(context);
+        ConfigStore cfg = app != null ? app.getConfigStore() : null;
+        Context resCtx = AppLocaleHelper.localizedContext(context, cfg);
         VehicleStatus st = VehicleWidgetProvider.resolveStatus(context);
         String banner = VehicleWidgetProvider.getActiveBanner(context);
 
@@ -101,12 +110,15 @@ public class LocationWidgetProvider extends AppWidgetProvider {
                 long ms = st.gpsTs > 1_000_000_000_000L ? st.gpsTs : st.gpsTs * 1000L;
                 timeSuffix = " · " + new SimpleDateFormat("HH:mm", Locale.US).format(new Date(ms));
             }
-            String name = (st.modelName != null && !st.modelName.trim().isEmpty())
-                    ? st.modelName.trim()
-                    : "Car Location";
-            titleText = name + timeSuffix + " · Navigate";
+            String preferred = VehicleWidgetProvider.resolvePreferredModelName(cfg);
+            String name = preferred != null
+                    ? preferred
+                    : ((st.modelName != null && !st.modelName.trim().isEmpty())
+                            ? st.modelName.trim()
+                            : resCtx.getString(R.string.location_widget_label));
+            titleText = name + timeSuffix + resCtx.getString(R.string.widget_location_navigate_suffix);
         } else {
-            titleText = "Car Location";
+            titleText = resCtx.getString(R.string.location_widget_label);
         }
 
         String coordsText;
@@ -120,7 +132,7 @@ public class LocationWidgetProvider extends AppWidgetProvider {
                         street -> refreshWidgets(context));
             }
         } else {
-            coordsText = context.getString(R.string.location_widget_empty);
+            coordsText = resCtx.getString(R.string.location_widget_empty);
         }
 
         int flags = Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
@@ -136,6 +148,7 @@ public class LocationWidgetProvider extends AppWidgetProvider {
             RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_location);
             views.setTextViewText(R.id.tvLocationTitle, titleText);
             views.setTextViewText(R.id.tvLocationCoords, coordsText);
+            views.setTextViewText(R.id.btnLocationSync, resCtx.getString(R.string.btn_sync));
             views.setOnClickPendingIntent(R.id.layoutLocationBody, navPi);
             views.setOnClickPendingIntent(R.id.btnLocationSync, syncPi);
             mgr.updateAppWidget(appWidgetId, views);

@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">BYD 手表伴侣</string>
-    <string name="header_title">BYD EV</string>
-    <string name="header_subtitle">全球云端手表伴侣</string>
+    <string name="app_name">BYD Open Remote</string>
+    <string name="header_title">BYD Open Remote</string>
+    <string name="header_subtitle">开源云端远程控制</string>
     <string name="auth_notice">安全提示：强烈建议在官方比亚迪 App 中创建“车辆授权”子账号（Alternate Vehicle Authorization）登录，勿直接使用车主主账号。独立第三方非官方工具。</string>
     <string name="card_account_title">比亚迪账号与区域</string>
     <string name="label_region">云端服务区域 / 市场</string>

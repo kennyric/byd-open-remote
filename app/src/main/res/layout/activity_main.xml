@@ -57,7 +57,7 @@
                         android:contentDescription="@string/header_title"
                         android:padding="7dp"
                         android:scaleType="fitCenter"
-                        android:src="@drawable/ic_byd_logo"
+                        android:src="@drawable/ic_ev_watch_logo"
                         app:tint="?attr/colorOnPrimaryContainer" />
                 </com.google.android.material.card.MaterialCardView>
 
@@ -406,7 +406,7 @@
                         app:iconTint="?attr/colorOnTertiaryContainer" />
                 </LinearLayout>
 
-                <!-- Climate Control Panel -->
+                <!-- Climate Control Bar (Compact AC On/Off Toggle + Adjust Popup Button) -->
                 <com.google.android.material.card.MaterialCardView
                     style="@style/Widget.Material3.CardView.Filled"
                     android:layout_width="match_parent"
@@ -421,84 +421,87 @@
                         android:layout_height="wrap_content"
                         android:gravity="center_vertical"
                         android:orientation="horizontal"
-                        android:padding="8dp">
+                        android:padding="10dp">
 
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btnTempMinus"
-                            style="@style/Widget.Material3.Button.OutlinedButton"
-                            android:layout_width="44dp"
-                            android:layout_height="44dp"
-                            android:insetTop="0dp"
-                            android:insetBottom="0dp"
-                            android:padding="0dp"
-                            android:text="@string/btn_temp_minus"
-                            android:textColor="?attr/colorOnSurface"
-                            android:textSize="18sp"
-                            app:cornerRadius="14dp"
-                            app:strokeColor="?attr/colorOutlineVariant" />
-
-                        <TextView
-                            android:id="@+id/tvTargetTemp"
-                            android:layout_width="56dp"
-                            android:layout_height="wrap_content"
-                            android:gravity="center"
-                            android:text="@string/default_target_temp"
-                            android:textColor="?attr/colorOnSurface"
-                            android:textSize="16sp"
-                            android:textStyle="bold" />
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btnTempPlus"
-                            style="@style/Widget.Material3.Button.OutlinedButton"
-                            android:layout_width="44dp"
-                            android:layout_height="44dp"
-                            android:insetTop="0dp"
-                            android:insetBottom="0dp"
-                            android:padding="0dp"
-                            android:text="@string/btn_temp_plus"
-                            android:textColor="?attr/colorOnSurface"
-                            android:textSize="18sp"
-                            app:cornerRadius="14dp"
-                            app:strokeColor="?attr/colorOutlineVariant" />
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btnAcOn"
-                            style="@style/Widget.Material3.Button.TonalButton"
+                        <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/btnAcToggle"
                             android:layout_width="0dp"
-                            android:layout_height="44dp"
-                            android:layout_marginStart="8dp"
-                            android:layout_marginEnd="6dp"
+                            android:layout_height="wrap_content"
                             android:layout_weight="1"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:foreground="?attr/selectableItemBackground"
+                            app:cardBackgroundColor="?attr/colorSurfaceContainer"
+                            app:cardCornerRadius="14dp"
+                            app:cardElevation="0dp"
+                            app:strokeColor="?attr/colorOutlineVariant"
+                            app:strokeWidth="1dp">
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:gravity="center_vertical"
+                                android:minHeight="52dp"
+                                android:orientation="horizontal"
+                                android:paddingHorizontal="12dp"
+                                android:paddingVertical="8dp">
+
+                                <ImageView
+                                    android:id="@+id/ivAcToggleIcon"
+                                    android:layout_width="20dp"
+                                    android:layout_height="20dp"
+                                    android:layout_marginEnd="10dp"
+                                    android:contentDescription="@string/btn_ac_on"
+                                    android:src="@drawable/ic_byd_temp_snow"
+                                    app:tint="?attr/colorPrimary" />
+
+                                <LinearLayout
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:orientation="vertical">
+
+                                    <TextView
+                                        android:id="@+id/tvAcToggleTitle"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:text="@string/card_ac_off"
+                                        android:textColor="?attr/colorOnSurface"
+                                        android:textSize="14sp"
+                                        android:textStyle="bold" />
+
+                                    <TextView
+                                        android:id="@+id/tvAcTogglePreset"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:text="@string/default_target_temp"
+                                        android:textColor="?attr/colorOnSurfaceVariant"
+                                        android:textSize="11sp" />
+                                </LinearLayout>
+                            </LinearLayout>
+                        </com.google.android.material.card.MaterialCardView>
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnAcAdjust"
+                            style="@style/Widget.Material3.Button.OutlinedButton"
+                            android:layout_width="wrap_content"
+                            android:layout_height="52dp"
+                            android:layout_marginStart="8dp"
                             android:insetTop="0dp"
                             android:insetBottom="0dp"
-                            android:paddingHorizontal="6dp"
-                            android:text="@string/btn_ac_on"
+                            android:minWidth="0dp"
+                            android:paddingHorizontal="14dp"
+                            android:text="@string/btn_ac_adjust"
                             android:textAllCaps="false"
-                            android:textColor="?attr/colorOnPrimaryContainer"
+                            android:textColor="?attr/colorOnSurface"
                             android:textSize="13sp"
                             android:textStyle="bold"
-                            app:backgroundTint="?attr/colorPrimaryContainer"
                             app:cornerRadius="14dp"
-                            app:icon="@drawable/ic_byd_ac"
+                            app:icon="@drawable/ic_nav_tune"
                             app:iconGravity="textStart"
-                            app:iconPadding="4dp"
-                            app:iconSize="15dp"
-                            app:iconTint="?attr/colorOnPrimaryContainer" />
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btnAcOff"
-                            style="@style/Widget.Material3.Button.OutlinedButton"
-                            android:layout_width="0dp"
-                            android:layout_height="44dp"
-                            android:layout_weight="1"
-                            android:insetTop="0dp"
-                            android:insetBottom="0dp"
-                            android:paddingHorizontal="6dp"
-                            android:text="@string/btn_ac_off"
-                            android:textAllCaps="false"
-                            android:textColor="?attr/colorOnSurfaceVariant"
-                            android:textSize="13sp"
-                            app:cornerRadius="14dp"
+                            app:iconPadding="6dp"
+                            app:iconSize="16dp"
+                            app:iconTint="?attr/colorOnSurfaceVariant"
                             app:strokeColor="?attr/colorOutlineVariant" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
@@ -645,7 +648,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginEnd="8dp"
-                        android:text="Active Car:"
+                        android:text="@string/label_active_car"
                         android:textColor="?attr/colorOnSurfaceVariant"
                         android:textSize="12sp" />
 
@@ -657,7 +660,7 @@
                         android:layout_weight="1"
                         android:insetTop="0dp"
                         android:insetBottom="0dp"
-                        android:text="Switch Vehicle"
+                        android:text="@string/btn_switch_vehicle_default"
                         android:textAllCaps="false"
                         android:textSize="12sp"
                         app:cornerRadius="999dp" />
@@ -773,7 +776,7 @@
                                 android:id="@+id/tvHealthMeta"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="All Closed"
+                                android:text="@string/state_all_closed"
                                 android:textColor="?attr/colorOnSurfaceVariant"
                                 android:textSize="11sp" />
                         </LinearLayout>
@@ -951,6 +954,163 @@
                         android:textSize="12sp"
                         app:cornerRadius="999dp" />
                 </LinearLayout>
+
+                <!-- First-Time Setup Guide (2nd Account & 6-Digit Control PIN) -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cardSetupGuide"
+                    style="@style/Widget.Material3.CardView.Filled"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    app:cardBackgroundColor="?attr/colorSurfaceContainerHigh"
+                    app:cardCornerRadius="16dp"
+                    app:strokeColor="?attr/colorOutlineVariant"
+                    app:strokeWidth="1dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="12dp">
+
+                        <LinearLayout
+                            android:id="@+id/layoutSetupGuideHeader"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:orientation="vertical">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="@string/setup_guide_title"
+                                    android:textColor="?attr/colorOnSurface"
+                                    android:textSize="13sp"
+                                    android:textStyle="bold" />
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginTop="2dp"
+                                    android:text="@string/setup_guide_subtitle"
+                                    android:textColor="?attr/colorOnSurfaceVariant"
+                                    android:textSize="11sp" />
+                            </LinearLayout>
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnToggleSetupGuide"
+                                style="@style/Widget.Material3.Button.TonalButton"
+                                android:layout_width="wrap_content"
+                                android:layout_height="32dp"
+                                android:layout_marginStart="8dp"
+                                android:insetTop="0dp"
+                                android:insetBottom="0dp"
+                                android:minWidth="0dp"
+                                android:paddingHorizontal="12dp"
+                                android:text="@string/btn_show_guide"
+                                android:textAllCaps="false"
+                                android:textSize="11sp"
+                                app:cornerRadius="999dp" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:id="@+id/layoutSetupGuideSteps"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="10dp"
+                            android:orientation="vertical"
+                            android:visibility="gone">
+
+                            <TextView
+                                android:id="@+id/tvSetupGuideWarning"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginBottom="10dp"
+                                android:background="@drawable/bg_notice_amber"
+                                android:backgroundTint="?attr/colorTertiaryContainer"
+                                android:padding="10dp"
+                                android:text="@string/setup_guide_warning"
+                                android:textColor="?attr/colorOnTertiaryContainer"
+                                android:textSize="12sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="@string/setup_guide_step1_title"
+                                android:textColor="?attr/colorPrimary"
+                                android:textSize="12sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:layout_marginBottom="8dp"
+                                android:text="@string/setup_guide_step1_body"
+                                android:textColor="?attr/colorOnSurfaceVariant"
+                                android:textSize="12sp" />
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="@string/setup_guide_step2_title"
+                                android:textColor="?attr/colorPrimary"
+                                android:textSize="12sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:layout_marginBottom="8dp"
+                                android:text="@string/setup_guide_step2_body"
+                                android:textColor="?attr/colorOnSurfaceVariant"
+                                android:textSize="12sp" />
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="@string/setup_guide_step3_title"
+                                android:textColor="?attr/colorPrimary"
+                                android:textSize="12sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:layout_marginBottom="8dp"
+                                android:text="@string/setup_guide_step3_body"
+                                android:textColor="?attr/colorOnSurfaceVariant"
+                                android:textSize="12sp" />
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="@string/setup_guide_step4_title"
+                                android:textColor="?attr/colorPrimary"
+                                android:textSize="12sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:text="@string/setup_guide_step4_body"
+                                android:textColor="?attr/colorOnSurfaceVariant"
+                                android:textSize="12sp" />
+                        </LinearLayout>
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
 
                 <LinearLayout
                     android:id="@+id/layoutAccountFields"
@@ -1159,6 +1319,73 @@
                     android:textSize="16sp"
                     android:textStyle="bold" />
 
+                <!-- App Language Selector -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="6dp"
+                    android:text="@string/label_app_language"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.button.MaterialButtonToggleGroup
+                    android:id="@+id/toggleAppLanguage"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp"
+                    app:selectionRequired="true"
+                    app:singleSelection="true">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnLangSystem"
+                        style="?attr/materialButtonOutlinedStyle"
+                        android:layout_width="0dp"
+                        android:layout_height="36dp"
+                        android:layout_weight="1"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        android:maxLines="1"
+                        android:minWidth="0dp"
+                        android:paddingHorizontal="6dp"
+                        android:text="@string/lang_option_system"
+                        android:textAllCaps="false"
+                        android:textSize="11.5sp"
+                        app:cornerRadius="12dp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnLangEnglish"
+                        style="?attr/materialButtonOutlinedStyle"
+                        android:layout_width="0dp"
+                        android:layout_height="36dp"
+                        android:layout_weight="1"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        android:maxLines="1"
+                        android:minWidth="0dp"
+                        android:paddingHorizontal="6dp"
+                        android:text="@string/lang_option_english"
+                        android:textAllCaps="false"
+                        android:textSize="11.5sp"
+                        app:cornerRadius="12dp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnLangIndonesian"
+                        style="?attr/materialButtonOutlinedStyle"
+                        android:layout_width="0dp"
+                        android:layout_height="36dp"
+                        android:layout_weight="1"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        android:maxLines="1"
+                        android:minWidth="0dp"
+                        android:paddingHorizontal="6dp"
+                        android:text="@string/lang_option_indonesian"
+                        android:textAllCaps="false"
+                        android:textSize="11.5sp"
+                        app:cornerRadius="12dp" />
+                </com.google.android.material.button.MaterialButtonToggleGroup>
+
                 <!-- Custom Car Model Name Override -->
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -1277,6 +1504,108 @@
                         app:cornerRadius="12dp" />
                 </LinearLayout>
 
+                <!-- 4x3 Widget Battery Style Selector -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="6dp"
+                    android:text="@string/label_widget_battery_style"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.button.MaterialButtonToggleGroup
+                    android:id="@+id/toggleWidgetStyle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="4dp"
+                    app:selectionRequired="true"
+                    app:singleSelection="true">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnWidgetStyleCapsule"
+                        style="?attr/materialButtonOutlinedStyle"
+                        android:layout_width="0dp"
+                        android:layout_height="36dp"
+                        android:layout_weight="1"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        android:maxLines="1"
+                        android:minWidth="0dp"
+                        android:paddingHorizontal="4dp"
+                        android:text="@string/widget_style_capsule"
+                        android:textAllCaps="false"
+                        android:textSize="11sp"
+                        app:cornerRadius="12dp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnWidgetStyleRing"
+                        style="?attr/materialButtonOutlinedStyle"
+                        android:layout_width="0dp"
+                        android:layout_height="36dp"
+                        android:layout_weight="1"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        android:maxLines="1"
+                        android:minWidth="0dp"
+                        android:paddingHorizontal="4dp"
+                        android:text="@string/widget_style_ring"
+                        android:textAllCaps="false"
+                        android:textSize="11sp"
+                        app:cornerRadius="12dp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnWidgetStyleBento"
+                        style="?attr/materialButtonOutlinedStyle"
+                        android:layout_width="0dp"
+                        android:layout_height="36dp"
+                        android:layout_weight="1"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        android:maxLines="1"
+                        android:minWidth="0dp"
+                        android:paddingHorizontal="4dp"
+                        android:text="@string/widget_style_bento"
+                        android:textAllCaps="false"
+                        android:textSize="11sp"
+                        app:cornerRadius="12dp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnWidgetStyleTank"
+                        style="?attr/materialButtonOutlinedStyle"
+                        android:layout_width="0dp"
+                        android:layout_height="36dp"
+                        android:layout_weight="1"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        android:maxLines="1"
+                        android:minWidth="0dp"
+                        android:paddingHorizontal="4dp"
+                        android:text="@string/widget_style_tank"
+                        android:textAllCaps="false"
+                        android:textSize="11sp"
+                        app:cornerRadius="12dp" />
+                </com.google.android.material.button.MaterialButtonToggleGroup>
+
+                <TextView
+                    android:id="@+id/tvWidgetStyleDesc"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp"
+                    android:text="@string/widget_style_desc_capsule"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:textSize="11sp" />
+
+                <!-- Manual AC Mode Toggle (Atto 1 / No Climate Control) -->
+                <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/switchManualAc"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:text="@string/label_manual_ac_toggle"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:textSize="12sp" />
+
                 <!-- Hide Extra Controls Toggle (Vent Win / Close Win / Bat Heat / Seat Heat) -->
                 <com.google.android.material.materialswitch.MaterialSwitch
                     android:id="@+id/switchHideExtraControls"
@@ -1328,6 +1657,19 @@
                     android:text="@string/card_bridge_title"
                     android:textColor="?attr/colorOnSurface"
                     android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvWatchIntegrationNotice"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="10dp"
+                    android:background="@drawable/bg_notice_amber"
+                    android:backgroundTint="?attr/colorTertiaryContainer"
+                    android:padding="10dp"
+                    android:text="@string/watch_integration_notice"
+                    android:textColor="?attr/colorOnTertiaryContainer"
+                    android:textSize="12sp"
                     android:textStyle="bold" />
 
                 <TextView

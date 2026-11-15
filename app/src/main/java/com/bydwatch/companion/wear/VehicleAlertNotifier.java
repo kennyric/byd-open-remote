@@ -115,7 +115,7 @@ public final class VehicleAlertNotifier {
         PendingIntent pi = PendingIntent.getActivity(context, notifId, launch, flags);
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID)
-                .setSmallIcon(R.drawable.ic_byd_launcher)
+                .setSmallIcon(R.drawable.ic_ev_watch_logo)
                 .setContentTitle(title)
                 .setContentText(text)
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)

@@ -10,7 +10,9 @@ import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.bydwatch.companion.BuildConfig;
+import com.bydwatch.companion.BydWatchApp;
 import com.bydwatch.companion.R;
+import com.bydwatch.companion.data.ConfigStore;
 
 /**
  * Front splash screen highlighting maker attribution and non-commercial free use notice.
@@ -26,6 +28,18 @@ public class SplashActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        BydWatchApp app = getApplication() instanceof BydWatchApp ? (BydWatchApp) getApplication() : null;
+        if (app != null) {
+            try {
+                ConfigStore cfg = app.getConfigStore();
+                if (BuildConfig.DEBUG && getIntent() != null && getIntent().hasExtra("demo_lang")) {
+                    cfg.setAppLanguage(getIntent().getStringExtra("demo_lang"));
+                }
+                AppLocaleHelper.applyLanguage(cfg.getAppLanguage());
+            } catch (Exception ignored) {
+                // Skip eager KeyStore reads on test environments that do not mock ConfigStore.
+            }
+        }
         setContentView(R.layout.activity_splash);
 
         TextView tvVersion = findViewById(R.id.tvSplashVersion);
@@ -36,6 +50,17 @@ public class SplashActivity extends AppCompatActivity {
         Button btnContinue = findViewById(R.id.btnSplashContinue);
         if (btnContinue != null) {
             btnContinue.setOnClickListener(v -> navigateToMain());
+        }
+
+        if (BuildConfig.DEBUG && getIntent() != null) {
+            if (getIntent().getBooleanExtra("demo_splash", false)) {
+                handler.removeCallbacks(proceedRunnable);
+                return;
+            }
+            if (getIntent().getBooleanExtra("demo_mode", false)) {
+                navigateToMain();
+                return;
+            }
         }
 
         handler.postDelayed(proceedRunnable, SPLASH_DELAY_MS);
@@ -53,7 +78,11 @@ public class SplashActivity extends AppCompatActivity {
         }
         navigated = true;
         handler.removeCallbacks(proceedRunnable);
-        startActivity(new Intent(this, MainActivity.class));
+        Intent mainIntent = new Intent(this, MainActivity.class);
+        if (BuildConfig.DEBUG && getIntent() != null && getIntent().getBooleanExtra("demo_mode", false)) {
+            mainIntent.putExtras(getIntent());
+        }
+        startActivity(mainIntent);
         finish();
     }
 }
