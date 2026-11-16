@@ -18,4 +18,14 @@
             android:icon="@drawable/ic_nav_watch"
             android:title="@string/nav_watch_bridge" />
     </group>
+
+    <item
+        android:id="@+id/nav_check_update"
+        android:icon="@drawable/ic_slot_sync"
+        android:title="@string/nav_check_update" />
+
+    <item
+        android:id="@+id/nav_support"
+        android:icon="@drawable/ic_support_heart"
+        android:title="@string/nav_support_me" />
 </menu>

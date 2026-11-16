@@ -389,10 +389,12 @@ public class CloudBydGatewayTest {
         configStore.setDefaultTempGear(2);
         configStore.setDefaultFanLevel(6);
         configStore.setDefaultWindMode(ConfigStore.WIND_MODE_BODY);
+        configStore.setDefaultAcDurationMinutes(25);
         assertTrue(gateway.startClimate("LGX_ATTO_1", 17.0));
         assertEquals(2, fakeClient.lastElectricGear);
         assertEquals(6, fakeClient.lastElectricWind);
         assertEquals(ConfigStore.WIND_MODE_BODY, fakeClient.lastElectricWindMode);
+        assertEquals(25, fakeClient.lastAcDurationMinutes);
 
         // Switching to a car WITH automatic climate control resets manual AC detection cleanly
         fakeClient.realtimeResult = new JSONObject()
@@ -512,7 +514,13 @@ public class CloudBydGatewayTest {
 
         @Override
         public boolean startClimate(String vin, double tempCelsius) {
+            return startClimate(vin, tempCelsius, 20);
+        }
+
+        @Override
+        public boolean startClimate(String vin, double tempCelsius, int durationMinutes) {
             lastAutoClimateTemp = tempCelsius;
+            lastAcDurationMinutes = durationMinutes;
             return true;
         }
 
@@ -520,20 +528,28 @@ public class CloudBydGatewayTest {
 
         @Override
         public boolean startElectricClimate(String vin, int tempGear, int windLevel) {
-            return startElectricClimate(vin, tempGear, windLevel, ConfigStore.WIND_MODE_BODY_FEET);
+            return startElectricClimate(vin, tempGear, windLevel, ConfigStore.WIND_MODE_BODY_FEET, 20);
         }
 
         @Override
         public boolean startElectricClimate(String vin, int tempGear, int windLevel, int windMode) {
+            return startElectricClimate(vin, tempGear, windLevel, windMode, 20);
+        }
+
+        @Override
+        public boolean startElectricClimate(
+                String vin, int tempGear, int windLevel, int windMode, int durationMinutes) {
             lastElectricGear = tempGear;
             lastElectricWind = windLevel;
             lastElectricWindMode = windMode;
+            lastAcDurationMinutes = durationMinutes;
             return true;
         }
 
         int lastElectricGear = -1;
         int lastElectricWind = -1;
         int lastElectricWindMode = -1;
+        int lastAcDurationMinutes = -1;
 
         @Override
         public boolean stopClimate(String vin) {

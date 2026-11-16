@@ -1,5 +1,6 @@
 package com.bydwatch.companion.protocol;
 
+import com.bydwatch.companion.data.ConfigStore;
 import com.bydwatch.companion.model.VehicleStatus;
 
 import org.json.JSONException;
@@ -126,8 +127,16 @@ public final class WatchProtocol {
             }
         }
         String acMode = obj.optString("acMode", "").trim();
+        int acDurationMin = -1;
+        if (obj.has("acDurationMin") && !obj.isNull("acDurationMin")) {
+            int rawDur = obj.optInt("acDurationMin", -1);
+            if (rawDur > 0) {
+                acDurationMin = ConfigStore.normalizeAcDurationMinutes(rawDur);
+            }
+        }
 
-        return new WatchCommand(id, action, tempC, vin, level, tempGear, fanLevel, windMode, acMode);
+        return new WatchCommand(
+                id, action, tempC, vin, level, tempGear, fanLevel, windMode, acMode, acDurationMin);
     }
 
     /**

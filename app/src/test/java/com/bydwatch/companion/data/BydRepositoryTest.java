@@ -360,8 +360,15 @@ public class BydRepositoryTest {
         private int defaultTempGear = DEFAULT_TEMP_GEAR;
         private int defaultFanLevel = DEFAULT_FAN_LEVEL;
         private int defaultWindMode = DEFAULT_WIND_MODE;
+        private int defaultAcDurationMinutes = DEFAULT_AC_DURATION_MINUTES;
         private Boolean manualAcOverride = null;
         private boolean detectedManualAc = false;
+        private boolean singleFlightActionEnabled = true;
+        private String biometricScope = DEFAULT_BIOMETRIC_SCOPE;
+        private int biometricGraceMinutes = DEFAULT_BIOMETRIC_GRACE_MINUTES;
+        private boolean biometricWidgetSyncRequired = false;
+        private long lastBiometricAuthElapsedMs = -1L;
+        private int lastBiometricAuthBootCount = -1;
 
         @Override public String getUsername() { return username; }
         @Override public void setUsername(String username) { this.username = username; }
@@ -457,6 +464,11 @@ public class BydRepositoryTest {
                     || windMode == WIND_MODE_FEET) ? windMode : DEFAULT_WIND_MODE;
         }
 
+        @Override public int getDefaultAcDurationMinutes() { return defaultAcDurationMinutes; }
+        @Override public void setDefaultAcDurationMinutes(int minutes) {
+            this.defaultAcDurationMinutes = ConfigStore.normalizeAcDurationMinutes(minutes);
+        }
+
         @Override public boolean isManualAcMode() {
             return manualAcOverride != null ? manualAcOverride.booleanValue() : detectedManualAc;
         }
@@ -472,6 +484,8 @@ public class BydRepositoryTest {
         private boolean showHomeAlerts = true;
         private boolean showHomeLocation = true;
         private boolean showHomeHealth = true;
+        private long lastUpdateCheckMs = 0L;
+        private boolean supportCardDismissed = false;
 
         @Override public String getActionCombosJson() { return actionCombosJson; }
         @Override public void setActionCombosJson(String json) { this.actionCombosJson = json; }
@@ -487,6 +501,28 @@ public class BydRepositoryTest {
         @Override public void setShowHomeLocation(boolean show) { this.showHomeLocation = show; }
         @Override public boolean isShowHomeHealth() { return showHomeHealth; }
         @Override public void setShowHomeHealth(boolean show) { this.showHomeHealth = show; }
+        @Override public long getLastUpdateCheckMs() { return lastUpdateCheckMs; }
+        @Override public void setLastUpdateCheckMs(long checkMs) { this.lastUpdateCheckMs = Math.max(0L, checkMs); }
+        @Override public boolean isSupportCardDismissed() { return supportCardDismissed; }
+        @Override public void setSupportCardDismissed(boolean dismissed) { this.supportCardDismissed = dismissed; }
+
+        @Override public boolean isSingleFlightActionEnabled() { return singleFlightActionEnabled; }
+        @Override public void setSingleFlightActionEnabled(boolean enabled) { this.singleFlightActionEnabled = enabled; }
+
+        @Override public String getBiometricScope() { return biometricScope; }
+        @Override public void setBiometricScope(String scope) { this.biometricScope = ConfigStore.normalizeBiometricScope(scope); }
+
+        @Override public int getBiometricGraceMinutes() { return biometricGraceMinutes; }
+        @Override public void setBiometricGraceMinutes(int minutes) { this.biometricGraceMinutes = ConfigStore.normalizeBiometricGraceMinutes(minutes); }
+
+        @Override public boolean isBiometricWidgetSyncRequired() { return biometricWidgetSyncRequired; }
+        @Override public void setBiometricWidgetSyncRequired(boolean required) { this.biometricWidgetSyncRequired = required; }
+
+        @Override public long getLastBiometricAuthElapsedMs() { return lastBiometricAuthElapsedMs; }
+        @Override public void setLastBiometricAuthElapsedMs(long elapsedMs) { this.lastBiometricAuthElapsedMs = elapsedMs; }
+
+        @Override public int getLastBiometricAuthBootCount() { return lastBiometricAuthBootCount; }
+        @Override public void setLastBiometricAuthBootCount(int bootCount) { this.lastBiometricAuthBootCount = bootCount; }
 
         @Override
         public boolean isConfigured() {
@@ -532,6 +568,7 @@ public class BydRepositoryTest {
         public volatile int lastTempGear = -1;
         public volatile int lastWindLevel = -1;
         public volatile int lastWindMode = -1;
+        public volatile int lastAcDurationMinutes = -1;
         public final AtomicInteger flashLightsCalls = new AtomicInteger();
         public final AtomicInteger findCarCalls = new AtomicInteger();
         public final AtomicInteger fetchGpsCalls = new AtomicInteger();
@@ -671,10 +708,16 @@ public class BydRepositoryTest {
 
         @Override
         public boolean startClimate(String vin, double tempCelsius) throws Exception {
+            return startClimate(vin, tempCelsius, ConfigStore.DEFAULT_AC_DURATION_MINUTES);
+        }
+
+        @Override
+        public boolean startClimate(String vin, double tempCelsius, int durationMinutes) throws Exception {
             enterOp();
             try {
                 startClimateCalls.incrementAndGet();
                 lastTempCelsius = tempCelsius;
+                lastAcDurationMinutes = durationMinutes;
                 currentStatus = new VehicleStatus.Builder(
                         currentStatus.soc, currentStatus.rangeKm, currentStatus.locked,
                         true, currentStatus.cabinTempC, (int) Math.round(tempCelsius),
@@ -694,12 +737,19 @@ public class BydRepositoryTest {
 
         @Override
         public boolean startElectricClimate(String vin, int tempGear, int windLevel, int windMode) throws Exception {
+            return startElectricClimate(vin, tempGear, windLevel, windMode, ConfigStore.DEFAULT_AC_DURATION_MINUTES);
+        }
+
+        @Override
+        public boolean startElectricClimate(
+                String vin, int tempGear, int windLevel, int windMode, int durationMinutes) throws Exception {
             enterOp();
             try {
                 startElectricClimateCalls.incrementAndGet();
                 lastTempGear = tempGear;
                 lastWindLevel = windLevel;
                 lastWindMode = windMode;
+                lastAcDurationMinutes = durationMinutes;
                 currentStatus = new VehicleStatus.Builder(
                         currentStatus.soc, currentStatus.rangeKm, currentStatus.locked,
                         true, currentStatus.cabinTempC, currentStatus.targetTempC,
@@ -824,16 +874,18 @@ public class BydRepositoryTest {
 
     @Test
     public void acOnHonorsPerStepAcModeOverrideAndModelJsonRoundTrip() throws Exception {
-        // Global Manual AC enabled, but command asks for explicit Auto mode
+        // Global Manual AC enabled, but command asks for explicit Auto mode & 15m timer
         configStore.setManualAcMode(true);
+        configStore.setDefaultAcDurationMinutes(25);
         JSONObject autoOverride = executeCommand(
-                "{\"id\":\"ac_auto_1\",\"action\":\"ac_on\",\"acMode\":\"auto\",\"tempC\":21}");
+                "{\"id\":\"ac_auto_1\",\"action\":\"ac_on\",\"acMode\":\"auto\",\"tempC\":21,\"acDurationMin\":15}");
         assertTrue(autoOverride.getBoolean("ok"));
         assertEquals(1, fakeGateway.startClimateCalls.get());
         assertEquals(0, fakeGateway.startElectricClimateCalls.get());
         assertEquals(21.0, fakeGateway.lastTempCelsius, 0.01);
+        assertEquals(15, fakeGateway.lastAcDurationMinutes);
 
-        // Global Auto AC enabled, but command asks for explicit Manual preset
+        // Global Auto AC enabled, but command asks for explicit Manual preset (falls back to saved 25m timer)
         configStore.setManualAcMode(false);
         JSONObject manualOverride = executeCommand(
                 "{\"id\":\"ac_man_1\",\"action\":\"ac_on\",\"acMode\":\"manual\",\"tempGear\":5,\"fanLevel\":6,\"windMode\":2}");
@@ -842,8 +894,9 @@ public class BydRepositoryTest {
         assertEquals(5, fakeGateway.lastTempGear);
         assertEquals(6, fakeGateway.lastWindLevel);
         assertEquals(2, fakeGateway.lastWindMode);
+        assertEquals(25, fakeGateway.lastAcDurationMinutes);
 
-        // Model JSON serialization round-trips
+        // Model JSON serialization round-trips including acDurationMinutes
         com.bydwatch.companion.model.CustomActionCombo combo =
                 new com.bydwatch.companion.model.CustomActionCombo(
                         "cmb_test",
@@ -854,7 +907,8 @@ public class BydRepositoryTest {
                                 new com.bydwatch.companion.model.CustomActionCombo.ComboStep(
                                         com.bydwatch.companion.protocol.WatchProtocol.ACTION_UNLOCK),
                                 new com.bydwatch.companion.model.CustomActionCombo.ComboStep(
-                                        com.bydwatch.companion.protocol.WatchProtocol.ACTION_AC_ON, true, true, 19, 6, 5, 2, -1)
+                                        com.bydwatch.companion.protocol.WatchProtocol.ACTION_AC_ON,
+                                        true, true, 19, 6, 5, 2, -1, 30)
                         )
                 );
         configStore.setActionCombos(java.util.Collections.singletonList(combo));
@@ -867,6 +921,7 @@ public class BydRepositoryTest {
         assertEquals(2, restoredCombos.get(0).steps.size());
         assertTrue(restoredCombos.get(0).steps.get(1).manualAc);
         assertEquals(6, restoredCombos.get(0).steps.get(1).tempGear);
+        assertEquals(30, restoredCombos.get(0).steps.get(1).acDurationMinutes);
 
         configStore.setWidgetSlots(Arrays.asList(
                 com.bydwatch.companion.model.WidgetSlotConfig.combo("cmb_test", "Chill"),

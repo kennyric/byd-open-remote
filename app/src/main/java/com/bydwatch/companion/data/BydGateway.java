@@ -24,6 +24,10 @@ public interface BydGateway {
 
     boolean startClimate(String vin, double tempCelsius) throws Exception;
 
+    default boolean startClimate(String vin, double tempCelsius, int durationMinutes) throws Exception {
+        return startClimate(vin, tempCelsius);
+    }
+
     default boolean startElectricClimate(String vin, int tempGear, int windLevel) throws Exception {
         int gear = Math.max(1, Math.min(9, tempGear));
         return startClimate(vin, gear + 14);
@@ -31,6 +35,11 @@ public interface BydGateway {
 
     default boolean startElectricClimate(String vin, int tempGear, int windLevel, int windMode) throws Exception {
         return startElectricClimate(vin, tempGear, windLevel);
+    }
+
+    default boolean startElectricClimate(
+            String vin, int tempGear, int windLevel, int windMode, int durationMinutes) throws Exception {
+        return startElectricClimate(vin, tempGear, windLevel, windMode);
     }
 
     boolean stopClimate(String vin) throws Exception;

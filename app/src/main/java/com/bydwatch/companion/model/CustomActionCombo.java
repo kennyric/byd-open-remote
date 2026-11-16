@@ -1,5 +1,7 @@
 package com.bydwatch.companion.model;
 
+import com.bydwatch.companion.data.ConfigStore;
+
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -165,9 +167,10 @@ public final class CustomActionCombo {
         public final int fanLevel;
         public final int windMode;
         public final int seatLevel;
+        public final int acDurationMinutes;
 
         public ComboStep(String action) {
-            this(action, true, false, 20, 3, 4, 1, -1);
+            this(action, true, false, 20, 3, 4, 1, -1, ConfigStore.DEFAULT_AC_DURATION_MINUTES);
         }
 
         public ComboStep(
@@ -180,6 +183,21 @@ public final class CustomActionCombo {
                 int windMode,
                 int seatLevel
         ) {
+            this(action, useCustomAc, manualAc, tempC, tempGear, fanLevel, windMode, seatLevel,
+                    ConfigStore.DEFAULT_AC_DURATION_MINUTES);
+        }
+
+        public ComboStep(
+                String action,
+                boolean useCustomAc,
+                boolean manualAc,
+                int tempC,
+                int tempGear,
+                int fanLevel,
+                int windMode,
+                int seatLevel,
+                int acDurationMinutes
+        ) {
             this.action = action != null ? action.trim() : "";
             this.useCustomAc = useCustomAc;
             this.manualAc = manualAc;
@@ -188,10 +206,12 @@ public final class CustomActionCombo {
             this.fanLevel = Math.max(1, Math.min(7, fanLevel));
             this.windMode = (windMode == 1 || windMode == 2 || windMode == 3) ? windMode : 1;
             this.seatLevel = (seatLevel >= 0 && seatLevel <= 2) ? seatLevel : -1;
+            this.acDurationMinutes = ConfigStore.normalizeAcDurationMinutes(acDurationMinutes);
         }
 
         public ComboStep copy() {
-            return new ComboStep(action, useCustomAc, manualAc, tempC, tempGear, fanLevel, windMode, seatLevel);
+            return new ComboStep(action, useCustomAc, manualAc, tempC, tempGear, fanLevel,
+                    windMode, seatLevel, acDurationMinutes);
         }
 
         public JSONObject toJson() {
@@ -205,6 +225,7 @@ public final class CustomActionCombo {
                 obj.put("fanLevel", fanLevel);
                 obj.put("windMode", windMode);
                 obj.put("seatLevel", seatLevel);
+                obj.put("acDurationMin", acDurationMinutes);
             } catch (Exception ignored) {
             }
             return obj;
@@ -222,7 +243,8 @@ public final class CustomActionCombo {
                     obj.optInt("tempGear", 3),
                     obj.optInt("fanLevel", 4),
                     obj.optInt("windMode", 1),
-                    obj.optInt("seatLevel", -1)
+                    obj.optInt("seatLevel", -1),
+                    obj.optInt("acDurationMin", ConfigStore.DEFAULT_AC_DURATION_MINUTES)
             );
         }
     }

@@ -33,6 +33,7 @@ public class SecureConfigStore implements ConfigStore {
     private static final String PREF_DEFAULT_TEMP_GEAR = "byd_default_temp_gear";
     private static final String PREF_DEFAULT_FAN_LEVEL = "byd_default_fan_level";
     private static final String PREF_DEFAULT_WIND_MODE = "byd_default_wind_mode";
+    private static final String PREF_DEFAULT_AC_DURATION_MINUTES = "byd_default_ac_duration_min";
     private static final String PREF_MANUAL_AC_OVERRIDE = "byd_manual_ac_override";
     private static final String PREF_MANUAL_AC_DETECTED = "byd_manual_ac_detected";
     private static final String PREF_DIST_UNIT = "byd_dist_unit";
@@ -55,6 +56,14 @@ public class SecureConfigStore implements ConfigStore {
     private static final String PREF_SHOW_HOME_ALERTS = "byd_show_home_alerts";
     private static final String PREF_SHOW_HOME_LOCATION = "byd_show_home_location";
     private static final String PREF_SHOW_HOME_HEALTH = "byd_show_home_health";
+    private static final String PREF_LAST_UPDATE_CHECK_MS = "byd_last_update_check_ms";
+    private static final String PREF_SUPPORT_CARD_DISMISSED = "byd_support_card_dismissed";
+    private static final String PREF_SINGLE_FLIGHT_ACTION = "byd_single_flight_action";
+    private static final String PREF_BIOMETRIC_SCOPE = "byd_biometric_scope";
+    private static final String PREF_BIOMETRIC_GRACE_MINUTES = "byd_biometric_grace_minutes";
+    private static final String PREF_BIOMETRIC_WIDGET_SYNC = "byd_biometric_widget_sync";
+    private static final String PREF_BIOMETRIC_LAST_AUTH_ELAPSED_MS = "byd_biometric_last_auth_elapsed_ms";
+    private static final String PREF_BIOMETRIC_LAST_AUTH_BOOT_COUNT = "byd_biometric_last_auth_boot_count";
 
     private final SharedPreferences prefs;
 
@@ -193,6 +202,18 @@ public class SecureConfigStore implements ConfigStore {
                 ? windMode
                 : DEFAULT_WIND_MODE;
         prefs.edit().putInt(PREF_DEFAULT_WIND_MODE, clamped).apply();
+    }
+
+    @Override
+    public int getDefaultAcDurationMinutes() {
+        return ConfigStore.normalizeAcDurationMinutes(
+                prefs.getInt(PREF_DEFAULT_AC_DURATION_MINUTES, DEFAULT_AC_DURATION_MINUTES));
+    }
+
+    @Override
+    public void setDefaultAcDurationMinutes(int minutes) {
+        prefs.edit().putInt(PREF_DEFAULT_AC_DURATION_MINUTES,
+                ConfigStore.normalizeAcDurationMinutes(minutes)).apply();
     }
 
     @Override
@@ -489,6 +510,93 @@ public class SecureConfigStore implements ConfigStore {
     @Override
     public void setShowHomeHealth(boolean show) {
         prefs.edit().putBoolean(PREF_SHOW_HOME_HEALTH, show).apply();
+    }
+
+    @Override
+    public long getLastUpdateCheckMs() {
+        return prefs.getLong(PREF_LAST_UPDATE_CHECK_MS, 0L);
+    }
+
+    @Override
+    public void setLastUpdateCheckMs(long checkMs) {
+        prefs.edit().putLong(PREF_LAST_UPDATE_CHECK_MS, Math.max(0L, checkMs)).apply();
+    }
+
+    @Override
+    public boolean isSupportCardDismissed() {
+        return prefs.getBoolean(PREF_SUPPORT_CARD_DISMISSED, false);
+    }
+
+    @Override
+    public void setSupportCardDismissed(boolean dismissed) {
+        prefs.edit().putBoolean(PREF_SUPPORT_CARD_DISMISSED, dismissed).apply();
+    }
+
+    @Override
+    public boolean isSingleFlightActionEnabled() {
+        return prefs.getBoolean(PREF_SINGLE_FLIGHT_ACTION, true);
+    }
+
+    @Override
+    public void setSingleFlightActionEnabled(boolean enabled) {
+        prefs.edit().putBoolean(PREF_SINGLE_FLIGHT_ACTION, enabled).apply();
+    }
+
+    @Override
+    public String getBiometricScope() {
+        return ConfigStore.normalizeBiometricScope(
+                prefs.getString(PREF_BIOMETRIC_SCOPE, DEFAULT_BIOMETRIC_SCOPE)
+        );
+    }
+
+    @Override
+    public void setBiometricScope(String scope) {
+        prefs.edit().putString(PREF_BIOMETRIC_SCOPE, ConfigStore.normalizeBiometricScope(scope)).apply();
+    }
+
+    @Override
+    public int getBiometricGraceMinutes() {
+        return ConfigStore.normalizeBiometricGraceMinutes(
+                prefs.getInt(PREF_BIOMETRIC_GRACE_MINUTES, DEFAULT_BIOMETRIC_GRACE_MINUTES)
+        );
+    }
+
+    @Override
+    public void setBiometricGraceMinutes(int minutes) {
+        prefs.edit().putInt(
+                PREF_BIOMETRIC_GRACE_MINUTES,
+                ConfigStore.normalizeBiometricGraceMinutes(minutes)
+        ).apply();
+    }
+
+    @Override
+    public boolean isBiometricWidgetSyncRequired() {
+        return prefs.getBoolean(PREF_BIOMETRIC_WIDGET_SYNC, false);
+    }
+
+    @Override
+    public void setBiometricWidgetSyncRequired(boolean required) {
+        prefs.edit().putBoolean(PREF_BIOMETRIC_WIDGET_SYNC, required).apply();
+    }
+
+    @Override
+    public long getLastBiometricAuthElapsedMs() {
+        return prefs.getLong(PREF_BIOMETRIC_LAST_AUTH_ELAPSED_MS, -1L);
+    }
+
+    @Override
+    public void setLastBiometricAuthElapsedMs(long elapsedMs) {
+        prefs.edit().putLong(PREF_BIOMETRIC_LAST_AUTH_ELAPSED_MS, elapsedMs).apply();
+    }
+
+    @Override
+    public int getLastBiometricAuthBootCount() {
+        return prefs.getInt(PREF_BIOMETRIC_LAST_AUTH_BOOT_COUNT, -1);
+    }
+
+    @Override
+    public void setLastBiometricAuthBootCount(int bootCount) {
+        prefs.edit().putInt(PREF_BIOMETRIC_LAST_AUTH_BOOT_COUNT, bootCount).apply();
     }
 
     @Override

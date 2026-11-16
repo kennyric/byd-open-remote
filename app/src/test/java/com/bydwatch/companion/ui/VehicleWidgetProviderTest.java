@@ -734,4 +734,56 @@ public class VehicleWidgetProviderTest {
         assertEquals("Jarak Tempuh",
                 ((TextView) bentoIdView.findViewById(R.id.tvWidgetRangeLabel)).getText().toString());
     }
+
+    @Test
+    public void widgetSingleAcAndComboAcUseConfiguredOrPerStepTimer() throws Exception {
+        configStore.setDefaultTempC(21);
+        configStore.setDefaultAcDurationMinutes(15);
+
+        WidgetActionReceiver receiver = new WidgetActionReceiver();
+        // Default Slot 2 is AC Toggle -> uses App Default timer (15m)
+        receiver.onReceive(app, new Intent(app, WidgetActionReceiver.class)
+                .setAction(VehicleWidgetProvider.slotAction(2)));
+        awaitRepo();
+        assertEquals(1, fakeGateway.startClimateCalls.get());
+        assertEquals(21.0, fakeGateway.lastTempCelsius, 0.01);
+        assertEquals(15, fakeGateway.lastAcDurationMinutes);
+
+        // Custom combo with explicit 30m step overrides App Default 15m
+        com.bydwatch.companion.model.CustomActionCombo longCool =
+                new com.bydwatch.companion.model.CustomActionCombo(
+                        "cmb_long",
+                        "Long Cool",
+                        com.bydwatch.companion.model.CustomActionCombo.ICON_FROST,
+                        com.bydwatch.companion.model.CustomActionCombo.TONE_CYAN,
+                        java.util.Arrays.asList(new com.bydwatch.companion.model.CustomActionCombo.ComboStep(
+                                com.bydwatch.companion.protocol.WatchProtocol.ACTION_AC_ON,
+                                true, false, 18, 3, 4, 1, -1, 30))
+                );
+        configStore.setActionCombos(java.util.Collections.singletonList(longCool));
+        configStore.setWidgetSlots(java.util.Arrays.asList(
+                com.bydwatch.companion.model.WidgetSlotConfig.combo("cmb_long", ""),
+                com.bydwatch.companion.model.WidgetSlotConfig.single(
+                        com.bydwatch.companion.model.WidgetSlotConfig.SINGLE_LOCK),
+                com.bydwatch.companion.model.WidgetSlotConfig.single(
+                        com.bydwatch.companion.model.WidgetSlotConfig.SINGLE_AC_TOGGLE),
+                com.bydwatch.companion.model.WidgetSlotConfig.single(
+                        com.bydwatch.companion.model.WidgetSlotConfig.SINGLE_STATUS)
+        ));
+
+        VehicleWidgetProvider.comboStepDelayMs = 0L;
+        try {
+            receiver.onReceive(app, new Intent(app, WidgetActionReceiver.class)
+                    .setAction(VehicleWidgetProvider.slotAction(0)));
+            VehicleWidgetProvider.awaitComboExecutorForTesting();
+            awaitRepo();
+        } finally {
+            VehicleWidgetProvider.comboStepDelayMs = 800L;
+        }
+        assertEquals(2, fakeGateway.startClimateCalls.get());
+        assertEquals(18.0, fakeGateway.lastTempCelsius, 0.01);
+        assertEquals(30, fakeGateway.lastAcDurationMinutes);
+        assertEquals("Start AC (18°C · 30m)",
+                VehicleWidgetProvider.stepDisplayName(app, longCool.steps.get(0)));
+    }
 }

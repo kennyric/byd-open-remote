@@ -38,6 +38,10 @@ public class BydCloudPortTest {
         assertEquals(3, params.getInt("copilotSettingTemp"));
         assertEquals(1, params.getInt("airConditioningMode"));
         assertEquals(4, params.getInt("remoteMode"));
+        assertEquals(3, params.getInt("timeSpan"));
+
+        JSONObject thirtyMin = BydCloudClient.climateStartParams(20.0, 30);
+        assertEquals(5, thirtyMin.getInt("timeSpan"));
     }
 
     @Test

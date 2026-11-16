@@ -295,6 +295,9 @@ public class BydRepository {
                                             || cmd.tempGear > 0
                                             || cmd.fanLevel > 0
                                             || cmd.windMode > 0)));
+                    int durationMin = cmd.acDurationMinutes > 0
+                            ? ConfigStore.normalizeAcDurationMinutes(cmd.acDurationMinutes)
+                            : configStore.getDefaultAcDurationMinutes();
                     boolean ok;
                     if (useManualAc) {
                         int gear = (cmd.tempGear >= ConfigStore.MIN_TEMP_GEAR && cmd.tempGear <= ConfigStore.MAX_TEMP_GEAR)
@@ -313,10 +316,10 @@ public class BydRepository {
                             configStore.setDefaultFanLevel(fan);
                             configStore.setDefaultWindMode(windMode);
                         }
-                        ok = gateway.startElectricClimate(vin, gear, fan, windMode);
+                        ok = gateway.startElectricClimate(vin, gear, fan, windMode, durationMin);
                     } else {
                         int temp = cmd.tempC;
-                        ok = gateway.startClimate(vin, temp);
+                        ok = gateway.startClimate(vin, temp, durationMin);
                     }
                     if (!ok) {
                         return WatchProtocol.error(cmd.id, cmd.action, "ERROR", "Failed to start AC");

@@ -141,8 +141,13 @@ public class LocationWidgetProvider extends AppWidgetProvider {
 
         PendingIntent navPi = PendingIntent.getBroadcast(context, 21,
                 new Intent(context, WidgetActionReceiver.class).setAction(ACTION_LOCATION_NAVIGATE), flags);
-        PendingIntent syncPi = PendingIntent.getBroadcast(context, 22,
-                new Intent(context, WidgetActionReceiver.class).setAction(ACTION_LOCATION_REFRESH), flags);
+        boolean requireSyncAuth = BiometricLockHelper.isWidgetProtectionEnabled(cfg)
+                && cfg != null && cfg.isBiometricWidgetSyncRequired();
+        PendingIntent syncPi = requireSyncAuth
+                ? PendingIntent.getActivity(context, 122,
+                        WidgetAuthActivity.createIntent(context, ACTION_LOCATION_REFRESH), flags)
+                : PendingIntent.getBroadcast(context, 22,
+                        new Intent(context, WidgetActionReceiver.class).setAction(ACTION_LOCATION_REFRESH), flags);
 
         for (int appWidgetId : ids) {
             RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_location);

@@ -42,6 +42,8 @@ public interface ConfigStore {
     int WIND_MODE_BODY_FEET = 2;
     int WIND_MODE_FEET = 3;
     int DEFAULT_WIND_MODE = WIND_MODE_BODY;
+    int DEFAULT_AC_DURATION_MINUTES = 20;
+    int[] AC_DURATION_OPTIONS = {10, 15, 20, 25, 30};
 
     default int getDefaultTempGear() { return DEFAULT_TEMP_GEAR; }
     default void setDefaultTempGear(int gear) {}
@@ -51,6 +53,18 @@ public interface ConfigStore {
 
     default int getDefaultWindMode() { return DEFAULT_WIND_MODE; }
     default void setDefaultWindMode(int windMode) {}
+
+    default int getDefaultAcDurationMinutes() { return DEFAULT_AC_DURATION_MINUTES; }
+    default void setDefaultAcDurationMinutes(int minutes) {}
+
+    static int normalizeAcDurationMinutes(int minutes) {
+        for (int opt : AC_DURATION_OPTIONS) {
+            if (opt == minutes) {
+                return opt;
+            }
+        }
+        return DEFAULT_AC_DURATION_MINUTES;
+    }
 
     default boolean isManualAcMode() { return false; }
     default void setManualAcMode(boolean manual) {}
@@ -190,6 +204,62 @@ public interface ConfigStore {
 
     default boolean isShowHomeHealth() { return true; }
     default void setShowHomeHealth(boolean show) {}
+
+    default long getLastUpdateCheckMs() { return 0L; }
+    default void setLastUpdateCheckMs(long checkMs) {}
+
+    default boolean isSupportCardDismissed() { return false; }
+    default void setSupportCardDismissed(boolean dismissed) {}
+
+    default boolean isSingleFlightActionEnabled() { return true; }
+    default void setSingleFlightActionEnabled(boolean enabled) {}
+
+    String BIOMETRIC_SCOPE_OFF = "off";
+    String BIOMETRIC_SCOPE_APP = "app";
+    String BIOMETRIC_SCOPE_WIDGET = "widget";
+    String BIOMETRIC_SCOPE_BOTH = "both";
+    String DEFAULT_BIOMETRIC_SCOPE = BIOMETRIC_SCOPE_OFF;
+    int DEFAULT_BIOMETRIC_GRACE_MINUTES = 0;
+    int MAX_BIOMETRIC_GRACE_MINUTES = 1440;
+
+    static String normalizeBiometricScope(String scope) {
+        if (scope == null) {
+            return DEFAULT_BIOMETRIC_SCOPE;
+        }
+        String clean = scope.trim().toLowerCase(java.util.Locale.US);
+        switch (clean) {
+            case BIOMETRIC_SCOPE_APP:
+            case BIOMETRIC_SCOPE_WIDGET:
+            case BIOMETRIC_SCOPE_BOTH:
+                return clean;
+            default:
+                return BIOMETRIC_SCOPE_OFF;
+        }
+    }
+
+    static int normalizeBiometricGraceMinutes(int minutes) {
+        return Math.max(0, Math.min(MAX_BIOMETRIC_GRACE_MINUTES, minutes));
+    }
+
+    default String getBiometricScope() { return DEFAULT_BIOMETRIC_SCOPE; }
+    default void setBiometricScope(String scope) {}
+
+    default int getBiometricGraceMinutes() { return DEFAULT_BIOMETRIC_GRACE_MINUTES; }
+    default void setBiometricGraceMinutes(int minutes) {}
+
+    default boolean isBiometricWidgetSyncRequired() { return false; }
+    default void setBiometricWidgetSyncRequired(boolean required) {}
+
+    default long getLastBiometricAuthElapsedMs() { return -1L; }
+    default void setLastBiometricAuthElapsedMs(long elapsedMs) {}
+
+    default int getLastBiometricAuthBootCount() { return -1; }
+    default void setLastBiometricAuthBootCount(int bootCount) {}
+
+    default void clearBiometricAuthTimestamp() {
+        setLastBiometricAuthElapsedMs(-1L);
+        setLastBiometricAuthBootCount(-1);
+    }
 
     boolean isConfigured();
 

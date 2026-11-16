@@ -276,8 +276,17 @@ public class CloudBydGateway implements BydGateway {
 
     @Override
     public synchronized boolean startClimate(String vin, double tempCelsius) throws Exception {
+        int duration = configStore != null
+                ? configStore.getDefaultAcDurationMinutes()
+                : ConfigStore.DEFAULT_AC_DURATION_MINUTES;
+        return startClimate(vin, tempCelsius, duration);
+    }
+
+    @Override
+    public synchronized boolean startClimate(String vin, double tempCelsius, int durationMinutes) throws Exception {
         syncConfigToClient();
         if (client == null) return false;
+        int duration = ConfigStore.normalizeAcDurationMinutes(durationMinutes);
         if (isElectricAcVin(vin)) {
             int gear = configStore != null
                     ? configStore.getDefaultTempGear()
@@ -288,9 +297,9 @@ public class CloudBydGateway implements BydGateway {
             int windMode = configStore != null
                     ? configStore.getDefaultWindMode()
                     : ConfigStore.DEFAULT_WIND_MODE;
-            return client.startElectricClimate(vin, gear, fan, windMode);
+            return client.startElectricClimate(vin, gear, fan, windMode, duration);
         }
-        return client.startClimate(vin, tempCelsius);
+        return client.startClimate(vin, tempCelsius, duration);
     }
 
     @Override
@@ -301,8 +310,18 @@ public class CloudBydGateway implements BydGateway {
 
     @Override
     public synchronized boolean startElectricClimate(String vin, int tempGear, int windLevel, int windMode) throws Exception {
+        int duration = configStore != null
+                ? configStore.getDefaultAcDurationMinutes()
+                : ConfigStore.DEFAULT_AC_DURATION_MINUTES;
+        return startElectricClimate(vin, tempGear, windLevel, windMode, duration);
+    }
+
+    @Override
+    public synchronized boolean startElectricClimate(
+            String vin, int tempGear, int windLevel, int windMode, int durationMinutes) throws Exception {
         syncConfigToClient();
-        return client != null && client.startElectricClimate(vin, tempGear, windLevel, windMode);
+        int duration = ConfigStore.normalizeAcDurationMinutes(durationMinutes);
+        return client != null && client.startElectricClimate(vin, tempGear, windLevel, windMode, duration);
     }
 
     private boolean isElectricAcVin(String vin) {

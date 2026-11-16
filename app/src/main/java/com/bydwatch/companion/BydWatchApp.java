@@ -10,6 +10,7 @@ import com.bydwatch.companion.data.CloudBydGateway;
 import com.bydwatch.companion.data.ConfigStore;
 import com.bydwatch.companion.data.SecureConfigStore;
 import com.bydwatch.companion.ui.VehicleLocationHelper;
+import com.bydwatch.companion.update.AppUpdateChecker;
 import com.bydwatch.companion.wear.HuaweiWearP2pTransport;
 import com.bydwatch.companion.wear.PeerTransport;
 import com.bydwatch.companion.wear.WearEngineBridge;
@@ -31,6 +32,7 @@ public class BydWatchApp extends Application {
     private static WearEngineConfig testWearEngineConfig;
     private static PeerTransport testPeerTransport;
     private static WearEngineBridge testWearEngineBridge;
+    private static AppUpdateChecker testAppUpdateChecker;
 
     private ConfigStore configStore;
     private BydGateway gateway;
@@ -38,6 +40,7 @@ public class BydWatchApp extends Application {
     private WearEngineConfig wearEngineConfig;
     private PeerTransport peerTransport;
     private WearEngineBridge wearEngineBridge;
+    private AppUpdateChecker appUpdateChecker;
 
     public static BydWatchApp getInstance() {
         return instance;
@@ -136,6 +139,26 @@ public class BydWatchApp extends Application {
         return wearEngineBridge;
     }
 
+    public synchronized AppUpdateChecker getAppUpdateChecker() {
+        if (testAppUpdateChecker != null) {
+            return testAppUpdateChecker;
+        }
+        if (appUpdateChecker == null) {
+            appUpdateChecker = new AppUpdateChecker();
+        }
+        return appUpdateChecker;
+    }
+
+    public static synchronized boolean hasTestAppUpdateChecker() {
+        return testAppUpdateChecker != null;
+    }
+
+    @VisibleForTesting
+    public static synchronized void setTestAppUpdateChecker(AppUpdateChecker checker) {
+        if (!BuildConfig.DEBUG) return;
+        testAppUpdateChecker = checker;
+    }
+
     @VisibleForTesting
     public static synchronized void setTestDependencies(ConfigStore configStore, BydRepository repository) {
         setTestDependencies(configStore, repository != null ? repository.getGateway() : null, repository);
@@ -166,6 +189,7 @@ public class BydWatchApp extends Application {
         testWearEngineConfig = null;
         testPeerTransport = null;
         testWearEngineBridge = null;
+        testAppUpdateChecker = null;
         VehicleLocationHelper.clearCacheForTesting();
     }
 }

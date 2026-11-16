@@ -68,6 +68,8 @@
     <string name="vent_body">Body</string>
     <string name="vent_body_feet">Body+Feet</string>
     <string name="vent_feet">Feet</string>
+    <string name="label_ac_timer">Timer</string>
+    <string name="ac_timer_min_short_fmt">%1$dm</string>
     <string name="btn_ac_adjust">Adjust</string>
     <string name="climate_popup_title">Climate Settings</string>
     <string name="climate_mode_manual">Manual AC</string>
@@ -182,6 +184,44 @@
     <string name="about_github_watch">GitHub · Watch GT 4 App</string>
     <string name="about_github_companion_url" translatable="false">https://github.com/kennyric/byd-open-remote</string>
     <string name="about_github_watch_url" translatable="false">https://github.com/kennyric/byd-watch-gt4</string>
+    <string name="support_url" translatable="false">https://github.com/kennyric/byd-open-remote#support</string>
+
+    <string name="nav_support_me">Support Me</string>
+    <string name="support_btn_label">Support Me</string>
+    <string name="support_card_title">Support Development</string>
+    <string name="support_card_body">BYD Open Remote is free and open-source. Help support ongoing updates &amp; maintenance.</string>
+    <string name="support_card_dismiss_desc">Dismiss support card</string>
+
+    <string name="nav_check_update">Check for Updates</string>
+    <string name="about_installed_version_fmt">Installed: v%1$s</string>
+    <string name="update_status_idle">Tap to check GitHub Releases for new versions.</string>
+    <string name="update_status_checking">Checking GitHub Releases…</string>
+    <string name="update_status_up_to_date">You\'re on the latest version (v%1$s).</string>
+    <string name="update_status_available_fmt">Update v%1$s available (%2$s)</string>
+    <string name="update_status_no_apk_fmt">v%1$s found on GitHub (open release page).</string>
+    <string name="update_status_failed_fmt">Update check failed: %1$s</string>
+    <string name="update_banner_title_fmt">Update v%1$s available</string>
+    <string name="update_banner_subtitle">Tap to view release notes &amp; install</string>
+    <string name="update_banner_action">Update</string>
+    <string name="update_banner_dismiss_desc">Dismiss update banner</string>
+    <string name="btn_check_updates">Check for Updates</string>
+    <string name="update_dialog_title">Update Available</string>
+    <string name="update_dialog_version_fmt">v%1$s → v%2$s</string>
+    <string name="update_dialog_size_fmt">%1$s APK</string>
+    <string name="update_dialog_notes_empty">No release notes provided.</string>
+    <string name="update_dialog_downloading_pct_fmt">Downloading… %1$d%% (%2$s / %3$s)</string>
+    <string name="update_dialog_downloading_bytes_fmt">Downloading… %1$s</string>
+    <string name="update_dialog_ready_to_install">APK verified &amp; ready to install.</string>
+    <string name="update_btn_later">Later</string>
+    <string name="update_btn_cancel">Cancel</string>
+    <string name="update_btn_github">GitHub</string>
+    <string name="update_btn_download_install">Download &amp; Install</string>
+    <string name="update_btn_install_now">Install Now</string>
+    <string name="update_btn_open_release">Open Release</string>
+    <string name="update_perm_title">Allow App Installs</string>
+    <string name="update_perm_message">To install updates directly inside the app, enable "Allow from this source" in Android settings, then return to continue installation.</string>
+    <string name="update_perm_open_settings">Open Settings</string>
+    <string name="update_install_failed_fmt">Unable to start installer: %1$s</string>
 
     <string name="label_app_language">App Language</string>
     <string name="lang_option_system">System</string>
@@ -285,8 +325,8 @@
     <string name="combo_ac_mode_auto">Auto °C</string>
     <string name="combo_ac_mode_manual">Manual</string>
     <string name="combo_ac_mode_default">App Default</string>
-    <string name="combo_step_ac_auto_fmt">Start AC (%1$d°C)</string>
-    <string name="combo_step_ac_manual_fmt">Start AC (Lvl %1$d · Fan %2$d)</string>
+    <string name="combo_step_ac_auto_fmt">Start AC (%1$d°C · %2$dm)</string>
+    <string name="combo_step_ac_manual_fmt">Start AC (Lvl %1$d · Fan %2$d · %3$dm)</string>
     <string name="combo_step_bat_heat_on">Bat Heat: On</string>
     <string name="combo_step_bat_heat_off">Bat Heat: Off</string>
     <string name="combo_step_seat_cycle">Cycle</string>
@@ -323,4 +363,31 @@
     <string name="home_button_combo_missing">Linked combo was deleted</string>
     <string name="home_button_max_toast">Maximum of %1$d custom buttons reached</string>
     <string name="home_button_select_action_toast">Select an action or combo first</string>
+
+    <!-- Action Lock & Biometric Security -->
+    <string name="label_single_flight_action">Single-flight action lock (prevent queueing)</string>
+    <string name="section_biometric_security">Biometric / PIN Security</string>
+    <string name="biometric_scope_off">Off</string>
+    <string name="biometric_scope_app">App</string>
+    <string name="biometric_scope_widget">Widget</string>
+    <string name="biometric_scope_both">Both</string>
+    <string name="label_biometric_grace">Re-auth grace period (0 = every time)</string>
+    <string name="hint_biometric_grace_min">0</string>
+    <string name="unit_min">min</string>
+    <string name="btn_apply_biometric_grace">Apply</string>
+    <string name="biometric_grace_saved">Biometric grace period saved: %1$d min</string>
+    <string name="biometric_grace_always">Biometric set to prompt every time (0 min)</string>
+    <string name="biometric_grace_invalid">Enter minutes between 0 and 1440</string>
+    <string name="btn_biometric_advanced_show">Advanced options ▾</string>
+    <string name="btn_biometric_advanced_hide">Advanced options ▴</string>
+    <string name="label_biometric_widget_sync">Require biometric for widget refresh/sync</string>
+    <string name="biometric_unavailable_toast">Set up fingerprint, face unlock, or screen lock PIN on your device first</string>
+    <string name="biometric_app_prompt_title">Unlock BYD Open Remote</string>
+    <string name="biometric_app_prompt_subtitle">Verify your identity to access vehicle controls</string>
+    <string name="biometric_widget_prompt_title">Confirm Vehicle Action</string>
+    <string name="biometric_widget_prompt_subtitle">Verify fingerprint, face, or device PIN to run widget action</string>
+    <string name="biometric_auth_cancelled">Authentication cancelled</string>
+    <string name="app_lock_title">App Locked</string>
+    <string name="app_lock_subtitle">Verify with fingerprint, face unlock, or device PIN to continue.</string>
+    <string name="btn_unlock_app">Unlock</string>
 </resources>

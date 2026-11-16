@@ -6,9 +6,9 @@
 Aplikasi remote control Android & widget layar utama Material You yang gratis, open-source, dan tidak resmi untuk kendaraan BYD yang terhubung ke BYD DiLink Cloud (`com.bydopenremote.app`).
 
 [![Unduh APK Android](https://img.shields.io/badge/Unduh_APK-Rilis_Terbaru-006C4C?style=for-the-badge&logo=android&logoColor=white)](https://github.com/kennyric/byd-open-remote/releases/latest)
-[![Unduh Langsung APK](https://img.shields.io/badge/Unduh_Langsung-v1.0.2_(.apk)-00658E?style=for-the-badge)](https://github.com/kennyric/byd-open-remote/releases/download/v1.0.2/BYD-Open-Remote-v1.0.2.apk)
+[![Unduh Langsung APK](https://img.shields.io/badge/Unduh_Langsung-v1.0.3_(.apk)-00658E?style=for-the-badge)](https://github.com/kennyric/byd-open-remote/releases/download/v1.0.3/BYD-Open-Remote-v1.0.3.apk)
 
-> **Instalasi Cepat:** **[Unduh BYD-Open-Remote-v1.0.2.apk](https://github.com/kennyric/byd-open-remote/releases/download/v1.0.2/BYD-Open-Remote-v1.0.2.apk)** atau buka **[GitHub Releases](https://github.com/kennyric/byd-open-remote/releases/latest)**, lalu ikuti **[Panduan Persiapan Akun Kedua](#panduan-persiapan-akun-kedua-byd)** di bawah sebelum masuk.
+> **Instalasi Cepat:** **[Unduh BYD-Open-Remote-v1.0.3.apk](https://github.com/kennyric/byd-open-remote/releases/download/v1.0.3/BYD-Open-Remote-v1.0.3.apk)** atau buka **[GitHub Releases](https://github.com/kennyric/byd-open-remote/releases/latest)**, lalu ikuti **[Panduan Persiapan Akun Kedua](#panduan-persiapan-akun-kedua-byd)** di bawah sebelum masuk.
 >
 > Saat memasang `.apk`, aktifkan izin **Instal aplikasi tidak dikenal (*Install unknown apps*)** bila diminta. Jika muncul dialog Google Play Protect, pilih **Selengkapnya (*More details*) → Tetap instal (*Install anyway*)**.
 

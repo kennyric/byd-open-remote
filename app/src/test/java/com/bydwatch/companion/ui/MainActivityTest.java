@@ -4,6 +4,7 @@ import android.Manifest;
 import android.app.Application;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.os.Bundle;
 import androidx.appcompat.app.AlertDialog;
 import android.view.View;
 import android.view.WindowManager;
@@ -14,6 +15,7 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import androidx.core.widget.NestedScrollView;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import com.bydwatch.companion.BydWatchApp;
 import com.bydwatch.companion.R;
@@ -56,6 +58,8 @@ public class MainActivityTest {
     public static class TestGateway extends BydRepositoryTest.FakeBydGateway {
         public final AtomicInteger fetchVinCalls = new AtomicInteger();
         public String returnedVin = "BYDATTO1TESTVIN99";
+        public volatile java.util.concurrent.CountDownLatch lockStartedLatch;
+        public volatile java.util.concurrent.CountDownLatch releaseLockLatch;
 
         @Override
         public String fetchFirstVin() throws Exception {
@@ -64,6 +68,17 @@ public class MainActivityTest {
                 throw new java.io.IOException("Login failed: unauthorized");
             }
             return returnedVin;
+        }
+
+        @Override
+        public boolean lock(String vin) throws Exception {
+            if (lockStartedLatch != null) {
+                lockStartedLatch.countDown();
+            }
+            if (releaseLockLatch != null) {
+                releaseLockLatch.await(5, TimeUnit.SECONDS);
+            }
+            return super.lock(vin);
         }
     }
 
@@ -107,6 +122,7 @@ public class MainActivityTest {
 
     @After
     public void tearDown() {
+        BiometricLockHelper.resetTestHooks();
         if (controller != null) {
             try {
                 controller.destroy();
@@ -129,7 +145,7 @@ public class MainActivityTest {
         assertNotNull(toggleTitle);
         assertNotNull(authNotice);
         assertEquals("Turn AC On", toggleTitle.getText().toString());
-        assertEquals("17°C", presetView.getText().toString());
+        assertEquals("17°C · 20m", presetView.getText().toString());
         assertTrue(authNotice.getText().toString().contains("Alternate Vehicle Authorization"));
     }
 
@@ -169,7 +185,7 @@ public class MainActivityTest {
         btnMinus.performClick();
         ShadowLooper.idleMainLooper();
         assertEquals("30°C", tempView.getText().toString());
-        assertEquals("30°C", ((TextView) activity.findViewById(R.id.tvAcTogglePreset)).getText().toString());
+        assertEquals("30°C · 20m", ((TextView) activity.findViewById(R.id.tvAcTogglePreset)).getText().toString());
     }
 
     @Test
@@ -441,7 +457,7 @@ public class MainActivityTest {
         MainActivity newActivity = controller.get();
 
         TextView presetView = newActivity.findViewById(R.id.tvAcTogglePreset);
-        assertEquals("17°C", presetView.getText().toString());
+        assertEquals("17°C · 20m", presetView.getText().toString());
     }
 
     @Test
@@ -583,6 +599,8 @@ public class MainActivityTest {
 
         controller = Robolectric.buildActivity(MainActivity.class).setup();
         MainActivity newActivity = controller.get();
+        awaitAsyncWork();
+        assertEquals(0, fakeGateway.fetchRealtimeCalls.get());
 
         Button btnRefresh = newActivity.findViewById(R.id.btnRefresh);
         Button btnLock = newActivity.findViewById(R.id.btnLock);
@@ -1130,7 +1148,7 @@ public class MainActivityTest {
         btnTempPlus.performClick();
         ShadowLooper.idleMainLooper(300, TimeUnit.MILLISECONDS);
         assertEquals("19°C", tvTargetTemp.getText().toString());
-        assertEquals("19°C", tvPreset.getText().toString());
+        assertEquals("19°C · 20m", tvPreset.getText().toString());
         assertEquals(1, fakeGateway.startClimateCalls.get());
 
         ShadowLooper.idleMainLooper(600, TimeUnit.MILLISECONDS);
@@ -1150,7 +1168,7 @@ public class MainActivityTest {
         awaitAsyncWork();
 
         TextView tvPreset = activity.findViewById(R.id.tvAcTogglePreset);
-        assertEquals("Lvl 3 · Fan 4 · Body", tvPreset.getText().toString());
+        assertEquals("Lvl 3 · Fan 4 · Body · 20m", tvPreset.getText().toString());
 
         activity.findViewById(R.id.btnAcAdjust).performClick();
         ShadowLooper.idleMainLooper();
@@ -1177,7 +1195,7 @@ public class MainActivityTest {
         btnVentBodyFeet.performClick();
         assertEquals("Lvl 4", tvTargetTemp.getText().toString());
         assertEquals("Lvl 5", tvFanLevel.getText().toString());
-        assertEquals("Lvl 4 · Fan 5 · Body+Feet", tvPreset.getText().toString());
+        assertEquals("Lvl 4 · Fan 5 · Body+Feet · 20m", tvPreset.getText().toString());
         assertEquals(0, fakeGateway.startElectricClimateCalls.get());
         btnDone.performClick();
         ShadowLooper.idleMainLooper();
@@ -1217,7 +1235,7 @@ public class MainActivityTest {
                 .build();
         btnRefresh.performClick();
         awaitAsyncWork();
-        assertEquals("17°C", tvPreset.getText().toString());
+        assertEquals("17°C · 20m", tvPreset.getText().toString());
 
         activity.findViewById(R.id.btnAcAdjust).performClick();
         ShadowLooper.idleMainLooper();
@@ -1246,7 +1264,7 @@ public class MainActivityTest {
         activity.findViewById(R.id.btnRefresh).performClick();
         awaitAsyncWork();
 
-        assertEquals("Lvl 1 · Fan 4 · Body",
+        assertEquals("Lvl 1 · Fan 4 · Body · 20m",
                 ((TextView) activity.findViewById(R.id.tvAcTogglePreset)).getText().toString());
         assertEquals(1, configStore.getDefaultTempGear());
         assertEquals(4, configStore.getDefaultFanLevel());
@@ -1548,6 +1566,41 @@ public class MainActivityTest {
         assertEquals(beforeLights + 1, fakeGateway.flashLightsCalls.get());
     }
 
+    @Test
+    public void climatePopupTimerPersistsSelectionAndPassesDurationOnAcStart() throws Exception {
+        activity.findViewById(R.id.btnAcAdjust).performClick();
+        ShadowLooper.idleMainLooper();
+
+        AlertDialog dialog = (AlertDialog) ShadowDialog.getLatestDialog();
+        assertNotNull(dialog);
+        View timerLayout = dialog.findViewById(R.id.layoutAcTimerControl);
+        assertNotNull(timerLayout);
+        assertEquals(View.VISIBLE, timerLayout.getVisibility());
+
+        dialog.findViewById(R.id.btnAcTimer15).performClick();
+        ShadowLooper.idleMainLooper();
+        assertEquals(15, configStore.getDefaultAcDurationMinutes());
+        assertEquals("17°C · 15m",
+                ((TextView) activity.findViewById(R.id.tvAcTogglePreset)).getText().toString());
+
+        dialog.findViewById(R.id.btnClimateApply).performClick();
+        awaitAsyncWork();
+        assertEquals(1, fakeGateway.startClimateCalls.get());
+        assertEquals(15, fakeGateway.lastAcDurationMinutes);
+
+        // Switching timer while AC is already ON triggers debounced update with 30m
+        activity.findViewById(R.id.btnAcAdjust).performClick();
+        ShadowLooper.idleMainLooper();
+        AlertDialog dialog2 = (AlertDialog) ShadowDialog.getLatestDialog();
+        dialog2.findViewById(R.id.btnAcTimer30).performClick();
+        ShadowLooper.idleMainLooper(800, TimeUnit.MILLISECONDS);
+        awaitAsyncWork();
+        assertEquals(30, configStore.getDefaultAcDurationMinutes());
+        assertEquals(2, fakeGateway.startClimateCalls.get());
+        assertEquals(30, fakeGateway.lastAcDurationMinutes);
+        dialog2.dismiss();
+    }
+
     private static com.google.android.material.materialswitch.MaterialSwitch findSwitchByText(View view, String text) {
         if (view instanceof com.google.android.material.materialswitch.MaterialSwitch) {
             com.google.android.material.materialswitch.MaterialSwitch sw =
@@ -1594,5 +1647,514 @@ public class MainActivityTest {
             }
         }
         return false;
+    }
+
+    @Test
+    public void inAppUpdaterShowsBannerDialogDownloadsAndLaunchesInstaller() throws Exception {
+        com.bydwatch.companion.update.AppUpdateInfo newer =
+                new com.bydwatch.companion.update.AppUpdateInfo(
+                        "v9.9.9",
+                        "9.9.9",
+                        "v9.9.9",
+                        "## Highlights\n- In-app updater\n- AC timer",
+                        "https://github.com/kennyric/byd-open-remote/releases/tag/v9.9.9",
+                        "BYD-Open-Remote-v9.9.9.apk",
+                        "https://github.com/kennyric/byd-open-remote/releases/download/v9.9.9/BYD-Open-Remote-v9.9.9.apk",
+                        1024L,
+                        ""
+                );
+        com.bydwatch.companion.update.AppUpdateChecker fakeChecker =
+                new com.bydwatch.companion.update.AppUpdateChecker() {
+                    @Override
+                    public com.bydwatch.companion.update.AppUpdateInfo fetchLatestRelease() {
+                        return newer;
+                    }
+
+                    @Override
+                    public java.io.File downloadApk(
+                            android.content.Context context,
+                            com.bydwatch.companion.update.AppUpdateInfo info,
+                            DownloadProgressListener progressListener,
+                            java.util.concurrent.atomic.AtomicBoolean cancelled) throws java.io.IOException {
+                        java.io.File dir = new java.io.File(context.getCacheDir(), "updates");
+                        //noinspection ResultOfMethodCallIgnored
+                        dir.mkdirs();
+                        java.io.File apk = new java.io.File(dir, info.apkName);
+                        try (java.io.FileOutputStream out = new java.io.FileOutputStream(apk)) {
+                            out.write(new byte[1024]);
+                        }
+                        if (progressListener != null) {
+                            progressListener.onProgress(1024L, 1024L);
+                        }
+                        return apk;
+                    }
+                };
+
+        BydWatchApp.setTestAppUpdateChecker(fakeChecker);
+        controller.destroy();
+        controller = Robolectric.buildActivity(MainActivity.class).setup();
+        activity = controller.get();
+        activity.getUpdateUiHelperForTesting().awaitActiveTaskForTesting();
+        ShadowLooper.idleMainLooper();
+
+        View banner = activity.findViewById(R.id.bannerAppUpdate);
+        TextView tvBannerTitle = activity.findViewById(R.id.tvUpdateBannerTitle);
+        assertEquals(View.VISIBLE, banner.getVisibility());
+        assertTrue(tvBannerTitle.getText().toString().contains("9.9.9"));
+
+        banner.performClick();
+        ShadowLooper.idleMainLooper();
+
+        AlertDialog dialog = (AlertDialog) ShadowDialog.getLatestDialog();
+        assertNotNull(dialog);
+        TextView tvVersion = dialog.findViewById(R.id.tvUpdateDialogVersion);
+        TextView tvNotes = dialog.findViewById(R.id.tvUpdateReleaseNotes);
+        Button btnDownload = dialog.findViewById(R.id.btnUpdateDownload);
+        assertTrue(tvVersion.getText().toString().contains("9.9.9"));
+        assertTrue(tvNotes.getText().toString().contains("In-app updater"));
+
+        assertNotNull(activity.getPackageManager().resolveContentProvider(
+                activity.getPackageName() + ".fileprovider", PackageManager.GET_META_DATA));
+        activity.getUpdateUiHelperForTesting().setApkUriResolverForTesting((ctx, authority, file) -> {
+            assertEquals(ctx.getPackageName() + ".fileprovider", authority);
+            assertEquals("BYD-Open-Remote-v9.9.9.apk", file.getName());
+            return android.net.Uri.parse("content://" + authority + "/apk_updates/" + file.getName());
+        });
+
+        Shadows.shadowOf(activity.getPackageManager())
+                .setCanRequestPackageInstalls(true);
+        assertTrue(activity.getPackageManager().canRequestPackageInstalls());
+        btnDownload.performClick();
+        activity.getUpdateUiHelperForTesting().awaitActiveTaskForTesting();
+        ShadowLooper.idleMainLooper();
+
+        TextView tvError = dialog.findViewById(R.id.tvUpdateDialogError);
+        assertEquals(View.GONE, tvError.getVisibility());
+        assertEquals("Install Now", btnDownload.getText().toString());
+        org.junit.Assert.assertNull(org.robolectric.shadows.ShadowToast.getTextOfLatestToast());
+        Intent installIntent = Shadows.shadowOf(activity).getNextStartedActivity();
+        assertNotNull(installIntent);
+        assertEquals(Intent.ACTION_VIEW, installIntent.getAction());
+        assertEquals("application/vnd.android.package-archive", installIntent.getType());
+        assertNotNull(installIntent.getData());
+        assertTrue(installIntent.getData().toString().contains(".fileprovider"));
+        dialog.dismiss();
+    }
+
+    @Test
+    public void inAppUpdaterReportsUpToDateWhenLatestMatchesInstalled() throws Exception {
+        com.bydwatch.companion.update.AppUpdateInfo sameVersion =
+                new com.bydwatch.companion.update.AppUpdateInfo(
+                        "v" + com.bydwatch.companion.BuildConfig.VERSION_NAME,
+                        com.bydwatch.companion.BuildConfig.VERSION_NAME,
+                        "v" + com.bydwatch.companion.BuildConfig.VERSION_NAME,
+                        "",
+                        "https://github.com/kennyric/byd-open-remote/releases/latest",
+                        "",
+                        "",
+                        0L,
+                        ""
+                );
+        BydWatchApp.setTestAppUpdateChecker(new com.bydwatch.companion.update.AppUpdateChecker() {
+            @Override
+            public com.bydwatch.companion.update.AppUpdateInfo fetchLatestRelease() {
+                return sameVersion;
+            }
+        });
+
+        controller.destroy();
+        controller = Robolectric.buildActivity(MainActivity.class).setup();
+        activity = controller.get();
+        activity.getUpdateUiHelperForTesting().awaitActiveTaskForTesting();
+        ShadowLooper.idleMainLooper();
+        com.google.android.material.navigation.NavigationView navView = activity.findViewById(R.id.navView);
+        navView.getMenu().performIdentifierAction(R.id.nav_check_update, 0);
+        activity.getUpdateUiHelperForTesting().awaitActiveTaskForTesting();
+        ShadowLooper.idleMainLooper();
+
+        View banner = activity.findViewById(R.id.bannerAppUpdate);
+        TextView tvUpdateStatus = activity.findViewById(R.id.tvAppUpdateStatus);
+        assertEquals(View.GONE, banner.getVisibility());
+        assertTrue(tvUpdateStatus.getText().toString().contains(com.bydwatch.companion.BuildConfig.VERSION_NAME));
+    }
+
+    @Test
+    public void supportButtonsOpenGitHubSupportAndPrefCardDismissesPersistently() {
+        String expectedUrl = "https://github.com/kennyric/byd-open-remote#support";
+        View cardPrefSupport = activity.findViewById(R.id.cardPrefSupport);
+        View btnDismissPref = activity.findViewById(R.id.btnDismissPrefSupport);
+        View btnPrefSupport = activity.findViewById(R.id.btnPrefSupport);
+        View btnAboutSupport = activity.findViewById(R.id.btnAboutSupport);
+
+        assertEquals(View.VISIBLE, cardPrefSupport.getVisibility());
+
+        btnPrefSupport.performClick();
+        ShadowLooper.idleMainLooper();
+        Intent prefIntent = Shadows.shadowOf(activity).getNextStartedActivity();
+        assertNotNull(prefIntent);
+        assertEquals(Intent.ACTION_VIEW, prefIntent.getAction());
+        assertEquals(expectedUrl, prefIntent.getDataString());
+
+        btnAboutSupport.performClick();
+        ShadowLooper.idleMainLooper();
+        Intent aboutIntent = Shadows.shadowOf(activity).getNextStartedActivity();
+        assertNotNull(aboutIntent);
+        assertEquals(expectedUrl, aboutIntent.getDataString());
+
+        com.google.android.material.navigation.NavigationView navView = activity.findViewById(R.id.navView);
+        navView.getMenu().performIdentifierAction(R.id.nav_support, 0);
+        ShadowLooper.idleMainLooper();
+        Intent drawerIntent = Shadows.shadowOf(activity).getNextStartedActivity();
+        assertNotNull(drawerIntent);
+        assertEquals(expectedUrl, drawerIntent.getDataString());
+
+        // Dismiss Preferences support card with X button and verify persistence across restart
+        btnDismissPref.performClick();
+        ShadowLooper.idleMainLooper();
+        assertEquals(View.GONE, cardPrefSupport.getVisibility());
+        assertTrue(configStore.isSupportCardDismissed());
+
+        controller.destroy();
+        controller = Robolectric.buildActivity(MainActivity.class).setup();
+        activity = controller.get();
+        awaitAsyncWork();
+        assertEquals(View.GONE, activity.findViewById(R.id.cardPrefSupport).getVisibility());
+        assertEquals(View.VISIBLE, activity.findViewById(R.id.btnAboutSupport).getVisibility());
+    }
+
+    @Test
+    public void swipeDownToRefreshPollsStatusStopsSpinnerAndRestrictsToControlsPage() throws Exception {
+        SwipeRefreshLayout swipeRefresh = activity.findViewById(R.id.swipeRefresh);
+        assertNotNull(swipeRefresh);
+        assertTrue(swipeRefresh.isEnabled());
+        assertEquals(activity.findViewById(R.id.rootScroll).getParent(), swipeRefresh);
+
+        java.lang.reflect.Field listenerField = SwipeRefreshLayout.class.getDeclaredField("mListener");
+        listenerField.setAccessible(true);
+        SwipeRefreshLayout.OnRefreshListener listener =
+                (SwipeRefreshLayout.OnRefreshListener) listenerField.get(swipeRefresh);
+        assertNotNull(listener);
+
+        int callsBefore = fakeGateway.fetchRealtimeCalls.get();
+        swipeRefresh.setRefreshing(true);
+        listener.onRefresh();
+        awaitAsyncWork();
+
+        assertEquals(callsBefore + 1, fakeGateway.fetchRealtimeCalls.get());
+        assertFalse(swipeRefresh.isRefreshing());
+
+        // Restrict swipe-to-refresh to the main Controls dashboard page
+        com.google.android.material.navigation.NavigationView navView = activity.findViewById(R.id.navView);
+        navView.getMenu().performIdentifierAction(R.id.nav_preferences, 0);
+        ShadowLooper.idleMainLooper();
+        assertFalse(swipeRefresh.isEnabled());
+
+        navView.getMenu().performIdentifierAction(R.id.nav_controls, 0);
+        ShadowLooper.idleMainLooper();
+        assertTrue(swipeRefresh.isEnabled());
+
+        // When unconfigured, triggering refresh stops spinner immediately without polling
+        configStore.setPassword("");
+        swipeRefresh.setRefreshing(true);
+        listener.onRefresh();
+        ShadowLooper.idleMainLooper();
+        assertEquals(callsBefore + 1, fakeGateway.fetchRealtimeCalls.get());
+        assertFalse(swipeRefresh.isRefreshing());
+    }
+
+    @Test
+    public void doesNotAutoRefreshOnAppOpen() {
+        assertEquals(0, fakeGateway.fetchRealtimeCalls.get());
+
+        controller.pause().stop().start().resume();
+        awaitAsyncWork();
+        assertEquals(0, fakeGateway.fetchRealtimeCalls.get());
+    }
+
+    @Test
+    public void blocksAndDisablesOtherActionsWhileCommandInFlightUntilCompletion() throws Exception {
+        Button btnLock = activity.findViewById(R.id.btnLock);
+        Button btnUnlock = activity.findViewById(R.id.btnUnlock);
+        Button btnRefresh = activity.findViewById(R.id.btnRefresh);
+        View btnAcToggle = activity.findViewById(R.id.btnAcToggle);
+        Button btnAcAdjust = activity.findViewById(R.id.btnAcAdjust);
+        Button btnLights = activity.findViewById(R.id.btnLights);
+        Button btnHorn = activity.findViewById(R.id.btnHorn);
+        Button btnVentWindows = activity.findViewById(R.id.btnVentWindows);
+        Button btnCloseWindows = activity.findViewById(R.id.btnCloseWindows);
+        Button btnBatHeat = activity.findViewById(R.id.btnBatHeat);
+        Button btnSeatHeat = activity.findViewById(R.id.btnSeatHeat);
+        Button btnSwitchActiveCar = activity.findViewById(R.id.btnSwitchActiveCar);
+        Button btnRefreshLocation = activity.findViewById(R.id.btnRefreshLocation);
+        View cardLocation = activity.findViewById(R.id.cardLocation);
+        SwipeRefreshLayout swipeRefresh = activity.findViewById(R.id.swipeRefresh);
+
+        fakeGateway.currentStatus = fakeGateway.currentStatus.toBuilder()
+                .capabilities(true, false, false)
+                .build();
+        fakeGateway.lockStartedLatch = new java.util.concurrent.CountDownLatch(1);
+        fakeGateway.releaseLockLatch = new java.util.concurrent.CountDownLatch(1);
+
+        btnLock.performClick();
+        assertTrue("Lock action should begin executing",
+                fakeGateway.lockStartedLatch.await(5, TimeUnit.SECONDS));
+
+        // Every vehicle action control must be disabled & unclickable while lock is in flight
+        assertFalse(btnLock.isEnabled());
+        assertFalse(btnLock.isClickable());
+        assertFalse(btnUnlock.isEnabled());
+        assertFalse(btnUnlock.isClickable());
+        assertFalse(btnRefresh.isEnabled());
+        assertFalse(btnAcToggle.isEnabled());
+        assertFalse(btnAcAdjust.isEnabled());
+        assertFalse(btnLights.isEnabled());
+        assertFalse(btnHorn.isEnabled());
+        assertFalse(btnVentWindows.isEnabled());
+        assertFalse(btnCloseWindows.isEnabled());
+        assertFalse(btnBatHeat.isEnabled());
+        assertFalse(btnSeatHeat.isEnabled());
+        assertFalse(btnSwitchActiveCar.isEnabled());
+        assertFalse(btnRefreshLocation.isEnabled());
+        assertFalse(cardLocation.isEnabled());
+        assertFalse(swipeRefresh.isEnabled());
+
+        // Attempting additional clicks while in flight must NOT queue commands
+        btnUnlock.performClick();
+        btnLights.performClick();
+        btnLock.performClick();
+
+        fakeGateway.releaseLockLatch.countDown();
+        awaitAsyncWork();
+
+        assertEquals(1, fakeGateway.lockCalls.get());
+        assertEquals(0, fakeGateway.unlockCalls.get());
+        assertEquals(0, fakeGateway.flashLightsCalls.get());
+
+        // Controls restore when the active command completes, respecting capability flags
+        assertTrue(btnLock.isEnabled());
+        assertTrue(btnLock.isClickable());
+        assertTrue(btnUnlock.isEnabled());
+        assertTrue(btnUnlock.isClickable());
+        assertTrue(btnRefresh.isEnabled());
+        assertTrue(btnAcToggle.isEnabled());
+        assertTrue(btnAcAdjust.isEnabled());
+        assertTrue(btnLights.isEnabled());
+        assertTrue(btnHorn.isEnabled());
+        assertTrue(btnVentWindows.isEnabled());
+        assertTrue(btnCloseWindows.isEnabled());
+        assertTrue(btnSwitchActiveCar.isEnabled());
+        assertTrue(btnRefreshLocation.isEnabled());
+        assertTrue(cardLocation.isEnabled());
+        assertTrue(swipeRefresh.isEnabled());
+        assertFalse(btnBatHeat.isEnabled());
+        assertFalse(btnSeatHeat.isEnabled());
+
+        // Subsequent action executes cleanly once unlocked
+        btnUnlock.performClick();
+        awaitAsyncWork();
+        assertEquals(1, fakeGateway.unlockCalls.get());
+    }
+
+    @Test
+    public void singleFlightActionToggleAllowsConcurrentActionsWhenDisabled() throws Exception {
+        androidx.appcompat.widget.SwitchCompat switchSingleFlight =
+                activity.findViewById(R.id.switchSingleFlightAction);
+        assertTrue(switchSingleFlight.isChecked());
+        assertTrue(configStore.isSingleFlightActionEnabled());
+
+        switchSingleFlight.setChecked(false);
+        ShadowLooper.idleMainLooper();
+        assertFalse(configStore.isSingleFlightActionEnabled());
+
+        Button btnLock = activity.findViewById(R.id.btnLock);
+        Button btnUnlock = activity.findViewById(R.id.btnUnlock);
+        fakeGateway.lockStartedLatch = new java.util.concurrent.CountDownLatch(1);
+        fakeGateway.releaseLockLatch = new java.util.concurrent.CountDownLatch(1);
+
+        btnLock.performClick();
+        assertTrue(fakeGateway.lockStartedLatch.await(5, TimeUnit.SECONDS));
+
+        assertTrue(btnUnlock.isEnabled());
+        btnUnlock.performClick();
+
+        fakeGateway.releaseLockLatch.countDown();
+        awaitAsyncWork();
+
+        assertEquals(1, fakeGateway.lockCalls.get());
+        assertEquals(1, fakeGateway.unlockCalls.get());
+    }
+
+    @Test
+    public void biometricSettingsConfigureScopeGraceAndAdvancedWidgetSync() {
+        com.google.android.material.button.MaterialButtonToggleGroup toggleScope =
+                activity.findViewById(R.id.toggleBiometricScope);
+        View layoutOptions = activity.findViewById(R.id.layoutBiometricOptions);
+        EditText etGrace = activity.findViewById(R.id.etBiometricGraceMinutes);
+        Button btnApplyGrace = activity.findViewById(R.id.btnApplyBiometricGrace);
+        TextView btnAdvanced = activity.findViewById(R.id.btnToggleBiometricAdvanced);
+        View layoutAdvanced = activity.findViewById(R.id.layoutBiometricAdvanced);
+        androidx.appcompat.widget.SwitchCompat switchWidgetSync =
+                activity.findViewById(R.id.switchBiometricWidgetSync);
+
+        assertEquals(R.id.btnBioScopeOff, toggleScope.getCheckedButtonId());
+        assertEquals(View.GONE, layoutOptions.getVisibility());
+
+        // Enabling fails gracefully when device has no biometric/PIN enrolled
+        BiometricLockHelper.setTestHooks(false, null);
+        toggleScope.check(R.id.btnBioScopeApp);
+        ShadowLooper.idleMainLooper();
+        assertEquals(ConfigStore.BIOMETRIC_SCOPE_OFF, configStore.getBiometricScope());
+        assertEquals(R.id.btnBioScopeOff, toggleScope.getCheckedButtonId());
+
+        // Enabling with device credential available shows options and persists scope
+        BiometricLockHelper.setTestHooks(true, null);
+        toggleScope.check(R.id.btnBioScopeBoth);
+        ShadowLooper.idleMainLooper();
+        assertEquals(ConfigStore.BIOMETRIC_SCOPE_BOTH, configStore.getBiometricScope());
+        assertEquals(View.VISIBLE, layoutOptions.getVisibility());
+        assertEquals(View.GONE, layoutAdvanced.getVisibility());
+        assertFalse(switchWidgetSync.isChecked());
+
+        // Expanding Advanced reveals widget sync biometric toggle (default OFF)
+        btnAdvanced.performClick();
+        ShadowLooper.idleMainLooper();
+        assertEquals(View.VISIBLE, layoutAdvanced.getVisibility());
+        switchWidgetSync.setChecked(true);
+        ShadowLooper.idleMainLooper();
+        assertTrue(configStore.isBiometricWidgetSyncRequired());
+
+        // Grace period validates range and persists minutes
+        etGrace.setText("9999");
+        btnApplyGrace.performClick();
+        ShadowLooper.idleMainLooper();
+        assertEquals(0, configStore.getBiometricGraceMinutes());
+
+        etGrace.setText("5");
+        btnApplyGrace.performClick();
+        ShadowLooper.idleMainLooper();
+        assertEquals(5, configStore.getBiometricGraceMinutes());
+    }
+
+    @Test
+    public void appLockOverlayBlocksControlsUntilAuthenticatedAndPersistsGracePeriod() {
+        AtomicInteger promptCount = new AtomicInteger();
+        final BiometricLockHelper.AuthCallback[] pendingCallback = new BiometricLockHelper.AuthCallback[1];
+        BiometricLockHelper.setTestHooks(true, (act, title, subtitle, callback) -> {
+            promptCount.incrementAndGet();
+            pendingCallback[0] = callback;
+        });
+
+        configStore.setBiometricScope(ConfigStore.BIOMETRIC_SCOPE_APP);
+        configStore.setBiometricGraceMinutes(5);
+        controller.destroy();
+
+        controller = Robolectric.buildActivity(MainActivity.class).setup();
+        activity = controller.get();
+        View lockOverlay = activity.findViewById(R.id.layoutAppLockOverlay);
+        Button btnUnlockApp = activity.findViewById(R.id.btnUnlockApp);
+
+        assertEquals(1, promptCount.get());
+        assertEquals(View.VISIBLE, lockOverlay.getVisibility());
+
+        // Cancelling keeps overlay blocking controls
+        pendingCallback[0].onFailedOrCancelled("Cancelled");
+        ShadowLooper.idleMainLooper();
+        assertEquals(View.VISIBLE, lockOverlay.getVisibility());
+
+        // Retrying via Unlock button reveals app and persists unlock timestamp
+        btnUnlockApp.performClick();
+        assertEquals(2, promptCount.get());
+        pendingCallback[0].onSucceeded();
+        ShadowLooper.idleMainLooper();
+        assertEquals(View.GONE, lockOverlay.getVisibility());
+
+        // Destroying and recreating within 5 minutes skips biometric prompt (persisted grace)
+        controller.destroy();
+        controller = Robolectric.buildActivity(MainActivity.class).setup();
+        activity = controller.get();
+        assertEquals(2, promptCount.get());
+        assertEquals(View.GONE, activity.findViewById(R.id.layoutAppLockOverlay).getVisibility());
+
+        // Advancing past 5 minutes requires biometric again
+        org.robolectric.shadows.ShadowSystemClock.advanceBy(java.time.Duration.ofMinutes(6));
+        controller.destroy();
+        controller = Robolectric.buildActivity(MainActivity.class).setup();
+        activity = controller.get();
+        assertEquals(3, promptCount.get());
+        assertEquals(View.VISIBLE, activity.findViewById(R.id.layoutAppLockOverlay).getVisibility());
+    }
+
+    @Test
+    public void widgetAuthActivityPromptsWhenProtectedAndRespectsSyncAdvancedAndGrace() {
+        AtomicInteger promptCount = new AtomicInteger();
+        final boolean[] autoSucceed = {false};
+        BiometricLockHelper.setTestHooks(true, (act, title, subtitle, callback) -> {
+            promptCount.incrementAndGet();
+            if (autoSucceed[0]) {
+                callback.onSucceeded();
+            } else {
+                callback.onFailedOrCancelled("Cancelled");
+            }
+        });
+
+        configStore.setBiometricScope(ConfigStore.BIOMETRIC_SCOPE_WIDGET);
+        configStore.setBiometricGraceMinutes(5);
+        configStore.setBiometricWidgetSyncRequired(false);
+
+        // Slot 3 defaults to Refresh/Status: bypasses biometric when widget sync toggle is OFF
+        ActivityController<WidgetAuthActivity> syncCtrl = Robolectric.buildActivity(
+                WidgetAuthActivity.class,
+                WidgetAuthActivity.createIntent(activity, VehicleWidgetProvider.slotAction(3))
+        ).setup();
+        awaitAsyncWork();
+        assertEquals(0, promptCount.get());
+        assertEquals(1, fakeGateway.fetchRealtimeCalls.get());
+        assertTrue(syncCtrl.get().isFinishing());
+        syncCtrl.destroy();
+
+        // Slot 0 defaults to Lock: prompts and blocks action when cancelled
+        ActivityController<WidgetAuthActivity> lockCancelCtrl = Robolectric.buildActivity(
+                WidgetAuthActivity.class,
+                WidgetAuthActivity.createIntent(activity, VehicleWidgetProvider.slotAction(0))
+        ).setup();
+        awaitAsyncWork();
+        assertEquals(1, promptCount.get());
+        assertEquals(0, fakeGateway.lockCalls.get());
+        assertTrue(lockCancelCtrl.get().isFinishing());
+        lockCancelCtrl.destroy();
+
+        // Succeeding on Lock runs action and starts persisted 5-minute grace window
+        autoSucceed[0] = true;
+        ActivityController<WidgetAuthActivity> lockOkCtrl = Robolectric.buildActivity(
+                WidgetAuthActivity.class,
+                WidgetAuthActivity.createIntent(activity, VehicleWidgetProvider.slotAction(0))
+        ).setup();
+        awaitAsyncWork();
+        assertEquals(2, promptCount.get());
+        assertEquals(1, fakeGateway.lockCalls.get());
+        lockOkCtrl.destroy();
+
+        // Unlock (slot 1) within 5 minutes runs without re-prompting
+        ActivityController<WidgetAuthActivity> unlockGraceCtrl = Robolectric.buildActivity(
+                WidgetAuthActivity.class,
+                WidgetAuthActivity.createIntent(activity, VehicleWidgetProvider.slotAction(1))
+        ).setup();
+        awaitAsyncWork();
+        assertEquals(2, promptCount.get());
+        assertEquals(1, fakeGateway.unlockCalls.get());
+        unlockGraceCtrl.destroy();
+
+        // Enabling Advanced "widget refresh/sync requires biometric" + expiring grace prompts on Refresh
+        configStore.setBiometricWidgetSyncRequired(true);
+        org.robolectric.shadows.ShadowSystemClock.advanceBy(java.time.Duration.ofMinutes(6));
+        int realtimeBefore = fakeGateway.fetchRealtimeCalls.get();
+        ActivityController<WidgetAuthActivity> syncProtectedCtrl = Robolectric.buildActivity(
+                WidgetAuthActivity.class,
+                WidgetAuthActivity.createIntent(activity, VehicleWidgetProvider.slotAction(3))
+        ).setup();
+        awaitAsyncWork();
+        assertEquals(3, promptCount.get());
+        assertEquals(realtimeBefore + 1, fakeGateway.fetchRealtimeCalls.get());
+        syncProtectedCtrl.destroy();
     }
 }

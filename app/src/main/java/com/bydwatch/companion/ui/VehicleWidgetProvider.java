@@ -310,6 +310,7 @@ public class VehicleWidgetProvider extends AppWidgetProvider {
                 } else {
                     cmd.put("tempC", cfg.getDefaultTempC());
                 }
+                cmd.put("acDurationMin", cfg.getDefaultAcDurationMinutes());
             }
             repo.handleWatchJson(cmd.toString(), respStr -> {
                 try {
@@ -343,12 +344,12 @@ public class VehicleWidgetProvider extends AppWidgetProvider {
     }
 
     static void executeActionAsync(
-            BroadcastReceiver receiver,
+            @Nullable BroadcastReceiver receiver,
             Context context,
             String watchAction,
             boolean showProgressBanner
     ) {
-        PendingResult pendingResult = receiver.goAsync();
+        PendingResult pendingResult = receiver != null ? receiver.goAsync() : null;
         AtomicBoolean finished = new AtomicBoolean(false);
         Runnable finishOnce = () -> {
             if (finished.compareAndSet(false, true) && pendingResult != null) {
@@ -372,7 +373,7 @@ public class VehicleWidgetProvider extends AppWidgetProvider {
     }
 
     static void executeSlotAsync(
-            BroadcastReceiver receiver,
+            @Nullable BroadcastReceiver receiver,
             Context context,
             @Nullable WidgetSlotConfig slot
     ) {
@@ -386,7 +387,7 @@ public class VehicleWidgetProvider extends AppWidgetProvider {
                 refreshWidgets(context);
                 return;
             }
-            PendingResult pendingResult = receiver.goAsync();
+            PendingResult pendingResult = receiver != null ? receiver.goAsync() : null;
             AtomicBoolean finished = new AtomicBoolean(false);
             Runnable finishOnce = () -> {
                 if (finished.compareAndSet(false, true) && pendingResult != null) {
@@ -549,12 +550,15 @@ public class VehicleWidgetProvider extends AppWidgetProvider {
                     cmd.put("acMode", "auto");
                     cmd.put("tempC", step.tempC);
                 }
+                cmd.put("acDurationMin", step.acDurationMinutes);
             } else if (cfg != null && cfg.isManualAcMode()) {
                 cmd.put("tempGear", cfg.getDefaultTempGear());
                 cmd.put("fanLevel", cfg.getDefaultFanLevel());
                 cmd.put("windMode", cfg.getDefaultWindMode());
+                cmd.put("acDurationMin", cfg.getDefaultAcDurationMinutes());
             } else if (cfg != null) {
                 cmd.put("tempC", cfg.getDefaultTempC());
+                cmd.put("acDurationMin", cfg.getDefaultAcDurationMinutes());
             }
         } else if (WatchProtocol.ACTION_SEAT_HEAT.equals(step.action) && step.seatLevel >= 0) {
             cmd.put("level", step.seatLevel);
@@ -650,9 +654,11 @@ public class VehicleWidgetProvider extends AppWidgetProvider {
             case WatchProtocol.ACTION_AC_ON:
                 if (!step.useCustomAc) return resCtx.getString(R.string.btn_start_ac);
                 if (step.manualAc) {
-                    return resCtx.getString(R.string.combo_step_ac_manual_fmt, step.tempGear, step.fanLevel);
+                    return resCtx.getString(R.string.combo_step_ac_manual_fmt,
+                            step.tempGear, step.fanLevel, step.acDurationMinutes);
                 }
-                return resCtx.getString(R.string.combo_step_ac_auto_fmt, step.tempC);
+                return resCtx.getString(R.string.combo_step_ac_auto_fmt,
+                        step.tempC, step.acDurationMinutes);
             case WatchProtocol.ACTION_AC_OFF:
                 return resCtx.getString(R.string.btn_ac_off);
             case WatchProtocol.ACTION_LIGHTS:
@@ -1001,12 +1007,23 @@ public class VehicleWidgetProvider extends AppWidgetProvider {
             views.setInt(SLOT_ICON_IDS[i], "setColorFilter", fgColor);
             views.setInt(SLOT_TILE_IDS[i], "setBackgroundResource", visual.bgRes);
 
-            PendingIntent slotPi = PendingIntent.getBroadcast(
-                    context,
-                    20 + i,
-                    new Intent(context, WidgetActionReceiver.class).setAction(slotAction(i)),
-                    piFlags
-            );
+            boolean isSyncSlot = !slot.isCombo()
+                    && WidgetSlotConfig.SINGLE_STATUS.equals(slot.targetId);
+            boolean requireWidgetAuth = BiometricLockHelper.isWidgetProtectionEnabled(cfg)
+                    && (!isSyncSlot || (cfg != null && cfg.isBiometricWidgetSyncRequired()));
+            PendingIntent slotPi = requireWidgetAuth
+                    ? PendingIntent.getActivity(
+                            context,
+                            120 + i,
+                            WidgetAuthActivity.createIntent(context, slotAction(i)),
+                            piFlags
+                    )
+                    : PendingIntent.getBroadcast(
+                            context,
+                            20 + i,
+                            new Intent(context, WidgetActionReceiver.class).setAction(slotAction(i)),
+                            piFlags
+                    );
             views.setOnClickPendingIntent(SLOT_BTN_IDS[i], slotPi);
             views.setOnClickPendingIntent(SLOT_TILE_IDS[i], slotPi);
         }

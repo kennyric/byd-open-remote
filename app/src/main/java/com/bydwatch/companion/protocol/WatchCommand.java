@@ -16,23 +16,30 @@ public final class WatchCommand {
     public final int fanLevel;
     public final int windMode;
     public final String acMode;
+    public final int acDurationMinutes;
 
     public WatchCommand(String id, String action, int tempC, String vin, int level) {
-        this(id, action, tempC, vin, level, -1, -1, -1, "");
+        this(id, action, tempC, vin, level, -1, -1, -1, "", -1);
     }
 
     public WatchCommand(String id, String action, int tempC, String vin, int level,
                         int tempGear, int fanLevel) {
-        this(id, action, tempC, vin, level, tempGear, fanLevel, -1, "");
+        this(id, action, tempC, vin, level, tempGear, fanLevel, -1, "", -1);
     }
 
     public WatchCommand(String id, String action, int tempC, String vin, int level,
                         int tempGear, int fanLevel, int windMode) {
-        this(id, action, tempC, vin, level, tempGear, fanLevel, windMode, "");
+        this(id, action, tempC, vin, level, tempGear, fanLevel, windMode, "", -1);
     }
 
     public WatchCommand(String id, String action, int tempC, String vin, int level,
                         int tempGear, int fanLevel, int windMode, String acMode) {
+        this(id, action, tempC, vin, level, tempGear, fanLevel, windMode, acMode, -1);
+    }
+
+    public WatchCommand(String id, String action, int tempC, String vin, int level,
+                        int tempGear, int fanLevel, int windMode, String acMode,
+                        int acDurationMinutes) {
         this.id = id;
         this.action = action;
         this.tempC = tempC;
@@ -42,6 +49,7 @@ public final class WatchCommand {
         this.fanLevel = fanLevel;
         this.windMode = windMode;
         this.acMode = acMode != null ? acMode.trim() : "";
+        this.acDurationMinutes = acDurationMinutes;
     }
 
     public WatchCommand(String id, String action, int tempC) {
@@ -82,6 +90,7 @@ public final class WatchCommand {
                 && tempGear == that.tempGear
                 && fanLevel == that.fanLevel
                 && windMode == that.windMode
+                && acDurationMinutes == that.acDurationMinutes
                 && Objects.equals(id, that.id)
                 && Objects.equals(action, that.action)
                 && Objects.equals(vin, that.vin)
@@ -90,7 +99,7 @@ public final class WatchCommand {
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, action, tempC, vin, level, tempGear, fanLevel, windMode, acMode);
+        return Objects.hash(id, action, tempC, vin, level, tempGear, fanLevel, windMode, acMode, acDurationMinutes);
     }
 
     @Override

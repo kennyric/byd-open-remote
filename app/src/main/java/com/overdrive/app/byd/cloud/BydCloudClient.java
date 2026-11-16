@@ -417,18 +417,26 @@ public class BydCloudClient {
     }
 
     /**
-     * Start remote AC with target temp.
-     * BYD OPENAIR: temperature applies to driver+copilot, cycle_mode=2 (auto),
-     * remote_mode=4 (cool/heat auto), default time_span=3 (20 min).
+     * Start remote AC with target temp and 20-minute default timer.
      */
     public boolean startClimate(String vin, double tempCelsius) throws IOException {
+        return startClimate(vin, tempCelsius, 20);
+    }
+
+    /**
+     * Start remote AC with target temp and explicit session timer (10, 15, 20, 25, or 30 min).
+     * BYD OPENAIR: temperature applies to driver+copilot, cycle_mode=2 (auto),
+     * remote_mode=4 (cool/heat auto), time_span=1..5 (10..30 min).
+     */
+    public boolean startClimate(String vin, double tempCelsius, int durationMinutes) throws IOException {
+        int duration = normalizeClimateDurationMinutes(durationMinutes);
         CloudCapabilities cached = getCachedCloudCapabilities(vin);
         if (cached != null && cached.isElectricAc()) {
             int raw = (int) Math.round(tempCelsius);
             int gear = raw <= 9 ? Math.max(1, raw) : Math.max(1, Math.min(9, raw - 14));
-            return startElectricClimate(vin, gear, 4);
+            return startElectricClimate(vin, gear, 4, 2, duration);
         }
-        return executeRemoteCommand(vin, "OPENAIR", climateStartParams(tempCelsius), true).success;
+        return executeRemoteCommand(vin, "OPENAIR", climateStartParams(tempCelsius, duration), true).success;
     }
 
     /**
@@ -436,7 +444,7 @@ public class BydCloudClient {
      * temperature gear (1..9, cold to warm) and fan wind level (1..7).
      */
     public boolean startElectricClimate(String vin, int tempGear, int windLevel) throws IOException {
-        return startElectricClimate(vin, tempGear, windLevel, 2);
+        return startElectricClimate(vin, tempGear, windLevel, 2, 20);
     }
 
     /**
@@ -444,8 +452,26 @@ public class BydCloudClient {
      * temperature gear (1..9), fan wind level (1..7), and vent windMode (1=Body, 2=Body+Feet, 3=Feet).
      */
     public boolean startElectricClimate(String vin, int tempGear, int windLevel, int windMode) throws IOException {
+        return startElectricClimate(vin, tempGear, windLevel, windMode, 20);
+    }
+
+    /**
+     * Start electric/manual AC (EleAir, airType=1, no Celsius thermostat) with explicit
+     * timer duration (10, 15, 20, 25, or 30 minutes).
+     */
+    public boolean startElectricClimate(
+            String vin, int tempGear, int windLevel, int windMode, int durationMinutes) throws IOException {
+        int duration = normalizeClimateDurationMinutes(durationMinutes);
         return executeRemoteCommand(
-                vin, "OPENAIR", climateStartElectricParams(tempGear, windLevel, windMode, 20), true).success;
+                vin, "OPENAIR", climateStartElectricParams(tempGear, windLevel, windMode, duration), true).success;
+    }
+
+    private static int normalizeClimateDurationMinutes(int durationMinutes) {
+        if (durationMinutes == 10 || durationMinutes == 15 || durationMinutes == 20
+                || durationMinutes == 25 || durationMinutes == 30) {
+            return durationMinutes;
+        }
+        return 20;
     }
 
     /**

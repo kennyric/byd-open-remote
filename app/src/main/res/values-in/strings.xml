@@ -69,6 +69,8 @@
     <string name="vent_body">Badan</string>
     <string name="vent_body_feet">Badan+Kaki</string>
     <string name="vent_feet">Kaki</string>
+    <string name="label_ac_timer">Timer</string>
+    <string name="ac_timer_min_short_fmt">%1$dm</string>
     <string name="btn_ac_adjust">Atur</string>
     <string name="climate_popup_title">Pengaturan Iklim / AC</string>
     <string name="climate_mode_manual">AC Manual</string>
@@ -182,6 +184,43 @@
     <string name="about_github_companion">GitHub · Aplikasi Pendamping</string>
     <string name="about_github_watch">GitHub · Aplikasi Watch GT 4</string>
 
+    <string name="nav_support_me">Dukung Saya</string>
+    <string name="support_btn_label">Dukung Saya</string>
+    <string name="support_card_title">Dukung Pengembangan</string>
+    <string name="support_card_body">BYD Open Remote gratis dan open-source. Bantu dukung pembaruan &amp; pemeliharaan berkelanjutan.</string>
+    <string name="support_card_dismiss_desc">Tutup kartu dukungan</string>
+
+    <string name="nav_check_update">Periksa Pembaruan</string>
+    <string name="about_installed_version_fmt">Terpasang: v%1$s</string>
+    <string name="update_status_idle">Ketuk untuk memeriksa versi baru di GitHub Releases.</string>
+    <string name="update_status_checking">Memeriksa GitHub Releases…</string>
+    <string name="update_status_up_to_date">Anda memakai versi terbaru (v%1$s).</string>
+    <string name="update_status_available_fmt">Pembaruan v%1$s tersedia (%2$s)</string>
+    <string name="update_status_no_apk_fmt">v%1$s tersedia di GitHub (buka halaman rilis).</string>
+    <string name="update_status_failed_fmt">Gagal memeriksa pembaruan: %1$s</string>
+    <string name="update_banner_title_fmt">Pembaruan v%1$s tersedia</string>
+    <string name="update_banner_subtitle">Ketuk untuk melihat catatan rilis &amp; pasang</string>
+    <string name="update_banner_action">Perbarui</string>
+    <string name="update_banner_dismiss_desc">Tutup banner pembaruan</string>
+    <string name="btn_check_updates">Periksa Pembaruan</string>
+    <string name="update_dialog_title">Pembaruan Tersedia</string>
+    <string name="update_dialog_version_fmt">v%1$s → v%2$s</string>
+    <string name="update_dialog_size_fmt">APK %1$s</string>
+    <string name="update_dialog_notes_empty">Tidak ada catatan rilis.</string>
+    <string name="update_dialog_downloading_pct_fmt">Mengunduh… %1$d%% (%2$s / %3$s)</string>
+    <string name="update_dialog_downloading_bytes_fmt">Mengunduh… %1$s</string>
+    <string name="update_dialog_ready_to_install">APK terverifikasi &amp; siap dipasang.</string>
+    <string name="update_btn_later">Nanti</string>
+    <string name="update_btn_cancel">Batal</string>
+    <string name="update_btn_github">GitHub</string>
+    <string name="update_btn_download_install">Unduh &amp; Pasang</string>
+    <string name="update_btn_install_now">Pasang Sekarang</string>
+    <string name="update_btn_open_release">Buka Rilis</string>
+    <string name="update_perm_title">Izinkan Pemasangan Aplikasi</string>
+    <string name="update_perm_message">Untuk memasang pembaruan langsung dari aplikasi, aktifkan "Izinkan dari sumber ini" di setelan Android, lalu kembali untuk melanjutkan.</string>
+    <string name="update_perm_open_settings">Buka Setelan</string>
+    <string name="update_install_failed_fmt">Gagal membuka pemasang: %1$s</string>
+
     <string name="label_app_language">Bahasa Aplikasi</string>
     <string name="lang_option_system">Sistem</string>
     <string name="lang_option_english">English</string>
@@ -284,8 +323,8 @@
     <string name="combo_ac_mode_auto">Otomatis °C</string>
     <string name="combo_ac_mode_manual">Manual</string>
     <string name="combo_ac_mode_default">Ikuti Pengaturan</string>
-    <string name="combo_step_ac_auto_fmt">Nyalakan AC (%1$d°C)</string>
-    <string name="combo_step_ac_manual_fmt">Nyalakan AC (Lvl %1$d · Kipas %2$d)</string>
+    <string name="combo_step_ac_auto_fmt">Nyalakan AC (%1$d°C · %2$dm)</string>
+    <string name="combo_step_ac_manual_fmt">Nyalakan AC (Lvl %1$d · Kipas %2$d · %3$dm)</string>
     <string name="combo_step_bat_heat_on">Pemanas Bat: Nyala</string>
     <string name="combo_step_bat_heat_off">Pemanas Bat: Mati</string>
     <string name="combo_step_seat_cycle">Ganti</string>

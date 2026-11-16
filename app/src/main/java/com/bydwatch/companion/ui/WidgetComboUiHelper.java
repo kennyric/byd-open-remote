@@ -581,6 +581,7 @@ public final class WidgetComboUiHelper {
             acStep.tempGear = configStore.getDefaultTempGear();
             acStep.fanLevel = configStore.getDefaultFanLevel();
             acStep.windMode = configStore.getDefaultWindMode();
+            acStep.acDurationMin = configStore.getDefaultAcDurationMinutes();
             steps.add(acStep);
         }
 
@@ -664,6 +665,7 @@ public final class WidgetComboUiHelper {
                 next.tempGear = configStore.getDefaultTempGear();
                 next.fanLevel = configStore.getDefaultFanLevel();
                 next.windMode = configStore.getDefaultWindMode();
+                next.acDurationMin = configStore.getDefaultAcDurationMinutes();
                 steps.add(next);
                 renderSteps[0].run();
             });
@@ -894,6 +896,36 @@ public final class WidgetComboUiHelper {
             }
             card.addView(windRow);
         }
+
+        // AC Session Timer selector (10 / 15 / 20 / 25 / 30 min)
+        LinearLayout timerRow = new LinearLayout(activity);
+        timerRow.setOrientation(LinearLayout.HORIZONTAL);
+        timerRow.setGravity(Gravity.CENTER_VERTICAL);
+        LinearLayout.LayoutParams tLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        tLp.topMargin = dp(4);
+        timerRow.setLayoutParams(tLp);
+
+        TextView tLabel = new TextView(activity);
+        tLabel.setText(resCtx.getString(R.string.label_ac_timer));
+        tLabel.setTextColor(ContextCompat.getColor(activity, R.color.text_secondary));
+        tLabel.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11.5f);
+        tLabel.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        timerRow.addView(tLabel);
+
+        for (int k = 0; k < ConfigStore.AC_DURATION_OPTIONS.length; k++) {
+            final int mins = ConfigStore.AC_DURATION_OPTIONS[k];
+            Button tb = createCompactActionBtn(
+                    resCtx.getString(R.string.ac_timer_min_short_fmt, mins),
+                    step.acDurationMin == mins);
+            if (k > 0) ((LinearLayout.LayoutParams) tb.getLayoutParams()).setMarginStart(dp(3));
+            tb.setOnClickListener(v -> {
+                step.acDurationMin = mins;
+                rerender.run();
+            });
+            timerRow.addView(tb);
+        }
+        card.addView(timerRow);
     }
 
     private void buildSeatStepControls(
@@ -1185,6 +1217,7 @@ public final class WidgetComboUiHelper {
         int fanLevel = 4;
         int windMode = 1;
         int seatLevel = -1;
+        int acDurationMin = ConfigStore.DEFAULT_AC_DURATION_MINUTES;
 
         EditableStep(String action) {
             this.action = action;
@@ -1199,12 +1232,14 @@ public final class WidgetComboUiHelper {
             e.fanLevel = s.fanLevel;
             e.windMode = s.windMode;
             e.seatLevel = s.seatLevel;
+            e.acDurationMin = s.acDurationMinutes;
             return e;
         }
 
         CustomActionCombo.ComboStep toComboStep() {
             return new CustomActionCombo.ComboStep(
-                    action, useCustomAc, manualAc, tempC, tempGear, fanLevel, windMode, seatLevel);
+                    action, useCustomAc, manualAc, tempC, tempGear, fanLevel, windMode,
+                    seatLevel, acDurationMin);
         }
     }
 }

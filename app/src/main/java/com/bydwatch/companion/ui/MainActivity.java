@@ -23,6 +23,7 @@ import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
@@ -37,7 +38,10 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.OnBackPressedCallback;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
+import androidx.annotation.VisibleForTesting;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.SwitchCompat;
@@ -46,6 +50,7 @@ import androidx.core.content.ContextCompat;
 import androidx.core.view.GravityCompat;
 import androidx.core.widget.NestedScrollView;
 import androidx.drawerlayout.widget.DrawerLayout;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import com.bydwatch.companion.BydWatchApp;
 import com.bydwatch.companion.R;
@@ -61,6 +66,8 @@ import com.bydwatch.companion.model.VehicleSummary;
 import com.bydwatch.companion.model.WidgetSlotConfig;
 import com.bydwatch.companion.protocol.WatchProtocol;
 import com.bydwatch.companion.protocol.WatchResponse;
+import com.bydwatch.companion.update.AppUpdateChecker;
+import com.bydwatch.companion.update.AppUpdateInfo;
 import com.bydwatch.companion.wear.WearBridgeService;
 import com.bydwatch.companion.wear.WearEngineBridge;
 import com.google.android.material.button.MaterialButton;
@@ -75,8 +82,11 @@ import org.json.JSONObject;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.Set;
+import java.util.WeakHashMap;
 import java.util.Locale;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -97,14 +107,18 @@ public class MainActivity extends AppCompatActivity {
 
     private static final int RC_PERMISSIONS = 1001;
     private static final long CLIMATE_DEBOUNCE_MS = 700L;
+    private static final float DISABLED_ACTION_ALPHA = 0.45f;
     private static final String STATE_CURRENT_PAGE_ID = "state_current_page_id";
 
     private int restoredPageId = 0;
+    private boolean actionInFlight = false;
+    private final Set<View> lockedDynamicControls = Collections.newSetFromMap(new WeakHashMap<>());
 
     private int targetTempC = WatchProtocol.DEFAULT_TEMP_C;
     private int targetTempGear = ConfigStore.DEFAULT_TEMP_GEAR;
     private int targetFanLevel = ConfigStore.DEFAULT_FAN_LEVEL;
     private int targetWindMode = ConfigStore.DEFAULT_WIND_MODE;
+    private int targetAcDurationMin = ConfigStore.DEFAULT_AC_DURATION_MINUTES;
     private boolean updatingManualAcSwitch = false;
     private boolean syncIntervalUnitHours = false;
     private VehicleStatus lastStatus;
@@ -123,6 +137,7 @@ public class MainActivity extends AppCompatActivity {
     private TextView tvDrawerAccount;
     private int currentPageId = R.id.nav_controls;
 
+    private SwipeRefreshLayout swipeRefresh;
     private NestedScrollView rootScroll;
     private TextView tvHeaderTitle;
     private TextView tvHeaderSubtitle;
@@ -177,6 +192,11 @@ public class MainActivity extends AppCompatActivity {
     private MaterialButton btnPopupVentBody;
     private MaterialButton btnPopupVentBodyFeet;
     private MaterialButton btnPopupVentFeet;
+    private MaterialButton btnPopupAcTimer10;
+    private MaterialButton btnPopupAcTimer15;
+    private MaterialButton btnPopupAcTimer20;
+    private MaterialButton btnPopupAcTimer25;
+    private MaterialButton btnPopupAcTimer30;
     private Button btnPopupApply;
     private Button btnLights;
     private Button btnHorn;
@@ -222,6 +242,8 @@ public class MainActivity extends AppCompatActivity {
     private TextView tvWidgetStyleDesc;
     private WidgetComboUiHelper widgetComboUiHelper;
     private HomeLayoutEditorHelper homeLayoutEditorHelper;
+    private LinearLayout layoutCombosContainer;
+    private LinearLayout layoutHomeCustomGrid;
     private boolean updatingWidgetStyleUi = false;
     private MaterialButtonToggleGroup toggleAppLanguage;
     private boolean updatingAppLanguageUi = false;
@@ -231,7 +253,22 @@ public class MainActivity extends AppCompatActivity {
     private SwitchCompat switchManualAc;
     private SwitchCompat switchHideExtraControls;
     private SwitchCompat switchSmartAlerts;
+    private SwitchCompat switchSingleFlightAction;
     private SwitchCompat switchVerboseLogs;
+    private MaterialButtonToggleGroup toggleBiometricScope;
+    private boolean updatingBiometricScopeUi = false;
+    private View layoutBiometricOptions;
+    private EditText etBiometricGraceMinutes;
+    private Button btnApplyBiometricGrace;
+    private TextView btnToggleBiometricAdvanced;
+    private View layoutBiometricAdvanced;
+    private SwitchCompat switchBiometricWidgetSync;
+    private boolean updatingBiometricWidgetSyncUi = false;
+    private boolean biometricAdvancedExpanded = false;
+    private View layoutAppLockOverlay;
+    private Button btnUnlockApp;
+    private boolean appUnlockedInCurrentForeground = false;
+    private boolean biometricPromptShowing = false;
     private Button btnDisclaimer;
     private Button btnAuthHealth;
     private Button btnToggleService;
@@ -240,6 +277,24 @@ public class MainActivity extends AppCompatActivity {
     private Button btnClearLog;
     private Button btnAboutGithubCompanion;
     private Button btnAboutGithubWatch;
+    private Button btnAboutSupport;
+    private View cardPrefSupport;
+    private ImageButton btnDismissPrefSupport;
+    private Button btnPrefSupport;
+    private Button btnCheckAppUpdate;
+    private TextView tvAboutVersion;
+    private TextView tvAppUpdateStatus;
+    private View bannerAppUpdate;
+    private TextView tvUpdateBannerTitle;
+    private Button btnUpdateBannerAction;
+    private AppUpdateUiHelper updateUiHelper;
+    private AppUpdateInfo availableUpdateInfo;
+    private final ActivityResultLauncher<Intent> installPermissionLauncher =
+            registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
+                if (updateUiHelper != null) {
+                    updateUiHelper.onInstallPermissionResult();
+                }
+            });
     private NestedScrollView scrollStatusLog;
     private TextView tvStatusLog;
     private volatile String lastLocationLookupKey;
@@ -279,12 +334,29 @@ public class MainActivity extends AppCompatActivity {
 
         serviceStateListener = running -> runOnUiThread(this::updateWatchStatus);
         WearBridgeService.addStateListener(serviceStateListener);
+
+        initAppUpdater(app);
+        enforceAppLockIfNeeded(false);
     }
 
     @Override
     protected void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
         outState.putInt(STATE_CURRENT_PAGE_ID, currentPageId);
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        enforceAppLockIfNeeded(true);
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        if (!isChangingConfigurations() && !biometricPromptShowing) {
+            appUnlockedInCurrentForeground = false;
+        }
     }
 
     @Override
@@ -306,6 +378,10 @@ public class MainActivity extends AppCompatActivity {
         if (serviceStateListener != null) {
             WearBridgeService.removeStateListener(serviceStateListener);
         }
+        if (updateUiHelper != null) {
+            updateUiHelper.destroy();
+            updateUiHelper = null;
+        }
         super.onDestroy();
     }
 
@@ -324,6 +400,21 @@ public class MainActivity extends AppCompatActivity {
             tvDrawerAccount = drawerHeader.findViewById(R.id.tvDrawerAccount);
         }
 
+        swipeRefresh = findViewById(R.id.swipeRefresh);
+        if (swipeRefresh != null) {
+            int primary = MaterialColors.getColor(swipeRefresh,
+                    com.google.android.material.R.attr.colorPrimary,
+                    ContextCompat.getColor(this, R.color.accent_emerald));
+            int secondary = MaterialColors.getColor(swipeRefresh,
+                    com.google.android.material.R.attr.colorSecondary,
+                    ContextCompat.getColor(this, R.color.accent_cyan));
+            int surfaceBg = MaterialColors.getColor(swipeRefresh,
+                    com.google.android.material.R.attr.colorSurfaceContainer,
+                    ContextCompat.getColor(this, R.color.surface_card));
+            swipeRefresh.setColorSchemeColors(primary, secondary);
+            swipeRefresh.setProgressBackgroundColorSchemeColor(surfaceBg);
+            swipeRefresh.setOnRefreshListener(() -> executeWatchAction(WatchProtocol.ACTION_STATUS, -1));
+        }
         rootScroll = findViewById(R.id.rootScroll);
         tvHeaderTitle = findViewById(R.id.tvHeaderTitle);
         tvHeaderSubtitle = findViewById(R.id.tvHeaderSubtitle);
@@ -431,6 +522,7 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
         );
+        layoutCombosContainer = findViewById(R.id.layoutCombosContainer);
         widgetComboUiHelper.bindViews(
                 findViewById(R.id.flWidgetPreviewContainer),
                 findViewById(R.id.tvWidgetPreviewSampleBadge),
@@ -442,7 +534,7 @@ public class MainActivity extends AppCompatActivity {
                 },
                 findViewById(R.id.btnResetWidgetSlots),
                 findViewById(R.id.btnNewActionCombo),
-                findViewById(R.id.layoutCombosContainer)
+                layoutCombosContainer
         );
         homeLayoutEditorHelper = new HomeLayoutEditorHelper(
                 this,
@@ -470,15 +562,26 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
         );
+        layoutHomeCustomGrid = findViewById(R.id.layoutHomeCustomGrid);
         homeLayoutEditorHelper.bindViews(
                 findViewById(R.id.layoutHomeCustomSection),
-                findViewById(R.id.layoutHomeCustomGrid)
+                layoutHomeCustomGrid
         );
         toggleAppLanguage = findViewById(R.id.toggleAppLanguage);
         switchManualAc = findViewById(R.id.switchManualAc);
         switchHideExtraControls = findViewById(R.id.switchHideExtraControls);
         switchSmartAlerts = findViewById(R.id.switchSmartAlerts);
+        switchSingleFlightAction = findViewById(R.id.switchSingleFlightAction);
         switchVerboseLogs = findViewById(R.id.switchVerboseLogs);
+        toggleBiometricScope = findViewById(R.id.toggleBiometricScope);
+        layoutBiometricOptions = findViewById(R.id.layoutBiometricOptions);
+        etBiometricGraceMinutes = findViewById(R.id.etBiometricGraceMinutes);
+        btnApplyBiometricGrace = findViewById(R.id.btnApplyBiometricGrace);
+        btnToggleBiometricAdvanced = findViewById(R.id.btnToggleBiometricAdvanced);
+        layoutBiometricAdvanced = findViewById(R.id.layoutBiometricAdvanced);
+        switchBiometricWidgetSync = findViewById(R.id.switchBiometricWidgetSync);
+        layoutAppLockOverlay = findViewById(R.id.layoutAppLockOverlay);
+        btnUnlockApp = findViewById(R.id.btnUnlockApp);
         btnDisclaimer = findViewById(R.id.btnDisclaimer);
         btnAuthHealth = findViewById(R.id.btnAuthHealth);
         btnToggleService = findViewById(R.id.btnToggleService);
@@ -487,6 +590,16 @@ public class MainActivity extends AppCompatActivity {
         btnClearLog = findViewById(R.id.btnClearLog);
         btnAboutGithubCompanion = findViewById(R.id.btnAboutGithubCompanion);
         btnAboutGithubWatch = findViewById(R.id.btnAboutGithubWatch);
+        btnAboutSupport = findViewById(R.id.btnAboutSupport);
+        cardPrefSupport = findViewById(R.id.cardPrefSupport);
+        btnDismissPrefSupport = findViewById(R.id.btnDismissPrefSupport);
+        btnPrefSupport = findViewById(R.id.btnPrefSupport);
+        btnCheckAppUpdate = findViewById(R.id.btnCheckAppUpdate);
+        tvAboutVersion = findViewById(R.id.tvAboutVersion);
+        tvAppUpdateStatus = findViewById(R.id.tvAppUpdateStatus);
+        bannerAppUpdate = findViewById(R.id.bannerAppUpdate);
+        tvUpdateBannerTitle = findViewById(R.id.tvUpdateBannerTitle);
+        btnUpdateBannerAction = findViewById(R.id.btnUpdateBannerAction);
         scrollStatusLog = findViewById(R.id.scrollStatusLog);
         tvStatusLog = findViewById(R.id.tvStatusLog);
 
@@ -550,6 +663,7 @@ public class MainActivity extends AppCompatActivity {
             targetTempGear = configStore.getDefaultTempGear();
             targetFanLevel = configStore.getDefaultFanLevel();
             targetWindMode = configStore.getDefaultWindMode();
+            targetAcDurationMin = configStore.getDefaultAcDurationMinutes();
             if (switchManualAc != null) {
                 updatingManualAcSwitch = true;
                 switchManualAc.setChecked(configStore.isManualAcMode());
@@ -558,9 +672,13 @@ public class MainActivity extends AppCompatActivity {
             if (switchSmartAlerts != null) {
                 switchSmartAlerts.setChecked(configStore.isAlertsEnabled());
             }
+            if (switchSingleFlightAction != null) {
+                switchSingleFlightAction.setChecked(configStore.isSingleFlightActionEnabled());
+            }
             if (switchVerboseLogs != null) {
                 switchVerboseLogs.setChecked(configStore.isVerboseLogsEnabled());
             }
+            updateBiometricSettingsUi();
             if (switchHideExtraControls != null) {
                 switchHideExtraControls.setChecked(configStore.isHideExtraControls());
             }
@@ -592,6 +710,15 @@ public class MainActivity extends AppCompatActivity {
         setSetupGuideExpanded(!configured);
         updateAccountUiState();
         updateWatchStatus();
+        if (tvAboutVersion != null) {
+            tvAboutVersion.setText(getString(
+                    R.string.about_installed_version_fmt,
+                    com.bydwatch.companion.BuildConfig.VERSION_NAME));
+        }
+        if (cardPrefSupport != null) {
+            boolean dismissed = configStore != null && configStore.isSupportCardDismissed();
+            cardPrefSupport.setVisibility(dismissed ? View.GONE : View.VISIBLE);
+        }
         int initialPage = restoredPageId != 0
                 ? restoredPageId
                 : (configured ? R.id.nav_controls : R.id.nav_account);
@@ -852,10 +979,18 @@ public class MainActivity extends AppCompatActivity {
         if (cardBridge != null) {
             cardBridge.setVisibility(navItemId == R.id.nav_watch_bridge ? View.VISIBLE : View.GONE);
         }
+        updateAppBannerVisibility();
         if (navView != null) {
             navView.setCheckedItem(navItemId);
         }
         updateHeaderSubtitleForPage(navItemId);
+        if (swipeRefresh != null) {
+            boolean onControls = (navItemId == R.id.nav_controls);
+            swipeRefresh.setEnabled(onControls && !actionInFlight);
+            if (!onControls) {
+                stopSwipeRefreshing();
+            }
+        }
         if (rootScroll != null) {
             rootScroll.scrollTo(0, 0);
         }
@@ -885,6 +1020,22 @@ public class MainActivity extends AppCompatActivity {
         }
         if (navView != null) {
             navView.setNavigationItemSelectedListener(item -> {
+                if (item.getItemId() == R.id.nav_check_update) {
+                    if (drawerLayout != null && drawerLayout.isDrawerOpen(GravityCompat.START)) {
+                        drawerLayout.closeDrawer(GravityCompat.START);
+                    }
+                    if (updateUiHelper != null) {
+                        updateUiHelper.checkForUpdates(true);
+                    }
+                    return false;
+                }
+                if (item.getItemId() == R.id.nav_support) {
+                    if (drawerLayout != null && drawerLayout.isDrawerOpen(GravityCompat.START)) {
+                        drawerLayout.closeDrawer(GravityCompat.START);
+                    }
+                    openExternalUrl(getString(R.string.support_url));
+                    return false;
+                }
                 showPage(item.getItemId());
                 return true;
             });
@@ -1039,6 +1190,16 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
         }
+        if (switchSingleFlightAction != null) {
+            switchSingleFlightAction.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                if (configStore != null) {
+                    configStore.setSingleFlightActionEnabled(isChecked);
+                    if (!isChecked && actionInFlight) {
+                        setVehicleActionInFlight(false);
+                    }
+                }
+            });
+        }
         if (switchVerboseLogs != null) {
             switchVerboseLogs.setOnCheckedChangeListener((buttonView, isChecked) -> {
                 if (configStore != null) {
@@ -1046,6 +1207,55 @@ public class MainActivity extends AppCompatActivity {
                     logMessage("Extra telemetry logs " + (isChecked ? "enabled" : "disabled") + ".");
                 }
             });
+        }
+        if (toggleBiometricScope != null) {
+            toggleBiometricScope.addOnButtonCheckedListener((group, checkedId, isChecked) -> {
+                if (!isChecked || updatingBiometricScopeUi || configStore == null) {
+                    return;
+                }
+                String newScope = biometricScopeFromButtonId(checkedId);
+                if (!ConfigStore.BIOMETRIC_SCOPE_OFF.equals(newScope)
+                        && !BiometricLockHelper.isDeviceCredentialAvailable(this)) {
+                    showToast(getString(R.string.biometric_unavailable_toast), true);
+                    updateBiometricSettingsUi();
+                    return;
+                }
+                configStore.setBiometricScope(newScope);
+                if (ConfigStore.BIOMETRIC_SCOPE_OFF.equals(newScope)) {
+                    configStore.clearBiometricAuthTimestamp();
+                } else if (BiometricLockHelper.isAppProtectionEnabled(configStore)) {
+                    appUnlockedInCurrentForeground = true;
+                    BiometricLockHelper.recordAuthSuccess(this, configStore);
+                }
+                updateBiometricSettingsUi();
+                VehicleWidgetProvider.refreshWidgets(this);
+                LocationWidgetProvider.refreshWidgets(this);
+            });
+        }
+        if (btnApplyBiometricGrace != null) {
+            btnApplyBiometricGrace.setOnClickListener(v -> applyBiometricGracePeriod());
+        }
+        if (btnToggleBiometricAdvanced != null) {
+            btnToggleBiometricAdvanced.setOnClickListener(v -> {
+                biometricAdvancedExpanded = !biometricAdvancedExpanded;
+                if (layoutBiometricAdvanced != null) {
+                    layoutBiometricAdvanced.setVisibility(biometricAdvancedExpanded ? View.VISIBLE : View.GONE);
+                }
+                btnToggleBiometricAdvanced.setText(biometricAdvancedExpanded
+                        ? R.string.btn_biometric_advanced_hide
+                        : R.string.btn_biometric_advanced_show);
+            });
+        }
+        if (switchBiometricWidgetSync != null) {
+            switchBiometricWidgetSync.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                if (updatingBiometricWidgetSyncUi || configStore == null) return;
+                configStore.setBiometricWidgetSyncRequired(isChecked);
+                VehicleWidgetProvider.refreshWidgets(this);
+                LocationWidgetProvider.refreshWidgets(this);
+            });
+        }
+        if (btnUnlockApp != null) {
+            btnUnlockApp.setOnClickListener(v -> promptAppUnlock());
         }
         if (btnDisclaimer != null) {
             btnDisclaimer.setOnClickListener(v -> showDisclaimerDialog());
@@ -1061,6 +1271,42 @@ public class MainActivity extends AppCompatActivity {
         if (btnAboutGithubWatch != null) {
             btnAboutGithubWatch.setOnClickListener(
                     v -> openExternalUrl(getString(R.string.about_github_watch_url)));
+        }
+        View.OnClickListener openSupportPage =
+                v -> openExternalUrl(getString(R.string.support_url));
+        if (btnAboutSupport != null) {
+            btnAboutSupport.setOnClickListener(openSupportPage);
+        }
+        if (btnPrefSupport != null) {
+            btnPrefSupport.setOnClickListener(openSupportPage);
+        }
+        if (btnDismissPrefSupport != null) {
+            btnDismissPrefSupport.setOnClickListener(v -> {
+                if (configStore != null) {
+                    configStore.setSupportCardDismissed(true);
+                }
+                if (cardPrefSupport != null) {
+                    cardPrefSupport.setVisibility(View.GONE);
+                }
+            });
+        }
+        if (btnCheckAppUpdate != null) {
+            btnCheckAppUpdate.setOnClickListener(v -> {
+                if (updateUiHelper != null) {
+                    updateUiHelper.checkForUpdates(true);
+                }
+            });
+        }
+        View.OnClickListener openAvailableUpdate = v -> {
+            if (updateUiHelper != null && availableUpdateInfo != null) {
+                updateUiHelper.showUpdateDialog(availableUpdateInfo);
+            }
+        };
+        if (bannerAppUpdate != null) {
+            bannerAppUpdate.setOnClickListener(openAvailableUpdate);
+        }
+        if (btnUpdateBannerAction != null) {
+            btnUpdateBannerAction.setOnClickListener(openAvailableUpdate);
         }
     }
 
@@ -1417,6 +1663,11 @@ public class MainActivity extends AppCompatActivity {
         btnPopupVentBody = popupView.findViewById(R.id.btnVentBody);
         btnPopupVentBodyFeet = popupView.findViewById(R.id.btnVentBodyFeet);
         btnPopupVentFeet = popupView.findViewById(R.id.btnVentFeet);
+        btnPopupAcTimer10 = popupView.findViewById(R.id.btnAcTimer10);
+        btnPopupAcTimer15 = popupView.findViewById(R.id.btnAcTimer15);
+        btnPopupAcTimer20 = popupView.findViewById(R.id.btnAcTimer20);
+        btnPopupAcTimer25 = popupView.findViewById(R.id.btnAcTimer25);
+        btnPopupAcTimer30 = popupView.findViewById(R.id.btnAcTimer30);
         btnPopupApply = popupView.findViewById(R.id.btnClimateApply);
 
         Button btnMinus = popupView.findViewById(R.id.btnTempMinus);
@@ -1446,6 +1697,21 @@ public class MainActivity extends AppCompatActivity {
         }
         if (btnPopupVentFeet != null) {
             btnPopupVentFeet.setOnClickListener(v -> selectWindMode(ConfigStore.WIND_MODE_FEET));
+        }
+        if (btnPopupAcTimer10 != null) {
+            btnPopupAcTimer10.setOnClickListener(v -> selectAcDuration(10));
+        }
+        if (btnPopupAcTimer15 != null) {
+            btnPopupAcTimer15.setOnClickListener(v -> selectAcDuration(15));
+        }
+        if (btnPopupAcTimer20 != null) {
+            btnPopupAcTimer20.setOnClickListener(v -> selectAcDuration(20));
+        }
+        if (btnPopupAcTimer25 != null) {
+            btnPopupAcTimer25.setOnClickListener(v -> selectAcDuration(25));
+        }
+        if (btnPopupAcTimer30 != null) {
+            btnPopupAcTimer30.setOnClickListener(v -> selectAcDuration(30));
         }
 
         AlertDialog dialog = new AlertDialog.Builder(this)
@@ -1485,6 +1751,11 @@ public class MainActivity extends AppCompatActivity {
         btnPopupVentBody = null;
         btnPopupVentBodyFeet = null;
         btnPopupVentFeet = null;
+        btnPopupAcTimer10 = null;
+        btnPopupAcTimer15 = null;
+        btnPopupAcTimer20 = null;
+        btnPopupAcTimer25 = null;
+        btnPopupAcTimer30 = null;
         btnPopupApply = null;
     }
 
@@ -1535,6 +1806,18 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private void selectAcDuration(int durationMinutes) {
+        int normalized = ConfigStore.normalizeAcDurationMinutes(durationMinutes);
+        if (normalized != targetAcDurationMin) {
+            targetAcDurationMin = normalized;
+            if (configStore != null) {
+                configStore.setDefaultAcDurationMinutes(targetAcDurationMin);
+            }
+            updateClimateControlsUi();
+            scheduleDebouncedClimateUpdateIfAcOn();
+        }
+    }
+
     private void scheduleDebouncedClimateUpdateIfAcOn() {
         climateDebounceHandler.removeCallbacks(pendingClimateSend);
         if (lastStatus != null && lastStatus.acOn) {
@@ -1559,9 +1842,17 @@ public class MainActivity extends AppCompatActivity {
         executeWatchAction(action, tempC, vinOverride, level, -1, -1, -1);
     }
 
+    private boolean isSingleFlightEnabled() {
+        return configStore == null || configStore.isSingleFlightActionEnabled();
+    }
+
     private void executeWatchAction(String action, int tempC, String vinOverride, int level,
                                     int tempGear, int fanLevel, int windMode) {
+        if (isSingleFlightEnabled() && actionInFlight) {
+            return;
+        }
         if (configStore != null && !configStore.isConfigured()) {
+            stopSwipeRefreshing();
             logMessage(action + " failed: BYD credentials are not configured.");
             showToast("BYD credentials are not configured", false);
             return;
@@ -1585,6 +1876,7 @@ public class MainActivity extends AppCompatActivity {
                         || windMode == ConfigStore.WIND_MODE_FEET) {
                     json.put("windMode", windMode);
                 }
+                json.put("acDurationMin", targetAcDurationMin);
             }
             if (vinOverride != null && !vinOverride.trim().isEmpty()) {
                 json.put("vin", vinOverride.trim());
@@ -1593,21 +1885,123 @@ public class MainActivity extends AppCompatActivity {
                 json.put("level", level);
             }
         } catch (JSONException e) {
+            stopSwipeRefreshing();
             logMessage("Failed to build command payload for " + action + ": " + e.getMessage());
             showToast("Failed to build " + formatActionLabel(action) + " command", false);
             return;
         }
 
+        if (isSingleFlightEnabled()) {
+            setVehicleActionInFlight(true);
+        }
         logMessage("Sending " + action + "...");
-        repository.handleWatchJson(json.toString(), responseJson -> {
-            runOnUiThread(() -> handleWatchResponse(responseJson));
-        });
+        try {
+            repository.handleWatchJson(json.toString(), responseJson -> {
+                runOnUiThread(() -> handleWatchResponse(responseJson));
+            });
+        } catch (RuntimeException e) {
+            setVehicleActionInFlight(false);
+            stopSwipeRefreshing();
+            logMessage("Failed to dispatch " + action + ": " + e.getMessage());
+            showToast("Failed to send " + formatActionLabel(action) + " command", false);
+        }
+    }
+
+    private void setVehicleActionInFlight(boolean inFlight) {
+        actionInFlight = inFlight;
+        boolean enabled = !inFlight;
+        // Prevent View.setEnabled(true) -> focusableViewAvailable from jumping focus and
+        // scrolling NestedScrollView when action buttons re-enable after a command completes.
+        int prevFocusability = ViewGroup.FOCUS_BEFORE_DESCENDANTS;
+        if (rootScroll != null) {
+            prevFocusability = rootScroll.getDescendantFocusability();
+            rootScroll.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
+        }
+        try {
+            View[] controls = new View[]{
+                    btnRefresh,
+                    btnLock,
+                    btnUnlock,
+                    btnAcToggle,
+                    btnAcAdjust,
+                    btnPopupApply,
+                    btnLights,
+                    btnHorn,
+                    btnVentWindows,
+                    btnCloseWindows,
+                    btnSwitchActiveCar,
+                    btnRefreshLocation,
+                    cardLocation
+            };
+            for (View control : controls) {
+                setVehicleControlEnabled(control, enabled);
+            }
+            setVehicleControlEnabled(btnBatHeat, enabled && (lastStatus == null || lastStatus.canBatteryHeat));
+            setVehicleControlEnabled(btnSeatHeat, enabled && (lastStatus == null || lastStatus.canSeatClimate));
+            setContainerControlsEnabled(layoutHomeCustomGrid, enabled);
+            setContainerControlsEnabled(layoutCombosContainer, enabled);
+            if (enabled) {
+                lockedDynamicControls.clear();
+            }
+            if (swipeRefresh != null) {
+                if (inFlight) {
+                    // Keep SwipeRefreshLayout enabled during its own refresh so its spinner stays visible.
+                    if (!swipeRefresh.isRefreshing()) {
+                        swipeRefresh.setEnabled(false);
+                    }
+                } else {
+                    swipeRefresh.setEnabled(currentPageId == R.id.nav_controls);
+                }
+            }
+        } finally {
+            if (rootScroll != null) {
+                rootScroll.setDescendantFocusability(prevFocusability);
+            }
+        }
+    }
+
+    private void setVehicleControlEnabled(View view, boolean enabled) {
+        if (view == null) return;
+        view.setEnabled(enabled);
+        view.setClickable(enabled);
+        view.setAlpha(enabled ? 1.0f : DISABLED_ACTION_ALPHA);
+    }
+
+    private void setContainerControlsEnabled(View root, boolean enabled) {
+        if (!(root instanceof ViewGroup)) return;
+        ViewGroup group = (ViewGroup) root;
+        for (int i = 0; i < group.getChildCount(); i++) {
+            View child = group.getChildAt(i);
+            if (!enabled) {
+                if ((child instanceof Button || child.isClickable()) && child.isEnabled()) {
+                    lockedDynamicControls.add(child);
+                    setVehicleControlEnabled(child, false);
+                }
+            } else if (lockedDynamicControls.remove(child)) {
+                setVehicleControlEnabled(child, true);
+            }
+            if (child instanceof ViewGroup) {
+                setContainerControlsEnabled(child, enabled);
+            }
+        }
+    }
+
+    private void stopSwipeRefreshing() {
+        if (swipeRefresh != null && swipeRefresh.isRefreshing()) {
+            swipeRefresh.setRefreshing(false);
+        }
     }
 
     private void handleWatchResponse(String responseJson) {
+        if (actionInFlight) {
+            setVehicleActionInFlight(false);
+        }
         try {
             WatchResponse resp = WatchResponse.fromJson(new JSONObject(responseJson));
             if (resp != null) {
+                if (WatchProtocol.ACTION_STATUS.equals(resp.action)) {
+                    stopSwipeRefreshing();
+                }
                 String label = formatActionLabel(resp.action);
                 if (resp.ok) {
                     logMessage(resp.action + ": OK (" + (resp.msg.isEmpty() ? "Success" : resp.msg) + ")");
@@ -1634,10 +2028,12 @@ public class MainActivity extends AppCompatActivity {
                     showToast(label + " failed" + (reason.isEmpty() ? "" : ": " + reason), true);
                 }
             } else {
+                stopSwipeRefreshing();
                 logMessage("Received null response payload.");
                 showToast("Empty response from vehicle", false);
             }
         } catch (Exception e) {
+            stopSwipeRefreshing();
             logMessage("Error processing response: " + e.getMessage());
             showToast("Error processing response", false);
         }
@@ -2031,12 +2427,14 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private String formatActiveClimatePreset(boolean manual) {
+        String timerSuffix = " · " + getString(R.string.ac_timer_min_short_fmt, targetAcDurationMin);
         if (manual) {
             return getString(R.string.climate_preset_manual_fmt,
-                    targetTempGear, targetFanLevel, formatWindModeLabel(targetWindMode));
+                    targetTempGear, targetFanLevel, formatWindModeLabel(targetWindMode))
+                    + timerSuffix;
         }
         String tempUnit = configStore != null ? configStore.getTempUnit() : UnitPreferences.TEMP_C;
-        return UnitPreferences.formatTemp(targetTempC, tempUnit);
+        return UnitPreferences.formatTemp(targetTempC, tempUnit) + timerSuffix;
     }
 
     private String formatWindModeLabel(int windMode) {
@@ -2071,6 +2469,11 @@ public class MainActivity extends AppCompatActivity {
         styleVentChip(btnPopupVentBody, targetWindMode == ConfigStore.WIND_MODE_BODY);
         styleVentChip(btnPopupVentBodyFeet, targetWindMode == ConfigStore.WIND_MODE_BODY_FEET);
         styleVentChip(btnPopupVentFeet, targetWindMode == ConfigStore.WIND_MODE_FEET);
+        styleVentChip(btnPopupAcTimer10, targetAcDurationMin == 10);
+        styleVentChip(btnPopupAcTimer15, targetAcDurationMin == 15);
+        styleVentChip(btnPopupAcTimer20, targetAcDurationMin == 20);
+        styleVentChip(btnPopupAcTimer25, targetAcDurationMin == 25);
+        styleVentChip(btnPopupAcTimer30, targetAcDurationMin == 30);
         if (btnPopupApply != null) {
             btnPopupApply.setText(acOn ? R.string.btn_apply_now : R.string.btn_start_ac);
         }
@@ -2261,28 +2664,158 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void runComboFromUi(CustomActionCombo combo) {
-        if (combo == null) return;
+        if (combo == null || (isSingleFlightEnabled() && actionInFlight)) return;
+        if (configStore != null && !configStore.isConfigured()) {
+            logMessage("Combo " + combo.name + " failed: BYD credentials are not configured.");
+            showToast("BYD credentials are not configured", false);
+            return;
+        }
+        if (isSingleFlightEnabled()) {
+            setVehicleActionInFlight(true);
+        }
         logMessage("Running combo: " + combo.name);
-        VehicleWidgetProvider.executeCombo(
+        try {
+            VehicleWidgetProvider.executeCombo(
+                    this,
+                    combo,
+                    true,
+                    new VehicleWidgetProvider.ComboProgressListener() {
+                        @Override
+                        public void onStepProgress(int stepIndex, int totalSteps, String label) {
+                            showToast(getString(R.string.combo_running_fmt, combo.name, label), false);
+                        }
+
+                        @Override
+                        public void onFinished(boolean ok, String message) {
+                            setVehicleActionInFlight(false);
+                            logMessage("Combo " + combo.name + ": " + message);
+                            showToast(message, true);
+                            if (repository != null && repository.getCachedStatus() != null) {
+                                updateTelemetryUi(repository.getCachedStatus());
+                            }
+                        }
+                    },
+                    null
+            );
+        } catch (RuntimeException e) {
+            setVehicleActionInFlight(false);
+            logMessage("Combo " + combo.name + " failed: " + e.getMessage());
+            showToast("Combo failed: " + e.getMessage(), true);
+        }
+    }
+
+    private String biometricScopeFromButtonId(int checkedId) {
+        if (checkedId == R.id.btnBioScopeApp) return ConfigStore.BIOMETRIC_SCOPE_APP;
+        if (checkedId == R.id.btnBioScopeWidget) return ConfigStore.BIOMETRIC_SCOPE_WIDGET;
+        if (checkedId == R.id.btnBioScopeBoth) return ConfigStore.BIOMETRIC_SCOPE_BOTH;
+        return ConfigStore.BIOMETRIC_SCOPE_OFF;
+    }
+
+    private void updateBiometricSettingsUi() {
+        String scope = configStore != null ? configStore.getBiometricScope() : ConfigStore.DEFAULT_BIOMETRIC_SCOPE;
+        if (toggleBiometricScope != null) {
+            updatingBiometricScopeUi = true;
+            try {
+                int targetId = R.id.btnBioScopeOff;
+                if (ConfigStore.BIOMETRIC_SCOPE_APP.equals(scope)) {
+                    targetId = R.id.btnBioScopeApp;
+                } else if (ConfigStore.BIOMETRIC_SCOPE_WIDGET.equals(scope)) {
+                    targetId = R.id.btnBioScopeWidget;
+                } else if (ConfigStore.BIOMETRIC_SCOPE_BOTH.equals(scope)) {
+                    targetId = R.id.btnBioScopeBoth;
+                }
+                if (toggleBiometricScope.getCheckedButtonId() != targetId) {
+                    toggleBiometricScope.check(targetId);
+                }
+            } finally {
+                updatingBiometricScopeUi = false;
+            }
+        }
+        boolean active = !ConfigStore.BIOMETRIC_SCOPE_OFF.equals(scope);
+        if (layoutBiometricOptions != null) {
+            layoutBiometricOptions.setVisibility(active ? View.VISIBLE : View.GONE);
+        }
+        if (etBiometricGraceMinutes != null && configStore != null) {
+            etBiometricGraceMinutes.setText(String.valueOf(configStore.getBiometricGraceMinutes()));
+        }
+        if (switchBiometricWidgetSync != null) {
+            updatingBiometricWidgetSyncUi = true;
+            try {
+                switchBiometricWidgetSync.setChecked(configStore != null && configStore.isBiometricWidgetSyncRequired());
+                switchBiometricWidgetSync.setEnabled(BiometricLockHelper.isWidgetProtectionEnabled(configStore));
+            } finally {
+                updatingBiometricWidgetSyncUi = false;
+            }
+        }
+    }
+
+    private void applyBiometricGracePeriod() {
+        if (configStore == null || etBiometricGraceMinutes == null) return;
+        String raw = etBiometricGraceMinutes.getText() != null
+                ? etBiometricGraceMinutes.getText().toString().trim()
+                : "";
+        int parsed;
+        try {
+            parsed = Integer.parseInt(raw);
+        } catch (NumberFormatException e) {
+            showToast(getString(R.string.biometric_grace_invalid), false);
+            return;
+        }
+        if (parsed < 0 || parsed > ConfigStore.MAX_BIOMETRIC_GRACE_MINUTES) {
+            showToast(getString(R.string.biometric_grace_invalid), false);
+            return;
+        }
+        configStore.setBiometricGraceMinutes(parsed);
+        etBiometricGraceMinutes.setText(String.valueOf(parsed));
+        etBiometricGraceMinutes.clearFocus();
+        if (parsed == 0) {
+            showToast(getString(R.string.biometric_grace_always), false);
+        } else {
+            showToast(getString(R.string.biometric_grace_saved, parsed), false);
+        }
+    }
+
+    private void enforceAppLockIfNeeded(boolean triggerPrompt) {
+        if (BiometricLockHelper.isAuthRequiredForApp(this, configStore, appUnlockedInCurrentForeground)) {
+            setAppLockOverlayVisible(true);
+            if (triggerPrompt && !biometricPromptShowing) {
+                promptAppUnlock();
+            }
+        } else {
+            setAppLockOverlayVisible(false);
+        }
+    }
+
+    private void setAppLockOverlayVisible(boolean visible) {
+        if (layoutAppLockOverlay != null) {
+            layoutAppLockOverlay.setVisibility(visible ? View.VISIBLE : View.GONE);
+        }
+    }
+
+    private void promptAppUnlock() {
+        if (biometricPromptShowing || isFinishing() || isDestroyed()) {
+            return;
+        }
+        biometricPromptShowing = true;
+        BiometricLockHelper.authenticate(
                 this,
-                combo,
-                true,
-                new VehicleWidgetProvider.ComboProgressListener() {
+                getString(R.string.biometric_app_prompt_title),
+                getString(R.string.biometric_app_prompt_subtitle),
+                new BiometricLockHelper.AuthCallback() {
                     @Override
-                    public void onStepProgress(int stepIndex, int totalSteps, String label) {
-                        showToast(getString(R.string.combo_running_fmt, combo.name, label), false);
+                    public void onSucceeded() {
+                        biometricPromptShowing = false;
+                        appUnlockedInCurrentForeground = true;
+                        BiometricLockHelper.recordAuthSuccess(MainActivity.this, configStore);
+                        setAppLockOverlayVisible(false);
                     }
 
                     @Override
-                    public void onFinished(boolean ok, String message) {
-                        logMessage("Combo " + combo.name + ": " + message);
-                        showToast(message, true);
-                        if (repository != null && repository.getCachedStatus() != null) {
-                            updateTelemetryUi(repository.getCachedStatus());
-                        }
+                    public void onFailedOrCancelled(@NonNull String message) {
+                        biometricPromptShowing = false;
+                        setAppLockOverlayVisible(true);
                     }
-                },
-                null
+                }
         );
     }
 
@@ -2447,6 +2980,106 @@ public class MainActivity extends AppCompatActivity {
         } catch (Exception e) {
             showToast("Unable to open link", true);
         }
+    }
+
+    private void initAppUpdater(BydWatchApp app) {
+        if (app == null) return;
+        AppUpdateChecker checker = app.getAppUpdateChecker();
+        updateUiHelper = new AppUpdateUiHelper(this, configStore, checker, new AppUpdateUiHelper.Host() {
+            @Override
+            public void onUpdateCheckStarted(boolean manual) {
+                if (btnCheckAppUpdate != null) {
+                    btnCheckAppUpdate.setEnabled(false);
+                }
+                if (tvAppUpdateStatus != null && manual) {
+                    tvAppUpdateStatus.setText(R.string.update_status_checking);
+                }
+            }
+
+            @Override
+            public void onUpdateCheckFinished(
+                    AppUpdateInfo latestInfo,
+                    boolean isNewer,
+                    String errorMessage,
+                    boolean manual) {
+                if (btnCheckAppUpdate != null) {
+                    btnCheckAppUpdate.setEnabled(true);
+                }
+                if (errorMessage != null) {
+                    if (tvAppUpdateStatus != null && manual) {
+                        tvAppUpdateStatus.setText(
+                                getString(R.string.update_status_failed_fmt, errorMessage));
+                    }
+                    return;
+                }
+                if (latestInfo != null && isNewer) {
+                    availableUpdateInfo = latestInfo;
+                    updateAppBannerVisibility();
+                    if (tvAppUpdateStatus != null) {
+                        if (latestInfo.hasApkAsset()) {
+                            String sizeStr = android.text.format.Formatter.formatShortFileSize(
+                                    MainActivity.this, latestInfo.apkSizeBytes);
+                            tvAppUpdateStatus.setText(getString(
+                                    R.string.update_status_available_fmt,
+                                    latestInfo.versionName,
+                                    sizeStr));
+                        } else {
+                            tvAppUpdateStatus.setText(getString(
+                                    R.string.update_status_no_apk_fmt,
+                                    latestInfo.versionName));
+                        }
+                    }
+                } else {
+                    availableUpdateInfo = null;
+                    updateAppBannerVisibility();
+                    if (tvAppUpdateStatus != null) {
+                        tvAppUpdateStatus.setText(getString(
+                                R.string.update_status_up_to_date,
+                                com.bydwatch.companion.BuildConfig.VERSION_NAME));
+                    }
+                }
+            }
+
+            @Override
+            public void openExternalUrl(String url) {
+                MainActivity.this.openExternalUrl(url);
+            }
+
+            @Override
+            public void showToast(String message, boolean isError) {
+                MainActivity.this.showToast(message, isError);
+            }
+
+            @Override
+            public void onRequestInstallPermission(Intent settingsIntent) {
+                try {
+                    installPermissionLauncher.launch(settingsIntent);
+                } catch (Exception e) {
+                    MainActivity.this.showToast("Unable to open settings", true);
+                }
+            }
+        });
+
+        boolean isRobolectric = "robolectric".equalsIgnoreCase(Build.FINGERPRINT);
+        if (!isRobolectric || BydWatchApp.hasTestAppUpdateChecker()) {
+            updateUiHelper.maybeAutoCheckForUpdates();
+        }
+    }
+
+    private void updateAppBannerVisibility() {
+        if (bannerAppUpdate == null) return;
+        boolean show = currentPageId == R.id.nav_controls && availableUpdateInfo != null;
+        bannerAppUpdate.setVisibility(show ? View.VISIBLE : View.GONE);
+        if (show && tvUpdateBannerTitle != null) {
+            tvUpdateBannerTitle.setText(getString(
+                    R.string.update_banner_title_fmt,
+                    availableUpdateInfo.versionName));
+        }
+    }
+
+    @VisibleForTesting
+    AppUpdateUiHelper getUpdateUiHelperForTesting() {
+        return updateUiHelper;
     }
 
     private void copyEventLog() {
