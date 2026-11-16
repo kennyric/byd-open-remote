@@ -48,10 +48,32 @@ Aplikasi remote control Android & widget layar utama Material You yang gratis, o
     <td align="center"><img src="docs/screenshots/setup_guide.png" alt="Panduan Setup di Aplikasi" width="240"/></td>
   </tr>
   <tr>
-    <td align="center" colspan="3"><b>Keempat Pilihan Gaya Kartu Baterai</b></td>
+    <td align="center" colspan="4"><b>Keempat Pilihan Gaya Kartu Baterai (Widget 4×3)</b></td>
   </tr>
   <tr>
-    <td align="center" colspan="3"><img src="docs/screenshots/widget_4x3_battery_options.svg" alt="Empat Gaya Kartu Baterai 4x3" width="320"/></td>
+    <td align="center"><b>Capsule</b></td>
+    <td align="center"><b>Ring</b></td>
+    <td align="center"><b>Bento</b></td>
+    <td align="center"><b>Tank</b></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/screenshots/widget_style_capsule.png" alt="Gaya Baterai Capsule" width="230"/></td>
+    <td align="center"><img src="docs/screenshots/widget_style_ring.png" alt="Gaya Baterai Ring" width="230"/></td>
+    <td align="center"><img src="docs/screenshots/widget_style_bento.png" alt="Gaya Baterai Bento" width="230"/></td>
+    <td align="center"><img src="docs/screenshots/widget_style_tank.png" alt="Gaya Baterai Tank" width="230"/></td>
+  </tr>
+  <tr>
+    <td align="center" colspan="4"><b>Bisa Diubah Ukurannya — Gaya Tetap Sama</b></td>
+  </tr>
+  <tr>
+    <td align="center"><b>2×2</b></td>
+    <td align="center"><b>4×1</b></td>
+    <td align="center" colspan="2"><b>4×2</b></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/screenshots/widget_2x2.png" alt="Widget 2x2" width="150"/></td>
+    <td align="center"><img src="docs/screenshots/widget_4x1.png" alt="Widget 4x1" width="290"/></td>
+    <td align="center" colspan="2"><img src="docs/screenshots/widget_4x2.png" alt="Widget 4x2" width="290"/></td>
   </tr>
 </table>
 

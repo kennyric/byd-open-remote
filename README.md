@@ -46,10 +46,32 @@ Free, open-source, unofficial Android remote control & Material You home-screen 
     <td align="center"><img src="docs/screenshots/setup_guide.png" alt="In-App Setup Guide" width="240"/></td>
   </tr>
   <tr>
-    <td align="center" colspan="3"><b>All 4 Selectable Battery Styles</b></td>
+    <td align="center" colspan="4"><b>All 4 Selectable Battery Styles (4×3 Widget)</b></td>
   </tr>
   <tr>
-    <td align="center" colspan="3"><img src="docs/screenshots/widget_4x3_battery_options.svg" alt="Four 4x3 Battery Card Styles" width="320"/></td>
+    <td align="center"><b>Capsule</b></td>
+    <td align="center"><b>Ring</b></td>
+    <td align="center"><b>Bento</b></td>
+    <td align="center"><b>Tank</b></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/screenshots/widget_style_capsule.png" alt="Capsule Battery Style" width="230"/></td>
+    <td align="center"><img src="docs/screenshots/widget_style_ring.png" alt="Ring Battery Style" width="230"/></td>
+    <td align="center"><img src="docs/screenshots/widget_style_bento.png" alt="Bento Battery Style" width="230"/></td>
+    <td align="center"><img src="docs/screenshots/widget_style_tank.png" alt="Tank Battery Style" width="230"/></td>
+  </tr>
+  <tr>
+    <td align="center" colspan="4"><b>Resizable to Any Size — Same Styles</b></td>
+  </tr>
+  <tr>
+    <td align="center"><b>2×2</b></td>
+    <td align="center"><b>4×1</b></td>
+    <td align="center" colspan="2"><b>4×2</b></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/screenshots/widget_2x2.png" alt="2x2 Widget" width="150"/></td>
+    <td align="center"><img src="docs/screenshots/widget_4x1.png" alt="4x1 Widget" width="290"/></td>
+    <td align="center" colspan="2"><img src="docs/screenshots/widget_4x2.png" alt="4x2 Widget" width="290"/></td>
   </tr>
 </table>
 
@@ -163,7 +185,7 @@ The APK (`BYD-Open-Remote-v<version>.apk`) is written to `app/build/outputs/apk/
 ```text
 .
 ├── app/               # Android app (com.bydopenremote.app), Material You widgets, BYD cloud client & Robolectric tests
-├── docs/screenshots/  # Emulator screenshots & vector artboards used in documentation
+├── docs/screenshots/  # Emulator screenshots used in documentation
 └── gradle/            # Gradle wrapper & build scripts
 ```
 
