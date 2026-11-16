@@ -31,6 +31,7 @@ public class BydCloudClient {
     private BydCloudTransport transport;
     private BydCloudSession session;
     private boolean commandsVerified = false;
+    private final java.util.Map<String, Boolean> guestVinMap = new java.util.concurrent.ConcurrentHashMap<>();
 
     private static final long CAPABILITY_CACHE_TTL_MS = 30L * 60L * 1000L;
     private volatile CloudCapabilities cloudCapabilities;
@@ -252,6 +253,18 @@ public class BydCloudClient {
 
         if (list == null || list.length() == 0) {
             throw new IOException("No vehicles found on account");
+        }
+
+        for (int i = 0; i < list.length(); i++) {
+            JSONObject v = list.optJSONObject(i);
+            if (v != null) {
+                String vin = v.optString("vin", "");
+                if (!vin.isEmpty()) {
+                    boolean isGuest = !v.optString("empowerId", "").trim().isEmpty()
+                            || v.optInt("empowerType", 0) < 0;
+                    guestVinMap.put(vin, isGuest);
+                }
+            }
         }
 
         return list;
@@ -1258,36 +1271,36 @@ public class BydCloudClient {
         }
 
         BydCloudSession s = ensureSession();
-        long nowMs = System.currentTimeMillis();
 
-        // Build remote control request
-        JSONObject inner = new JSONObject();
-        try {
-            inner.put("commandPwd", config.commandPwd);
-            inner.put("commandType", commandType);
-            inner.put("deviceType", "0");
-            inner.put("imeiMD5", config.imeiMd5);
-            inner.put("networkType", "wifi");
-            inner.put("random", BydCryptoUtils.randomHex16());
-            inner.put("timeStamp", String.valueOf(nowMs));
-            inner.put("version", config.appInnerVersion);
-            inner.put("vin", vin);
-            // BYD remote-control parameters are a JSON-encoded map. Sending
-            // them as top-level fields makes OPENAIR, BATTERYHEAT and seat
-            // commands look accepted while the vehicle ignores the payload.
-            if (extraParams != null) inner.put("controlParamsMap", extraParams.toString());
-        } catch (Exception e) {
-            throw new IOException("Failed to build command request", e);
-        }
-
-        TokenEnvelope env = buildTokenOuterEnvelope(nowMs, s, inner);
         if (Thread.currentThread().isInterrupted()) {
             throw new IOException("remote command cancelled");
         }
-        JSONObject response = transport.postSecure("/control/remoteControl", env.outer);
+        VehicleResponse vr = postVehicleSecure("/control/remoteControl", vin, s, 0L, nowMs -> {
+            JSONObject inner = new JSONObject();
+            try {
+                inner.put("commandPwd", config.commandPwd);
+                inner.put("commandType", commandType);
+                inner.put("deviceType", "0");
+                inner.put("imeiMD5", config.imeiMd5);
+                inner.put("networkType", "wifi");
+                inner.put("random", BydCryptoUtils.randomHex16());
+                inner.put("timeStamp", String.valueOf(nowMs));
+                inner.put("version", config.appInnerVersion);
+                inner.put("vin", vin);
+                // BYD remote-control parameters are a JSON-encoded map. Sending
+                // them as top-level fields makes OPENAIR, BATTERYHEAT and seat
+                // commands look accepted while the vehicle ignores the payload.
+                if (extraParams != null) inner.put("controlParamsMap", extraParams.toString());
+            } catch (Exception e) {
+                throw new IOException("Failed to build command request", e);
+            }
+            return inner;
+        });
         if (Thread.currentThread().isInterrupted()) {
             throw new IOException("remote command cancelled");
         }
+        TokenEnvelope env = vr.env;
+        JSONObject response = vr.response;
 
         String code = response.optString("code", "");
         if (!"0".equals(code)) {
@@ -1357,30 +1370,32 @@ public class BydCloudClient {
                 return false;
             }
 
-            long nowMs = System.currentTimeMillis();
-            JSONObject inner = new JSONObject();
             try {
-                // CRITICAL: The result poll must mirror the trigger request structure.
-                // Per pyBYD reference (jkaberg/pyBYD _api/control.py), the poll uses
-                // the same _build_control_inner as the trigger — including commandPwd
-                // and commandType. Without these, the BYD cloud returns 1009.
-                inner.put("commandPwd", config.commandPwd);
-                inner.put("commandType", commandType);
-                inner.put("deviceType", "0");
-                inner.put("imeiMD5", config.imeiMd5);
-                inner.put("networkType", "wifi");
-                inner.put("random", BydCryptoUtils.randomHex16());
-                inner.put("requestSerial", requestSerial);
-                inner.put("timeStamp", String.valueOf(nowMs));
-                inner.put("version", config.appInnerVersion);
-                inner.put("vin", vin);
-            } catch (Exception e) {
-                continue;
-            }
-
-            TokenEnvelope env = buildTokenOuterEnvelope(nowMs, s, inner);
-            try {
-                JSONObject response = transport.postSecure("/control/remoteControlResult", env.outer);
+                final String pollSerial = requestSerial;
+                VehicleResponse vr = postVehicleSecure("/control/remoteControlResult", vin, s, 0L, nowMs -> {
+                    JSONObject inner = new JSONObject();
+                    try {
+                        // CRITICAL: The result poll must mirror the trigger request structure.
+                        // Per pyBYD reference (jkaberg/pyBYD _api/control.py), the poll uses
+                        // the same _build_control_inner as the trigger — including commandPwd
+                        // and commandType. Without these, the BYD cloud returns 1009.
+                        inner.put("commandPwd", config.commandPwd);
+                        inner.put("commandType", commandType);
+                        inner.put("deviceType", "0");
+                        inner.put("imeiMD5", config.imeiMd5);
+                        inner.put("networkType", "wifi");
+                        inner.put("random", BydCryptoUtils.randomHex16());
+                        inner.put("requestSerial", pollSerial);
+                        inner.put("timeStamp", String.valueOf(nowMs));
+                        inner.put("version", config.appInnerVersion);
+                        inner.put("vin", vin);
+                    } catch (Exception e) {
+                        throw new IOException("Failed to build remoteControlResult request", e);
+                    }
+                    return inner;
+                });
+                JSONObject response = vr.response;
+                TokenEnvelope env = vr.env;
                 String code = response.optString("code", "");
                 
                 if (!"0".equals(code)) continue;
@@ -1440,26 +1455,25 @@ public class BydCloudClient {
             int maxPollAttempts,
             long callTimeoutMs) throws IOException {
         BydCloudSession s = ensureSession();
-        long nowMs = System.currentTimeMillis();
-
-        JSONObject inner = buildInner(nowMs);
-        try {
-            inner.put("energyType", "0");
-            inner.put("tboxVersion", "3");
-            inner.put("vin", vin);
-        } catch (Exception e) {
-            throw new IOException("Failed to build realtime request", e);
-        }
-
-        TokenEnvelope env = buildTokenOuterEnvelope(nowMs, s, inner);
-        JSONObject response = postRealtimeSecure(
-                "/vehicleInfo/vehicle/vehicleRealTimeRequest",
-                env.outer,
-                callTimeoutMs);
+        VehicleResponse vr = postVehicleSecure("/vehicleInfo/vehicle/vehicleRealTimeRequest", vin, s, callTimeoutMs, nowMs -> {
+            JSONObject inner = buildInner(nowMs);
+            try {
+                inner.put("energyType", "0");
+                inner.put("tboxVersion", "3");
+                inner.put("vin", vin);
+            } catch (Exception e) {
+                throw new IOException("Failed to build realtime request", e);
+            }
+            return inner;
+        });
+        TokenEnvelope env = vr.env;
+        JSONObject response = vr.response;
 
         String code = response.optString("code", "");
         if (!"0".equals(code)) {
-            throw new IOException("Realtime request failed: code=" + code);
+            String msg = response.optString("message", response.optString("msg", "")).trim();
+            throw new IOException("Realtime request failed: code=" + code
+                    + (msg.isEmpty() ? "" : ", msg=" + msg));
         }
 
         String respondData = response.optString("respondData", "");
@@ -1481,21 +1495,28 @@ public class BydCloudClient {
                 return vehicleInfo;
             }
 
-            nowMs = System.currentTimeMillis();
-            JSONObject pollInner = buildInner(nowMs);
             try {
-                pollInner.put("energyType", "0");
-                pollInner.put("tboxVersion", "3");
-                pollInner.put("vin", vin);
-                pollInner.put("requestSerial", requestSerial);
-            } catch (Exception e) { continue; }
-
-            TokenEnvelope pollEnv = buildTokenOuterEnvelope(nowMs, s, pollInner);
-            try {
-                JSONObject pollResp = postRealtimeSecure(
+                final String pollSerial = requestSerial;
+                VehicleResponse pollVr = postVehicleSecure(
                         "/vehicleInfo/vehicle/vehicleRealTimeResult",
-                        pollEnv.outer,
-                        callTimeoutMs);
+                        vin,
+                        s,
+                        callTimeoutMs,
+                        nowMs -> {
+                            JSONObject pollInner = buildInner(nowMs);
+                            try {
+                                pollInner.put("energyType", "0");
+                                pollInner.put("tboxVersion", "3");
+                                pollInner.put("vin", vin);
+                                pollInner.put("requestSerial", pollSerial);
+                            } catch (Exception e) {
+                                throw new IOException("Failed to build realtime poll request", e);
+                            }
+                            return pollInner;
+                        }
+                );
+                JSONObject pollResp = pollVr.response;
+                TokenEnvelope pollEnv = pollVr.env;
                 if (!"0".equals(pollResp.optString("code", ""))) continue;
 
                 String pollData = pollResp.optString("respondData", "");
@@ -1542,15 +1563,17 @@ public class BydCloudClient {
             return null;
         }
         BydCloudSession s = ensureSession();
-        long nowMs = System.currentTimeMillis();
-        JSONObject inner = buildInner(nowMs);
-        try {
-            inner.put("vin", vin);
-        } catch (Exception e) {
-            throw new IOException("Failed to build statusNow request", e);
-        }
-        TokenEnvelope env = buildTokenOuterEnvelope(nowMs, s, inner);
-        JSONObject response = postRealtimeSecure("/control/getStatusNow", env.outer, 3_500L);
+        VehicleResponse vr = postVehicleSecure("/control/getStatusNow", vin, s, 3_500L, nowMs -> {
+            JSONObject inner = buildInner(nowMs);
+            try {
+                inner.put("vin", vin);
+            } catch (Exception e) {
+                throw new IOException("Failed to build statusNow request", e);
+            }
+            return inner;
+        });
+        TokenEnvelope env = vr.env;
+        JSONObject response = vr.response;
         if (!"0".equals(response.optString("code", ""))) {
             return null;
         }
@@ -1569,17 +1592,17 @@ public class BydCloudClient {
             throw new IOException("vin required for GPS lookup");
         }
         BydCloudSession s = ensureSession();
-        long nowMs = System.currentTimeMillis();
-
-        JSONObject inner = buildInner(nowMs);
-        try {
-            inner.put("vin", vin);
-        } catch (Exception e) {
-            throw new IOException("Failed to build GPS request", e);
-        }
-
-        TokenEnvelope env = buildTokenOuterEnvelope(nowMs, s, inner);
-        JSONObject response = postRealtimeSecure("/control/getGpsInfo", env.outer, callTimeoutMs);
+        VehicleResponse vr = postVehicleSecure("/control/getGpsInfo", vin, s, callTimeoutMs, nowMs -> {
+            JSONObject inner = buildInner(nowMs);
+            try {
+                inner.put("vin", vin);
+            } catch (Exception e) {
+                throw new IOException("Failed to build GPS request", e);
+            }
+            return inner;
+        });
+        TokenEnvelope env = vr.env;
+        JSONObject response = vr.response;
 
         String code = response.optString("code", "");
         if (!"0".equals(code)) {
@@ -1611,21 +1634,20 @@ public class BydCloudClient {
                 return latest;
             }
 
-            nowMs = System.currentTimeMillis();
-            JSONObject pollInner = buildInner(nowMs);
             try {
-                pollInner.put("vin", vin);
-                pollInner.put("requestSerial", requestSerial);
-            } catch (Exception e) {
-                continue;
-            }
-
-            TokenEnvelope pollEnv = buildTokenOuterEnvelope(nowMs, s, pollInner);
-            try {
-                JSONObject pollResp = postRealtimeSecure(
-                        "/control/getGpsInfoResult",
-                        pollEnv.outer,
-                        callTimeoutMs);
+                final String pollSerial = requestSerial;
+                VehicleResponse pollVr = postVehicleSecure("/control/getGpsInfoResult", vin, s, callTimeoutMs, nowMs -> {
+                    JSONObject pollInner = buildInner(nowMs);
+                    try {
+                        pollInner.put("vin", vin);
+                        pollInner.put("requestSerial", pollSerial);
+                    } catch (Exception e) {
+                        throw new IOException("Failed to build GPS poll request", e);
+                    }
+                    return pollInner;
+                });
+                JSONObject pollResp = pollVr.response;
+                TokenEnvelope pollEnv = pollVr.env;
                 if (!"0".equals(pollResp.optString("code", ""))) continue;
 
                 String pollData = pollResp.optString("respondData", "");
@@ -1718,6 +1740,56 @@ public class BydCloudClient {
             }
         }
         return null;
+    }
+
+    private interface InnerSupplier {
+        JSONObject build(long nowMs) throws IOException;
+    }
+
+    private static final class VehicleResponse {
+        final JSONObject response;
+        final TokenEnvelope env;
+
+        VehicleResponse(JSONObject response, TokenEnvelope env) {
+            this.response = response;
+            this.env = env;
+        }
+    }
+
+    private VehicleResponse postVehicleSecure(
+            String endpoint,
+            String vin,
+            BydCloudSession s,
+            long callTimeoutMs,
+            InnerSupplier innerBuilder) throws IOException {
+        boolean useGuest = !config.isChinaRegion() && vin != null && Boolean.TRUE.equals(guestVinMap.get(vin));
+        VehicleResponse first = executeVehicleCall(endpoint, s, callTimeoutMs, innerBuilder, useGuest);
+        if (config.isChinaRegion() || vin == null || vin.isEmpty()) {
+            return first;
+        }
+        String code = first.response.optString("code", "");
+        if (!useGuest && "1001".equals(code)) {
+            guestVinMap.put(vin, Boolean.TRUE);
+            return executeVehicleCall(endpoint, s, callTimeoutMs, innerBuilder, true);
+        }
+        if (useGuest && "8003".equals(code)) {
+            guestVinMap.put(vin, Boolean.FALSE);
+            return executeVehicleCall(endpoint, s, callTimeoutMs, innerBuilder, false);
+        }
+        return first;
+    }
+
+    private VehicleResponse executeVehicleCall(
+            String endpoint,
+            BydCloudSession s,
+            long callTimeoutMs,
+            InnerSupplier innerBuilder,
+            boolean declareGuest) throws IOException {
+        long nowMs = System.currentTimeMillis();
+        JSONObject inner = innerBuilder.build(nowMs);
+        TokenEnvelope env = buildTokenOuterEnvelope(nowMs, s, inner, declareGuest ? "1" : null);
+        JSONObject response = postRealtimeSecure(endpoint, env.outer, callTimeoutMs);
+        return new VehicleResponse(response, env);
     }
 
     private JSONObject postRealtimeSecure(
@@ -2059,6 +2131,11 @@ public class BydCloudClient {
     }
 
     private TokenEnvelope buildTokenOuterEnvelope(long nowMs, BydCloudSession s, JSONObject inner) {
+        return buildTokenOuterEnvelope(nowMs, s, inner, null);
+    }
+
+    TokenEnvelope buildTokenOuterEnvelope(
+            long nowMs, BydCloudSession s, JSONObject inner, String userType) {
         if (config.isChinaRegion()) {
             return buildCnTokenOuterEnvelope(nowMs, s, inner);
         }
@@ -2076,6 +2153,9 @@ public class BydCloudClient {
             signFields.put("imeiMD5", config.imeiMd5);
             signFields.put("language", config.language);
             signFields.put("reqTimestamp", reqTimestamp);
+            if (userType != null && !userType.isEmpty()) {
+                signFields.put("userType", userType);
+            }
 
             String sign = BydCryptoUtils.sha1Mixed(
                     BydCryptoUtils.buildSignString(signFields, signKey));
@@ -2087,6 +2167,9 @@ public class BydCloudClient {
             outer.put("imeiMD5", config.imeiMd5);
             outer.put("language", config.language);
             outer.put("reqTimestamp", reqTimestamp);
+            if (userType != null && !userType.isEmpty()) {
+                outer.put("userType", userType);
+            }
             outer.put("sign", sign);
             // Common device fields
             outer.put("ostype", "and");

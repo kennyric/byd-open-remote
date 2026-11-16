@@ -2024,7 +2024,11 @@ public class MainActivity extends AppCompatActivity {
                     showToast(toastMsg, false);
                 } else {
                     String reason = !resp.msg.isEmpty() ? resp.msg : resp.err;
-                    logMessage(resp.action + " failed [" + resp.err + "]: " + resp.msg);
+                    String detail = repository != null ? repository.getLastErrorDetail() : "";
+                    String logSuffix = (detail != null && !detail.isEmpty() && !detail.equals(resp.msg))
+                            ? " (" + detail + ")"
+                            : "";
+                    logMessage(resp.action + " failed [" + resp.err + "]: " + resp.msg + logSuffix);
                     showToast(label + " failed" + (reason.isEmpty() ? "" : ": " + reason), true);
                 }
             } else {

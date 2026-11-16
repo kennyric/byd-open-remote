@@ -1289,8 +1289,7 @@ public class MainActivityTest {
         String logText = ((TextView) activity.findViewById(R.id.tvStatusLog)).getText().toString();
         String latestToast = ShadowToast.getTextOfLatestToast();
         assertTrue(logText.contains("Unable to reach BYD Cloud"));
-        assertFalse(logText.contains("dilinkappoversea-id.byd.auto"));
-        assertFalse(logText.contains("No address associated"));
+        assertTrue(logText.contains("UnknownHostException"));
         assertNotNull(latestToast);
         assertTrue(latestToast.contains("Unable to reach BYD Cloud"));
         assertFalse(latestToast.contains("dilinkappoversea-id.byd.auto"));

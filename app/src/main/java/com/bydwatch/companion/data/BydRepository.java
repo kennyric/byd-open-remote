@@ -61,6 +61,7 @@ public class BydRepository {
     private final ExecutorService executor;
     private final AtomicReference<VehicleStatus> cachedStatus = new AtomicReference<>();
     private volatile String lastStatusDiag = "";
+    private volatile String lastErrorDetail = "";
     private final java.util.List<StatusListener> statusListeners = new java.util.concurrent.CopyOnWriteArrayList<>();
     private final Object replayLock = new Object();
     private final Deque<String> recentCommandOrder = new ArrayDeque<>();
@@ -164,6 +165,7 @@ public class BydRepository {
                     }
                 }
             } catch (Exception e) {
+                recordErrorDetail(e);
                 String msg = toFriendlyErrorMessage(e, classifyErrorCode(e));
                 if (cb != null) {
                     cb.onError(msg);
@@ -206,6 +208,7 @@ public class BydRepository {
                     }
                 }
             } catch (Exception e) {
+                recordErrorDetail(e);
                 String msg = toFriendlyErrorMessage(e, classifyErrorCode(e));
                 if (cb != null) {
                     cb.onError(msg);
@@ -571,7 +574,32 @@ public class BydRepository {
         return cachedStatus.get();
     }
 
+    public String getLastErrorDetail() {
+        return lastErrorDetail;
+    }
+
+    private void recordErrorDetail(Throwable e) {
+        if (e == null) {
+            lastErrorDetail = "";
+            return;
+        }
+        String msg = e.getMessage() != null ? e.getMessage().replaceAll("\\s+", " ").trim() : "";
+        Throwable cause = e.getCause();
+        String causeMsg = (cause != null && cause.getMessage() != null)
+                ? cause.getMessage().replaceAll("\\s+", " ").trim()
+                : "";
+        StringBuilder sb = new StringBuilder(e.getClass().getSimpleName());
+        if (!msg.isEmpty()) {
+            sb.append(": ").append(msg);
+        }
+        if (!causeMsg.isEmpty() && !causeMsg.equals(msg)) {
+            sb.append(" | cause=").append(cause.getClass().getSimpleName()).append(": ").append(causeMsg);
+        }
+        lastErrorDetail = sb.toString();
+    }
+
     private String mapExceptionToError(String id, String action, Exception e) {
+        recordErrorDetail(e);
         String errCode = classifyErrorCode(e);
         String msg = toFriendlyErrorMessage(e, errCode);
         return WatchProtocol.error(id, action, errCode, msg);

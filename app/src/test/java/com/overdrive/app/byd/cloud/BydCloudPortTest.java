@@ -134,4 +134,33 @@ public class BydCloudPortTest {
         assertNotNull(checkcode);
         assertEquals(32, checkcode.length());
     }
+
+    @Test
+    public void tokenEnvelopeSignsUserTypeOnlyWhenProvided() throws Exception {
+        BydCloudConfig config = new BydCloudConfig("id", "ID", "en");
+        config.setUsername("guest@example.com");
+        BydCloudClient client = new BydCloudClient(config);
+        BydCloudSession session = new BydCloudSession("123456", "0123456789abcdef0123456789abcdef", "0123456789abcdef0123456789abcdef");
+
+        JSONObject inner = new JSONObject();
+        inner.put("vin", "LGX0TESTVIN000001");
+        inner.put("random", "0123456789abcdef");
+        inner.put("timeStamp", "1700000000000");
+
+        java.lang.reflect.Method buildMethod = BydCloudClient.class.getDeclaredMethod(
+                "buildTokenOuterEnvelope", long.class, BydCloudSession.class, JSONObject.class, String.class);
+        buildMethod.setAccessible(true);
+
+        Object ownerEnv = buildMethod.invoke(client, 1700000000000L, session, inner, null);
+        Object guestEnv = buildMethod.invoke(client, 1700000000000L, session, inner, "1");
+
+        java.lang.reflect.Field outerField = ownerEnv.getClass().getDeclaredField("outer");
+        outerField.setAccessible(true);
+        JSONObject ownerOuter = (JSONObject) outerField.get(ownerEnv);
+        JSONObject guestOuter = (JSONObject) outerField.get(guestEnv);
+
+        assertFalse(ownerOuter.has("userType"));
+        assertEquals("1", guestOuter.getString("userType"));
+        assertFalse(ownerOuter.getString("sign").equals(guestOuter.getString("sign")));
+    }
 }
