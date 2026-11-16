@@ -171,7 +171,11 @@ Hasil APK (`BYD-Open-Remote-v<versi>.apk`) berada di `app/build/outputs/apk/debu
 
 [![Sponsor di Ko-fi](https://img.shields.io/badge/Ko--fi-Dukung_Proyek-00658E?style=for-the-badge&logo=kofi&logoColor=white)](https://ko-fi.com/kenny40049)
 
-> **Pendukung dari Indonesia (QRIS):** Dukungan QRIS lokal akan segera tersedia.
+### Pendukung dari Indonesia (QRIS)
+
+Pindai menggunakan dompet digital atau mobile banking Indonesia yang mendukung QRIS (**KENNY STORE - SOFTWARE** · NMID `ID1026640307389`):
+
+<img src="docs/qris_support.jpg" alt="Dukungan QRIS — KENNY STORE - SOFTWARE" width="240"/>
 
 ---
 
