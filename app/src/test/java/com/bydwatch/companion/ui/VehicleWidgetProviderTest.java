@@ -316,7 +316,7 @@ public class VehicleWidgetProviderTest {
                 .build();
         repository.setCachedStatus(fakeGateway.currentStatus);
 
-        wideOpts.putInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 190);
+        wideOpts.putInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 240);
         mgr.updateAppWidgetOptions(compactWidgetId, wideOpts);
         provider.onAppWidgetOptionsChanged(app, mgr, compactWidgetId, wideOpts);
         VehicleLocationHelper.awaitExecutorForTesting();
@@ -405,7 +405,7 @@ public class VehicleWidgetProviderTest {
                 ((TextView) midView.findViewById(R.id.tvWidgetCarModel)).getText().toString());
 
         // 4x3: Driving/Lock/AC render as individual pills, and parked hides Driving pill while keeping Lock/AC pills
-        opts.putInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 190);
+        opts.putInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 240);
         mgr.updateAppWidgetOptions(compactWidgetId, opts);
         provider.onAppWidgetOptionsChanged(app, mgr, compactWidgetId, opts);
         View tallView = shadowMgr.getViewFor(compactWidgetId);
@@ -519,7 +519,7 @@ public class VehicleWidgetProviderTest {
         ShadowAppWidgetManager shadowMgr = Shadows.shadowOf(mgr);
         Bundle tallOpts = new Bundle();
         tallOpts.putInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 280);
-        tallOpts.putInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 190);
+        tallOpts.putInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 240);
         mgr.updateAppWidgetOptions(compactWidgetId, tallOpts);
 
         VehicleLocationHelper.setTestStreetLookupForTesting((ctx, lat, lng) -> "Jalan W. R. Supratman");
@@ -562,7 +562,7 @@ public class VehicleWidgetProviderTest {
         ShadowAppWidgetManager shadowMgr = Shadows.shadowOf(mgr);
         Bundle tallOpts = new Bundle();
         tallOpts.putInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 280);
-        tallOpts.putInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 190);
+        tallOpts.putInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 240);
         mgr.updateAppWidgetOptions(compactWidgetId, tallOpts);
 
         configStore.setAppLanguage(com.bydwatch.companion.data.ConfigStore.LANG_ID);
@@ -668,7 +668,7 @@ public class VehicleWidgetProviderTest {
 
         Bundle tall4x3Opts = new Bundle();
         tall4x3Opts.putInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 280);
-        tall4x3Opts.putInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 190);
+        tall4x3Opts.putInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 240);
         mgr.updateAppWidgetOptions(secondWidgetId, tall4x3Opts);
 
         fakeGateway.currentStatus = new VehicleStatus.Builder(63, 215, true, false, 26, 20, 1700000800L)
@@ -785,5 +785,91 @@ public class VehicleWidgetProviderTest {
         assertEquals(30, fakeGateway.lastAcDurationMinutes);
         assertEquals("Start AC (18°C · 30m)",
                 VehicleWidgetProvider.stepDisplayName(app, longCool.steps.get(0)));
+    }
+
+    @Test
+    public void generousSquareLauncherReportsStillBind2x2ButtonGrid() {
+        AppWidgetManager mgr = AppWidgetManager.getInstance(app);
+        ShadowAppWidgetManager shadowMgr = Shadows.shadowOf(mgr);
+        VehicleWidgetProvider provider = new VehicleWidgetProvider();
+
+        // Huawei-style launchers report near-square boxes for a 2x2 placement (e.g. 250x190);
+        // the wide layouts must not bind and get squished into the small square cell.
+        Bundle square = new Bundle();
+        square.putInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 250);
+        square.putInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 190);
+        mgr.updateAppWidgetOptions(compactWidgetId, square);
+        provider.onAppWidgetOptionsChanged(app, mgr, compactWidgetId, square);
+
+        View squareView = shadowMgr.getViewFor(compactWidgetId);
+        assertNull("Squarish small report must stay the 2x2 button grid",
+                squareView.findViewById(R.id.tvWidgetLockStatus));
+        assertNull("Squarish small report must not show the location bar",
+                squareView.findViewById(R.id.layoutWidgetLocationBar));
+        assertEquals("AC On", ((Button) squareView.findViewById(R.id.btnWidgetAc)).getText().toString());
+
+        // Flat report but narrow landscape width -> still a compact 2x2 cell
+        Bundle flatNarrow = new Bundle();
+        flatNarrow.putInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 250);
+        flatNarrow.putInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 110);
+        flatNarrow.putInt(AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH, 235);
+        mgr.updateAppWidgetOptions(compactWidgetId, flatNarrow);
+        provider.onAppWidgetOptionsChanged(app, mgr, compactWidgetId, flatNarrow);
+
+        View flatView = shadowMgr.getViewFor(compactWidgetId);
+        assertNull("Narrow landscape width must keep the 2x2 grid",
+                flatView.findViewById(R.id.tvWidgetLockStatus));
+        assertEquals("AC On", ((Button) flatView.findViewById(R.id.btnWidgetAc)).getText().toString());
+    }
+
+    @Test
+    public void wideReportsKeepTwoRowAndThreeRowFamilies() throws Exception {
+        AppWidgetManager mgr = AppWidgetManager.getInstance(app);
+        ShadowAppWidgetManager shadowMgr = Shadows.shadowOf(mgr);
+        VehicleWidgetProvider provider = new VehicleWidgetProvider();
+
+        // A 4-span 2-row box (e.g. 404x134 as launchers report it) stays in the 4x2 family
+        Bundle twoRow = new Bundle();
+        twoRow.putInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 404);
+        twoRow.putInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 134);
+        mgr.updateAppWidgetOptions(compactWidgetId, twoRow);
+        provider.onAppWidgetOptionsChanged(app, mgr, compactWidgetId, twoRow);
+
+        View twoRowView = shadowMgr.getViewFor(compactWidgetId);
+        assertNotNull("2-row wide report must bind the 4x2 family",
+                twoRowView.findViewById(R.id.tvWidgetLockStatus));
+        assertEquals("2-row wide report must not show the location bar", View.GONE,
+                twoRowView.findViewById(R.id.layoutWidgetLocationBar).getVisibility());
+
+        // A single-row wide box binds the 4x1 strip
+        Bundle oneRow = new Bundle();
+        oneRow.putInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 414);
+        oneRow.putInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 105);
+        mgr.updateAppWidgetOptions(compactWidgetId, oneRow);
+        provider.onAppWidgetOptionsChanged(app, mgr, compactWidgetId, oneRow);
+
+        View oneRowView = shadowMgr.getViewFor(compactWidgetId);
+        assertNotNull("1-row wide report must bind the 4x1 strip",
+                oneRowView.findViewById(R.id.tvWidgetBanner));
+        assertNull(oneRowView.findViewById(R.id.layoutWidgetLocationBar));
+
+        // A 3-row wide box (>=175dp as launchers report it, e.g. 404x208) binds the 4x3 family
+        VehicleLocationHelper.setTestStreetLookupForTesting((ctx, lat, lng) -> "Jalan W. R. Supratman");
+        fakeGateway.currentStatus = fakeGateway.currentStatus.toBuilder()
+                .location(-5.40639, 105.30289, 1700000600L)
+                .build();
+        repository.setCachedStatus(fakeGateway.currentStatus);
+
+        Bundle threeRow = new Bundle();
+        threeRow.putInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 404);
+        threeRow.putInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 208);
+        mgr.updateAppWidgetOptions(compactWidgetId, threeRow);
+        provider.onAppWidgetOptionsChanged(app, mgr, compactWidgetId, threeRow);
+        VehicleLocationHelper.awaitExecutorForTesting();
+        ShadowLooper.idleMainLooper();
+
+        View threeRowView = shadowMgr.getViewFor(compactWidgetId);
+        assertEquals("3-row wide report must bind the 4x3 family", View.VISIBLE,
+                threeRowView.findViewById(R.id.layoutWidgetLocationBar).getVisibility());
     }
 }

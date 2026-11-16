@@ -10,6 +10,12 @@
 
     <include layout="@layout/include_widget_4x2_header" />
 
+    <!-- Flexible gap: centers the card block vertically between header and buttons -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
     <!-- Option 1 (4x2): Elevated Unified Capsule Battery Subcard -->
     <LinearLayout
         android:id="@+id/layoutWidgetBatteryCard"
@@ -106,6 +112,12 @@
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:visibility="gone" />
+
+    <!-- Flexible gap: leftover height goes here, never into the button row -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
 
     <include layout="@layout/include_widget_4x2_actions" />
 </LinearLayout>

@@ -56,14 +56,14 @@
             android:layout_weight="1"
             android:background="@drawable/bg_widget_btn_primary"
             android:gravity="center"
-            android:orientation="horizontal"
-            android:paddingHorizontal="6dp">
+            android:orientation="vertical"
+            android:paddingHorizontal="4dp">
 
             <ImageView
                 android:id="@+id/ivWidgetLock"
-                android:layout_width="16dp"
-                android:layout_height="16dp"
-                android:layout_marginEnd="5dp"
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:layout_marginBottom="4dp"
                 android:importantForAccessibility="no"
                 android:src="@drawable/ic_slot_lock"
                 android:tint="@color/widget_on_primary_container" />
@@ -95,14 +95,14 @@
             android:layout_weight="1"
             android:background="@drawable/bg_widget_btn_tertiary"
             android:gravity="center"
-            android:orientation="horizontal"
-            android:paddingHorizontal="6dp">
+            android:orientation="vertical"
+            android:paddingHorizontal="4dp">
 
             <ImageView
                 android:id="@+id/ivWidgetUnlock"
-                android:layout_width="16dp"
-                android:layout_height="16dp"
-                android:layout_marginEnd="5dp"
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:layout_marginBottom="4dp"
                 android:importantForAccessibility="no"
                 android:src="@drawable/ic_slot_unlock"
                 android:tint="@color/widget_on_tertiary_container" />
@@ -143,14 +143,14 @@
             android:layout_weight="1"
             android:background="@drawable/bg_widget_btn_secondary"
             android:gravity="center"
-            android:orientation="horizontal"
-            android:paddingHorizontal="6dp">
+            android:orientation="vertical"
+            android:paddingHorizontal="4dp">
 
             <ImageView
                 android:id="@+id/ivWidgetAc"
-                android:layout_width="16dp"
-                android:layout_height="16dp"
-                android:layout_marginEnd="5dp"
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:layout_marginBottom="4dp"
                 android:importantForAccessibility="no"
                 android:src="@drawable/ic_slot_ac"
                 android:tint="@color/widget_on_secondary_container" />
@@ -182,14 +182,14 @@
             android:layout_weight="1"
             android:background="@drawable/bg_widget_btn_tonal"
             android:gravity="center"
-            android:orientation="horizontal"
-            android:paddingHorizontal="6dp">
+            android:orientation="vertical"
+            android:paddingHorizontal="4dp">
 
             <ImageView
                 android:id="@+id/ivWidgetRefresh"
-                android:layout_width="16dp"
-                android:layout_height="16dp"
-                android:layout_marginEnd="5dp"
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:layout_marginBottom="4dp"
                 android:importantForAccessibility="no"
                 android:src="@drawable/ic_slot_sync"
                 android:tint="@color/widget_on_surface_variant" />

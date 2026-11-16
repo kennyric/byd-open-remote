@@ -63,8 +63,22 @@ public class VehicleWidgetProvider extends AppWidgetProvider {
     public static final String ACTION_WIDGET_SLOT_PREFIX = "com.bydwatch.companion.WIDGET_SLOT_";
 
     static final int WIDE_WIDGET_MIN_WIDTH_DP = 220;
-    static final int SHORT_WIDGET_MAX_HEIGHT_DP = 95;
-    static final int TALL_WIDGET_MIN_HEIGHT_DP = 175;
+    static final int SHORT_WIDGET_MAX_HEIGHT_DP = 108;
+    // Measured launcher reports: a 2-row span can be reported as high as ~189dp (4-column
+    // launchers) while a 3-row span can be reported as low as ~208dp (5-column launchers),
+    // so the tall cutoff sits between them.
+    static final int TALL_WIDGET_MIN_HEIGHT_DP = 200;
+
+    /**
+     * Some launchers (e.g. Huawei home) report generous sizes for a 2x2 placement, so a
+     * plain ">=220dp wide" check binds the wide layouts and squishes them into a square
+     * cell. A reported box is treated as a compact 2x2 cell when it is square-ish: the
+     * landscape width (when reported) is still narrow, or the portrait box is not
+     * wide-enough-to-be-a-real-4x2/4x3 (those are at least ~1.6:1 and taller than two rows).
+     */
+    static final int COMPACT_MAX_LANDSCAPE_WIDTH_DP = 240;
+    static final int COMPACT_MAX_SQUARE_HEIGHT_DP = 205;
+    static final float COMPACT_MAX_ASPECT_RATIO = 1.6f;
 
     private static final String PREFS_WIDGET = "byd_widget_prefs";
     private static final String KEY_LAST_STATUS_JSON = "last_status_json";
@@ -809,6 +823,18 @@ public class VehicleWidgetProvider extends AppWidgetProvider {
         return minWidthDp >= WIDE_WIDGET_MIN_WIDTH_DP;
     }
 
+    /** True when the reported box is a small square-ish cell that must show the 2x2 button grid. */
+    static boolean isCompactSquareBox(int minWidthDp, int minHeightDp, int maxWidthDp) {
+        if (minWidthDp < WIDE_WIDGET_MIN_WIDTH_DP) {
+            return true;
+        }
+        if (maxWidthDp > 0 && maxWidthDp < COMPACT_MAX_LANDSCAPE_WIDTH_DP) {
+            return true;
+        }
+        return minHeightDp > 0 && minHeightDp <= COMPACT_MAX_SQUARE_HEIGHT_DP
+                && minWidthDp < Math.round(minHeightDp * COMPACT_MAX_ASPECT_RATIO);
+    }
+
     static boolean isShortWidget(AppWidgetManager mgr, int appWidgetId) {
         Bundle options = mgr != null ? mgr.getAppWidgetOptions(appWidgetId) : null;
         int minHeightDp = options != null ? options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 0) : 0;
@@ -830,7 +856,12 @@ public class VehicleWidgetProvider extends AppWidgetProvider {
 
         boolean anyTallWide = false;
         for (int appWidgetId : ids) {
-            boolean wide = isWideWidget(mgr, appWidgetId);
+            Bundle options = mgr != null ? mgr.getAppWidgetOptions(appWidgetId) : null;
+            int minWidthDp = options != null ? options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 0) : 0;
+            int minHeightDp = options != null ? options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 0) : 0;
+            int maxWidthDp = options != null ? options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH, 0) : 0;
+            boolean wide = !isCompactSquareBox(minWidthDp, minHeightDp, maxWidthDp)
+                    && isWideWidget(mgr, appWidgetId);
             boolean shortWide = wide && isShortWidget(mgr, appWidgetId);
             boolean tallWide = wide && !shortWide && isTallWidget(mgr, appWidgetId);
             if (tallWide) anyTallWide = true;
