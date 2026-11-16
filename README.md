@@ -183,11 +183,9 @@ The APK (`BYD-Open-Remote-v<version>.apk`) is written to `app/build/outputs/apk/
 
 [![Sponsor on Ko-fi](https://img.shields.io/badge/Ko--fi-Support_Project-00658E?style=for-the-badge&logo=kofi&logoColor=white)](https://ko-fi.com/kenny40049)
 
-### Indonesian Supporters (QRIS)
+### QRIS
 
-Scan using any Indonesian e-wallet or mobile banking app supporting QRIS (**KENNY STORE - SOFTWARE** · NMID `ID1026640307389`):
-
-<img src="docs/qris_support.jpg" alt="QRIS Support — KENNY STORE - SOFTWARE" width="240"/>
+<img src="docs/qris_support.jpg" alt="QRIS" width="240"/>
 
 ---
 
