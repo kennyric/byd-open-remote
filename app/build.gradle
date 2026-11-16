@@ -49,7 +49,7 @@ android {
 
     applicationVariants.all { variant ->
         variant.outputs.all {
-            outputFileName = "BYD-Open-Remote-v${variant.versionName}.apk"
+            outputFileName = "BYD-Open-Remote.apk"
         }
     }
 
