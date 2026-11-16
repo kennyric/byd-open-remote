@@ -6,9 +6,8 @@
 Free, open-source, unofficial Android remote control & Material You home-screen widget app for BYD vehicles connected to BYD DiLink Cloud (`com.bydopenremote.app`).
 
 [![Download Android APK](https://img.shields.io/badge/Download_APK-Latest_Release-006C4C?style=for-the-badge&logo=android&logoColor=white)](https://github.com/kennyric/byd-open-remote/releases/latest)
-[![Direct APK Download](https://img.shields.io/badge/Direct_Download-v1.0.3_(.apk)-00658E?style=for-the-badge)](https://github.com/kennyric/byd-open-remote/releases/download/v1.0.3/BYD-Open-Remote-v1.0.3.apk)
 
-> **Quick Install:** **[Download BYD-Open-Remote-v1.0.3.apk](https://github.com/kennyric/byd-open-remote/releases/download/v1.0.3/BYD-Open-Remote-v1.0.3.apk)** or view **[GitHub Releases](https://github.com/kennyric/byd-open-remote/releases/latest)**, then complete the **[Pre-Login Setup Guide](#pre-login-setup-guide-2nd-account--password--pin)** below before signing in.
+> **Quick Install:** Download the latest `.apk` from **[GitHub Releases](https://github.com/kennyric/byd-open-remote/releases/latest)**, then complete the **[Pre-Login Setup Guide](#pre-login-setup-guide-2nd-account--password--pin)** below before signing in.
 
 > [!IMPORTANT]
 > **Security Recommendation — Use a Secondary BYD Account:** Do **not** sign in with your primary owner account. Authorize a secondary email address from your main BYD account with Remote Control permissions, register or sign into that secondary account in the official BYD App, configure its login password and 6-digit Operation PIN, verify a remote command once in the official app, and then sign into BYD Open Remote.
