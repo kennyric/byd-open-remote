@@ -126,35 +126,49 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
-        android:gravity="end"
-        android:orientation="horizontal">
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnUpdateLater"
-            style="@style/Widget.Material3.Button.TextButton"
-            android:layout_width="wrap_content"
-            android:layout_height="40dp"
-            android:text="@string/update_btn_later"
-            android:textAllCaps="false" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnUpdateGithub"
-            style="@style/Widget.Material3.Button.OutlinedButton"
-            android:layout_width="wrap_content"
-            android:layout_height="40dp"
-            android:layout_marginStart="6dp"
-            android:text="@string/update_btn_github"
-            android:textAllCaps="false"
-            app:cornerRadius="12dp" />
+        android:orientation="vertical">
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnUpdateDownload"
             style="@style/Widget.Material3.Button"
-            android:layout_width="wrap_content"
-            android:layout_height="40dp"
-            android:layout_marginStart="8dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="44dp"
+            android:paddingVertical="8dp"
             android:text="@string/update_btn_download_install"
             android:textAllCaps="false"
             app:cornerRadius="12dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnUpdateLater"
+                style="@style/Widget.Material3.Button.TextButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="6dp"
+                android:layout_weight="1"
+                android:minHeight="40dp"
+                android:paddingVertical="6dp"
+                android:text="@string/update_btn_later"
+                android:textAllCaps="false" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnUpdateGithub"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:layout_weight="1"
+                android:minHeight="40dp"
+                android:paddingVertical="6dp"
+                android:text="@string/update_btn_github"
+                android:textAllCaps="false"
+                app:cornerRadius="12dp" />
+        </LinearLayout>
     </LinearLayout>
 </LinearLayout>

@@ -345,15 +345,24 @@ public class MainActivity extends AppCompatActivity {
         outState.putInt(STATE_CURRENT_PAGE_ID, currentPageId);
     }
 
+    private final BydRepository.StatusListener backgroundStatusListener =
+            status -> runOnUiThread(() -> updateTelemetryUi(status));
+
     @Override
     protected void onStart() {
         super.onStart();
+        if (repository != null) {
+            repository.addStatusListener(backgroundStatusListener);
+        }
         enforceAppLockIfNeeded(true);
     }
 
     @Override
     protected void onStop() {
         super.onStop();
+        if (repository != null) {
+            repository.removeStatusListener(backgroundStatusListener);
+        }
         if (!isChangingConfigurations() && !biometricPromptShowing) {
             appUnlockedInCurrentForeground = false;
         }
@@ -2029,7 +2038,9 @@ public class MainActivity extends AppCompatActivity {
                             ? " (" + detail + ")"
                             : "";
                     logMessage(resp.action + " failed [" + resp.err + "]: " + resp.msg + logSuffix);
-                    showToast(label + " failed" + (reason.isEmpty() ? "" : ": " + reason), true);
+                    int detailIdx = reason.indexOf(" (");
+                    String toastReason = detailIdx > 0 ? reason.substring(0, detailIdx) : reason;
+                    showToast(label + " failed" + (toastReason.isEmpty() ? "" : ": " + toastReason), true);
                 }
             } else {
                 stopSwipeRefreshing();
@@ -2071,6 +2082,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void updateTelemetryUi(VehicleStatus status) {
         updateTelemetryUi(status, true);
+        VehicleWidgetProvider.refreshWidgets(this);
     }
 
     private void updateTelemetryUi(VehicleStatus status, boolean syncActiveClimatePreset) {

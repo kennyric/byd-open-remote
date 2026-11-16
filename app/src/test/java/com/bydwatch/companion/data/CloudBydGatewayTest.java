@@ -566,4 +566,56 @@ public class CloudBydGatewayTest {
             return true;
         }
     }
+
+    @Test
+    public void rejectsAllZeroPlaceholderTelemetryWhenTboxStillWaking() throws Exception {
+        JSONObject placeholder = new JSONObject()
+                .put("onlineState", 1)
+                .put("elecPercent", 0.0)
+                .put("enduranceMileage", 0)
+                .put("leftFrontDoorLock", 0)
+                .put("tempInCar", 0)
+                .put("time", 0L);
+        assertFalse(CloudBydGateway.hasTelemetry(placeholder));
+
+        FakeClient fakeClient = new FakeClient();
+        fakeClient.realtimeResult = placeholder;
+        CloudBydGateway gateway = new CloudBydGateway(configStore, cfg -> fakeClient);
+        try {
+            gateway.fetchVehicleRealtime("LC0SECRET123");
+            fail("Expected SocketTimeoutException for unpopulated all-zero placeholder");
+        } catch (java.net.SocketTimeoutException expected) {
+            assertTrue(expected.getMessage().contains("unavailable"));
+        }
+    }
+
+    @Test
+    public void parsesAtto1LockStateUsingDoorLocksAndVehicleState() throws Exception {
+        FakeClient fakeClient = new FakeClient();
+        CloudBydGateway gateway = new CloudBydGateway(configStore, cfg -> fakeClient);
+
+        fakeClient.realtimeResult = new JSONObject()
+                .put("onlineState", 1)
+                .put("elecPercent", 55.0)
+                .put("leftFrontDoorLock", 0)
+                .put("rightFrontDoorLock", 0)
+                .put("leftRearDoorLock", 0)
+                .put("rightRearDoorLock", 0)
+                .put("vehicleState", 2)
+                .put("vs", 2)
+                .put("sentryStatus", 0);
+        assertTrue(gateway.fetchVehicleRealtime("LC0SECRET123").locked);
+
+        fakeClient.realtimeResult = new JSONObject()
+                .put("onlineState", 1)
+                .put("elecPercent", 55.0)
+                .put("leftFrontDoorLock", 1)
+                .put("rightFrontDoorLock", 1)
+                .put("leftRearDoorLock", 1)
+                .put("rightRearDoorLock", 1)
+                .put("vehicleState", 0)
+                .put("vs", 0)
+                .put("sentryStatus", 2);
+        assertFalse(gateway.fetchVehicleRealtime("LC0SECRET123").locked);
+    }
 }

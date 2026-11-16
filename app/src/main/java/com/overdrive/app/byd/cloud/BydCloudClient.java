@@ -1260,9 +1260,16 @@ public class BydCloudClient {
         return executeRemoteCommand(vin, commandType, null, waitForResult).success;
     }
 
+    private volatile String lastCommandError = "";
+
+    public String getLastCommandError() {
+        return lastCommandError;
+    }
+
     private CloudCommandResult executeRemoteCommand(String vin, String commandType,
                                                     JSONObject extraParams,
                                                     boolean waitForResult) throws IOException {
+        lastCommandError = "";
         if (Thread.currentThread().isInterrupted()) {
             throw new IOException("remote command cancelled");
         }
@@ -1306,6 +1313,9 @@ public class BydCloudClient {
         if (!"0".equals(code)) {
             String msg = response.optString("message", "");
             String detail = decodeRespondDataSafe(response, env.contentKey);
+            lastCommandError = commandType + " rejected: code=" + code
+                    + (msg.isEmpty() ? "" : " (" + msg + ")")
+                    + (detail != null && !detail.isEmpty() ? " data=" + detail : "");
             logger.warn("Remote command " + commandType + " failed: code=" + code
                     + " message=" + msg + " respondData=" + detail);
             return new CloudCommandResult(false, code, msg);
@@ -1328,9 +1338,13 @@ public class BydCloudClient {
         if (waitForResult) {
             int triggerState = remoteControlTerminalState(triggerResult);
             if (triggerState != 0) {
+                if (triggerState != 1 && triggerResult != null) {
+                    lastCommandError = commandType + " failed immediately: " + triggerResult.toString();
+                }
                 return new CloudCommandResult(triggerState == 1, "0", "");
             }
             if (requestSerial == null || requestSerial.isEmpty()) {
+                lastCommandError = commandType + " missing requestSerial";
                 logger.warn("Remote command " + commandType
                         + " did not provide a terminal result or requestSerial");
                 return new CloudCommandResult(false, "0", "missing requestSerial");
@@ -1362,6 +1376,7 @@ public class BydCloudClient {
 
     private boolean pollRemoteControlResult(String vin, String requestSerial,
                                             String commandType, BydCloudSession s) throws IOException {
+        String lastPollCode = "";
         for (int attempt = 1; attempt <= 10; attempt++) {
             try {
                 Thread.sleep(1500L);
@@ -1397,6 +1412,7 @@ public class BydCloudClient {
                 JSONObject response = vr.response;
                 TokenEnvelope env = vr.env;
                 String code = response.optString("code", "");
+                lastPollCode = code;
                 
                 if (!"0".equals(code)) continue;
 
@@ -1409,6 +1425,7 @@ public class BydCloudClient {
                     logger.info("Remote command succeeded (attempt " + attempt + ")");
                     return true;
                 } else if (terminalState == 2) {
+                    lastCommandError = commandType + " failed (attempt " + attempt + "): " + result.toString();
                     logger.warn("Remote command failed with terminal result");
                     return false;
                 }
@@ -1418,6 +1435,8 @@ public class BydCloudClient {
             }
         }
 
+        lastCommandError = commandType + " timed out waiting for vehicle result (10 polls"
+                + (lastPollCode.isEmpty() ? "" : ", lastCode=" + lastPollCode) + ")";
         logger.warn("Remote command polling timed out without terminal success");
         return false;
     }
@@ -1431,10 +1450,10 @@ public class BydCloudClient {
 
     /**
      * Fetch vehicle realtime data via request/poll pattern.
-     * Wakes the T-Box and polls until data is ready (up to 10 attempts, 1.5s apart).
+     * Wakes the T-Box and polls until data is ready (up to 15 attempts, 1.5s apart).
      */
     public JSONObject fetchVehicleRealtime(String vin) throws IOException {
-        return fetchVehicleRealtime(vin, 10, 0L);
+        return fetchVehicleRealtime(vin, 15, 0L);
     }
 
     /**
@@ -1478,21 +1497,30 @@ public class BydCloudClient {
 
         String respondData = response.optString("respondData", "");
         JSONObject vehicleInfo = null;
+        JSONObject bestVehicleInfo = null;
         String requestSerial = null;
+        int telemetrySeenCount = 0;
 
         if (!respondData.isEmpty()) {
             JSONObject decoded = BydCloudTransport.decryptRespondData(respondData, env.contentKey);
             requestSerial = decoded.optString("requestSerial", null);
             if (isRealtimeReady(decoded)) return decoded;
             vehicleInfo = decoded;
+            if (hasUsefulTelemetry(decoded)) {
+                bestVehicleInfo = decoded;
+                telemetrySeenCount++;
+            }
         }
 
-        if (requestSerial == null || requestSerial.isEmpty()) return vehicleInfo;
+        if (requestSerial == null || requestSerial.isEmpty()) {
+            return bestVehicleInfo != null ? bestVehicleInfo : vehicleInfo;
+        }
 
-        for (int attempt = 1; attempt <= maxPollAttempts; attempt++) {
-            try { Thread.sleep(1500); } catch (InterruptedException e) {
+        int effectivePolls = maxPollAttempts <= 15 ? 20 : maxPollAttempts;
+        for (int attempt = 1; attempt <= effectivePolls; attempt++) {
+            try { Thread.sleep(1000); } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-                return vehicleInfo;
+                return bestVehicleInfo != null ? bestVehicleInfo : vehicleInfo;
             }
 
             try {
@@ -1531,12 +1559,20 @@ public class BydCloudClient {
                     return decoded;
                 }
                 vehicleInfo = decoded;
+                if (hasUsefulTelemetry(decoded)) {
+                    bestVehicleInfo = decoded;
+                    telemetrySeenCount++;
+                    if (telemetrySeenCount >= 2) {
+                        logger.info("Realtime telemetry ready without lock flags (attempt " + attempt + ")");
+                        return bestVehicleInfo;
+                    }
+                }
             } catch (Exception e) {
                 logger.debug("Realtime poll " + attempt + " failed: " + e.getMessage());
             }
         }
 
-        return vehicleInfo;
+        return bestVehicleInfo != null ? bestVehicleInfo : vehicleInfo;
     }
 
     // ── Vehicle GPS Location ────────────────────────────────────────────
@@ -1801,6 +1837,15 @@ public class BydCloudClient {
                 : transport.postSecure(endpoint, outer);
     }
 
+    private static boolean hasUsefulTelemetry(JSONObject vi) {
+        if (vi == null) return false;
+        if (vi.optInt("onlineState", -1) == 2) return false;
+        return vi.optLong("time", 0L) > 0L
+                && (vi.optDouble("elecPercent", 0.0) > 0.0
+                        || vi.optInt("enduranceMileage", 0) > 0
+                        || vi.optInt("enduranceMileageV2", 0) > 0);
+    }
+
     private boolean isRealtimeReady(JSONObject vi) {
         if (vi == null) return false;
         if (vi.optInt("onlineState", -1) == 2) return false;
@@ -1813,7 +1858,9 @@ public class BydCloudClient {
         int rfLock = vi.optInt("rightFrontDoorLock", -1);
         int lrLock = vi.optInt("leftRearDoorLock", -1);
         int rrLock = vi.optInt("rightRearDoorLock", -1);
-        boolean hasLock = lfLock > 0 || rfLock > 0 || lrLock > 0 || rrLock > 0;
+        boolean hasLock = lfLock > 0 || rfLock > 0 || lrLock > 0 || rrLock > 0
+                || (lfLock == 0 && rfLock == 0 && lrLock == 0 && rrLock == 0
+                && (vi.optInt("vehicleState", 0) == 2 || vi.optInt("vs", 0) == 2));
         if (!hasLock) return false;
         // Plus a sanity check that telemetry has also landed.
         if (vi.optDouble("leftFrontTirepressure", 0) > 0) return true;

@@ -16,7 +16,19 @@ public interface BydGateway {
 
     void verifyControlPassword(String vin) throws Exception;
 
+    default String getLastCommandError() {
+        return "";
+    }
+
     VehicleStatus fetchVehicleRealtime(String vin) throws Exception;
+
+    /**
+     * Fast-path status fetch that returns primary telemetry as soon as the first
+     * realtime API call succeeds, leaving GPS and HVAC to enrich asynchronously.
+     */
+    default VehicleStatus fetchVehicleRealtimeFast(String vin) throws Exception {
+        return fetchVehicleRealtime(vin);
+    }
 
     boolean lock(String vin) throws Exception;
 
@@ -93,6 +105,14 @@ public interface BydGateway {
     }
 
     default CloudCapabilities fetchCapabilities(String vin) throws Exception {
+        return null;
+    }
+
+    /**
+     * Best-effort silent enrichment (GPS + HVAC) run asynchronously after
+     * fetchVehicleRealtime() returns the primary telemetry.
+     */
+    default VehicleStatus enrichStatusAsync(String vin, VehicleStatus baseStatus) {
         return null;
     }
 }

@@ -153,11 +153,69 @@ public class CloudBydGateway implements BydGateway {
     }
 
     @Override
+    public String getLastCommandError() {
+        if (client == null) return "";
+        String err = client.getLastCommandError();
+        return err != null ? err : "";
+    }
+
+    @Override
+    public synchronized VehicleStatus fetchVehicleRealtimeFast(String vin) throws Exception {
+        syncConfigToClient();
+        if (client == null) {
+            throw new IOException("BYD client not initialized");
+        }
+
+        JSONObject vi = client.fetchVehicleRealtime(vin);
+        if (vi == null) {
+            throw new IOException("CAR_OFFLINE: Failed to fetch vehicle realtime data");
+        }
+
+        if (vi.optInt("onlineState", -1) == 2) {
+            throw new IOException("CAR_OFFLINE: Vehicle T-Box is offline");
+        }
+
+        if (!hasTelemetry(vi)) {
+            throw new SocketTimeoutException("Vehicle realtime telemetry unavailable");
+        }
+
+        CloudCapabilities caps = null;
+        try {
+            caps = client.getCachedCloudCapabilities(vin);
+            if (caps == null) {
+                caps = client.fetchCloudCapabilities(vin);
+            }
+        } catch (Exception ignored) {
+        }
+
+        ensureVehicleMetadataIfNeeded(vin);
+
+        return parseVehicleStatus(vi, vin, caps, null, null);
+    }
+
+    @Override
     public synchronized VehicleStatus fetchVehicleRealtime(String vin) throws Exception {
         syncConfigToClient();
         if (client == null) {
             throw new IOException("BYD client not initialized");
         }
+
+        java.util.concurrent.CompletableFuture<VehicleLocation> gpsFuture =
+                java.util.concurrent.CompletableFuture.supplyAsync(() -> {
+                    try {
+                        return parseGpsPayload(client.fetchGpsInfoFast(vin));
+                    } catch (Exception ignored) {
+                        return null;
+                    }
+                });
+        java.util.concurrent.CompletableFuture<JSONObject> hvacFuture =
+                java.util.concurrent.CompletableFuture.supplyAsync(() -> {
+                    try {
+                        return client.fetchHvacStatusFast(vin);
+                    } catch (Exception ignored) {
+                        return null;
+                    }
+                });
 
         JSONObject vi = client.fetchVehicleRealtime(vin);
         if (vi == null) {
@@ -184,21 +242,76 @@ public class CloudBydGateway implements BydGateway {
 
         VehicleLocation location = null;
         try {
-            location = parseGpsPayload(client.fetchGpsInfoFast(vin));
-        } catch (Exception ignored) {
-            // Best-effort GPS lookup: transient 500s / timeouts must never fail status updates
-        }
+            location = gpsFuture.get(6, java.util.concurrent.TimeUnit.SECONDS);
+        } catch (Exception ignored) {}
 
         JSONObject hvac = null;
         try {
-            hvac = client.fetchHvacStatusFast(vin);
-        } catch (Exception ignored) {
-            // Best-effort HVAC lookup: never fail status refresh if getStatusNow is unavailable
-        }
+            hvac = hvacFuture.get(5, java.util.concurrent.TimeUnit.SECONDS);
+        } catch (Exception ignored) {}
 
         ensureVehicleMetadataIfNeeded(vin);
 
         return parseVehicleStatus(vi, vin, caps, location, hvac);
+    }
+
+    @Override
+    public VehicleStatus enrichStatusAsync(String vin, VehicleStatus baseStatus) {
+        if (baseStatus == null || client == null) {
+            return null;
+        }
+        java.util.concurrent.CompletableFuture<VehicleLocation> gpsFuture =
+                java.util.concurrent.CompletableFuture.supplyAsync(() -> {
+                    try {
+                        return parseGpsPayload(client.fetchGpsInfoFast(vin));
+                    } catch (Exception ignored) {
+                        return null;
+                    }
+                });
+        java.util.concurrent.CompletableFuture<JSONObject> hvacFuture =
+                java.util.concurrent.CompletableFuture.supplyAsync(() -> {
+                    try {
+                        return client.fetchHvacStatusFast(vin);
+                    } catch (Exception ignored) {
+                        return null;
+                    }
+                });
+
+        VehicleLocation location = null;
+        try {
+            location = gpsFuture.get(6, java.util.concurrent.TimeUnit.SECONDS);
+        } catch (Exception ignored) {}
+
+        JSONObject hvac = null;
+        try {
+            hvac = hvacFuture.get(5, java.util.concurrent.TimeUnit.SECONDS);
+        } catch (Exception ignored) {}
+
+        if (location == null && hvac == null) {
+            return null;
+        }
+
+        VehicleStatus.Builder builder = baseStatus.toBuilder();
+        if (location != null) {
+            builder.location(location.latitude, location.longitude, location.timestampSec);
+        }
+        if (hvac != null) {
+            boolean acOn = extractAcOn(new JSONObject(), hvac);
+            builder.acOn(baseStatus.acOn || acOn);
+            Integer cabinTempC = extractTempFromSources(
+                    new JSONObject[]{hvac, hvac.optJSONObject("statusNow")},
+                    "tempInCar", -40.0, 80.0);
+            if (cabinTempC != null) {
+                builder.cabinTempC(cabinTempC);
+            }
+            Integer outsideTempC = extractTempFromSources(
+                    new JSONObject[]{hvac, hvac.optJSONObject("statusNow")},
+                    "tempOutCar", -40.0, 80.0);
+            if (outsideTempC != null) {
+                builder.outsideTempC(outsideTempC);
+            }
+        }
+        return builder.build();
     }
 
     private void ensureVehicleMetadataIfNeeded(String activeVin) {
@@ -505,13 +618,14 @@ public class CloudBydGateway implements BydGateway {
 
     public static boolean hasTelemetry(JSONObject vi) {
         if (vi == null) return false;
-        return vi.has("elecPercent")
-                || vi.has("soc")
-                || vi.has("enduranceMileage")
-                || vi.has("enduranceMileageV2")
-                || vi.has("leftFrontDoorLock")
-                || vi.has("tempInCar")
-                || vi.has("time");
+        return vi.optLong("time", 0L) > 0L
+                || vi.optInt("leftFrontDoorLock", 0) > 0
+                || vi.optInt("rightFrontDoorLock", 0) > 0
+                || vi.optDouble("elecPercent", 0.0) > 0.0
+                || vi.optInt("soc", 0) > 0
+                || vi.optInt("enduranceMileage", 0) > 0
+                || vi.optInt("enduranceMileageV2", 0) > 0
+                || vi.optDouble("leftFrontTirepressure", 0.0) > 0.0;
     }
 
     public VehicleStatus parseVehicleStatus(JSONObject vi) {
@@ -542,7 +656,17 @@ public class CloudBydGateway implements BydGateway {
             int rf = vi.optInt("rightFrontDoorLock", -1);
             int lr = vi.optInt("leftRearDoorLock", -1);
             int rr = vi.optInt("rightRearDoorLock", -1);
-            locked = (lf == 2 && rf == 2 && lr == 2 && rr == 2);
+            if (lf == 1 || rf == 1 || lr == 1 || rr == 1) {
+                locked = false;
+            } else if (lf == 2 && rf == 2 && lr == 2 && rr == 2) {
+                locked = true;
+            } else if (lf == 0 && rf == 0 && lr == 0 && rr == 0) {
+                // On some models (e.g. Atto 1 / Seagull), locked reports 0 for all door lock
+                // flags and vehicleState=2 / vs=2 (while unlocked reports 1 and vehicleState=0).
+                locked = vi.optInt("vehicleState", 0) == 2 || vi.optInt("vs", 0) == 2;
+            } else {
+                locked = false;
+            }
         }
 
         boolean acOn = extractAcOn(vi, hvac);

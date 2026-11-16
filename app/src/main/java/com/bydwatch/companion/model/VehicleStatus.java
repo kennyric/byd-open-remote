@@ -408,8 +408,8 @@ public final class VehicleStatus {
         private final int soc;
         private final int rangeKm;
         private final boolean locked;
-        private final boolean acOn;
-        private final Integer cabinTempC;
+        private boolean acOn;
+        private Integer cabinTempC;
         private final int targetTempC;
         private final long ts;
 
@@ -460,6 +460,8 @@ public final class VehicleStatus {
         }
 
         public Builder vin(String vin) { this.vin = vin != null ? vin : ""; return this; }
+        public Builder acOn(boolean acOn) { this.acOn = acOn; return this; }
+        public Builder cabinTempC(Integer cabinTempC) { this.cabinTempC = cabinTempC; return this; }
         public Builder modelName(String modelName) { this.modelName = modelName != null ? modelName : ""; return this; }
         public Builder chargingState(int chargingState) { this.chargingState = chargingState; return this; }
         public Builder vehicleOn(boolean vehicleOn) { this.vehicleOn = vehicleOn; return this; }

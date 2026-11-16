@@ -256,13 +256,14 @@ public class BydRepository {
         try {
             switch (cmd.action) {
                 case WatchProtocol.ACTION_STATUS: {
-                    VehicleStatus fresh = gateway.fetchVehicleRealtime(vin);
+                    VehicleStatus fresh = gateway.fetchVehicleRealtimeFast(vin);
                     this.lastStatusDiag = (fresh != null && fresh.diagSummary != null)
                             ? fresh.diagSummary : "";
                     if (fresh != null) {
                         syncConfigStoreFromLiveAc(fresh);
                         fresh = enrichedStatus(fresh);
                         setCachedStatus(fresh);
+                        triggerBackgroundEnrichment(vin, fresh);
                     }
                     return WatchProtocol.ok(cmd.id, cmd.action, "Updated", fresh != null ? fresh : enrichedStatus(cachedStatus.get()));
                 }
@@ -270,7 +271,7 @@ public class BydRepository {
                     gateway.verifyControlPassword(vin);
                     boolean ok = gateway.lock(vin);
                     if (!ok) {
-                        return WatchProtocol.error(cmd.id, cmd.action, "ERROR", "Failed to lock vehicle");
+                        return WatchProtocol.error(cmd.id, cmd.action, "ERROR", detailedActionError("Failed to lock vehicle"));
                     }
                     VehicleStatus fresh = autoRefresh(vin);
                     return WatchProtocol.ok(cmd.id, cmd.action, "Locked", enrichedStatus(fresh));
@@ -279,7 +280,7 @@ public class BydRepository {
                     gateway.verifyControlPassword(vin);
                     boolean ok = gateway.unlock(vin);
                     if (!ok) {
-                        return WatchProtocol.error(cmd.id, cmd.action, "ERROR", "Failed to unlock vehicle");
+                        return WatchProtocol.error(cmd.id, cmd.action, "ERROR", detailedActionError("Failed to unlock vehicle"));
                     }
                     VehicleStatus fresh = autoRefresh(vin);
                     return WatchProtocol.ok(cmd.id, cmd.action, "Unlocked", enrichedStatus(fresh));
@@ -325,7 +326,7 @@ public class BydRepository {
                         ok = gateway.startClimate(vin, temp, durationMin);
                     }
                     if (!ok) {
-                        return WatchProtocol.error(cmd.id, cmd.action, "ERROR", "Failed to start AC");
+                        return WatchProtocol.error(cmd.id, cmd.action, "ERROR", detailedActionError("Failed to start AC"));
                     }
                     VehicleStatus fresh = autoRefresh(vin);
                     return WatchProtocol.ok(cmd.id, cmd.action, "AC started", enrichedStatus(fresh));
@@ -334,7 +335,7 @@ public class BydRepository {
                     gateway.verifyControlPassword(vin);
                     boolean ok = gateway.stopClimate(vin);
                     if (!ok) {
-                        return WatchProtocol.error(cmd.id, cmd.action, "ERROR", "Failed to stop AC");
+                        return WatchProtocol.error(cmd.id, cmd.action, "ERROR", detailedActionError("Failed to stop AC"));
                     }
                     VehicleStatus fresh = autoRefresh(vin);
                     return WatchProtocol.ok(cmd.id, cmd.action, "AC stopped", enrichedStatus(fresh));
@@ -343,7 +344,7 @@ public class BydRepository {
                     gateway.verifyControlPassword(vin);
                     boolean ok = gateway.flashLights(vin);
                     if (!ok) {
-                        return WatchProtocol.error(cmd.id, cmd.action, "ERROR", "Failed to flash lights");
+                        return WatchProtocol.error(cmd.id, cmd.action, "ERROR", detailedActionError("Failed to flash lights"));
                     }
                     return WatchProtocol.ok(cmd.id, cmd.action, "Lights flashed", enrichedStatus(cachedStatus.get()));
                 }
@@ -351,7 +352,7 @@ public class BydRepository {
                     gateway.verifyControlPassword(vin);
                     boolean ok = gateway.findCar(vin);
                     if (!ok) {
-                        return WatchProtocol.error(cmd.id, cmd.action, "ERROR", "Failed to sound horn");
+                        return WatchProtocol.error(cmd.id, cmd.action, "ERROR", detailedActionError("Failed to sound horn"));
                     }
                     return WatchProtocol.ok(cmd.id, cmd.action, "Horn sounded", enrichedStatus(cachedStatus.get()));
                 }
@@ -359,7 +360,7 @@ public class BydRepository {
                     gateway.verifyControlPassword(vin);
                     boolean ok = gateway.ventAllWindows(vin);
                     if (!ok) {
-                        return WatchProtocol.error(cmd.id, cmd.action, "ERROR", "Failed to vent windows");
+                        return WatchProtocol.error(cmd.id, cmd.action, "ERROR", detailedActionError("Failed to vent windows"));
                     }
                     VehicleStatus fresh = autoRefresh(vin);
                     return WatchProtocol.ok(cmd.id, cmd.action, "Windows vented", enrichedStatus(fresh));
@@ -368,7 +369,7 @@ public class BydRepository {
                     gateway.verifyControlPassword(vin);
                     boolean ok = gateway.closeAllWindows(vin);
                     if (!ok) {
-                        return WatchProtocol.error(cmd.id, cmd.action, "ERROR", "Failed to close windows");
+                        return WatchProtocol.error(cmd.id, cmd.action, "ERROR", detailedActionError("Failed to close windows"));
                     }
                     VehicleStatus fresh = autoRefresh(vin);
                     return WatchProtocol.ok(cmd.id, cmd.action, "Windows closed", enrichedStatus(fresh));
@@ -377,7 +378,7 @@ public class BydRepository {
                     gateway.verifyControlPassword(vin);
                     boolean ok = gateway.setBatteryHeat(vin, true);
                     if (!ok) {
-                        return WatchProtocol.error(cmd.id, cmd.action, "ERROR", "Failed to start battery heat");
+                        return WatchProtocol.error(cmd.id, cmd.action, "ERROR", detailedActionError("Failed to start battery heat"));
                     }
                     VehicleStatus prev = cachedStatus.get();
                     if (prev != null) {
@@ -390,7 +391,7 @@ public class BydRepository {
                     gateway.verifyControlPassword(vin);
                     boolean ok = gateway.setBatteryHeat(vin, false);
                     if (!ok) {
-                        return WatchProtocol.error(cmd.id, cmd.action, "ERROR", "Failed to stop battery heat");
+                        return WatchProtocol.error(cmd.id, cmd.action, "ERROR", detailedActionError("Failed to stop battery heat"));
                     }
                     VehicleStatus prev = cachedStatus.get();
                     if (prev != null) {
@@ -406,7 +407,7 @@ public class BydRepository {
                             : nextSeatHeatLevel(cachedStatus.get());
                     boolean ok = gateway.setDriverSeatHeat(vin, nextLevel);
                     if (!ok) {
-                        return WatchProtocol.error(cmd.id, cmd.action, "ERROR", "Failed to update seat climate");
+                        return WatchProtocol.error(cmd.id, cmd.action, "ERROR", detailedActionError("Failed to update seat climate"));
                     }
                     VehicleStatus prev = cachedStatus.get();
                     if (prev != null) {
@@ -572,6 +573,29 @@ public class BydRepository {
             // Keep previous cached status on refresh error
         }
         return cachedStatus.get();
+    }
+
+    private void triggerBackgroundEnrichment(String vin, VehicleStatus baseStatus) {
+        if (baseStatus == null) return;
+        java.util.concurrent.CompletableFuture.runAsync(() -> {
+            try {
+                VehicleStatus enriched = gateway.enrichStatusAsync(vin, baseStatus);
+                if (enriched != null) {
+                    syncConfigStoreFromLiveAc(enriched);
+                    setCachedStatus(enrichedStatus(enriched));
+                }
+            } catch (Exception ignored) {
+                // Silent best-effort background enrichment
+            }
+        });
+    }
+
+    private String detailedActionError(String baseMessage) {
+        String detail = gateway.getLastCommandError();
+        if (detail == null || detail.trim().isEmpty()) {
+            return baseMessage;
+        }
+        return baseMessage + " (" + detail.trim() + ")";
     }
 
     public String getLastErrorDetail() {
