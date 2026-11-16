@@ -61,7 +61,7 @@ Free, open-source, unofficial Android remote control & Material You home-screen 
     <td align="center"><img src="docs/screenshots/widget_style_tank.png" alt="Tank Battery Style" width="230"/></td>
   </tr>
   <tr>
-    <td align="center" colspan="4"><b>Resizable to Any Size — Same Styles</b></td>
+    <td align="center" colspan="4"><b>Resizable to Any Size — Same Styles (Capsule shown)</b></td>
   </tr>
   <tr>
     <td align="center"><b>2×2</b></td>
@@ -69,7 +69,7 @@ Free, open-source, unofficial Android remote control & Material You home-screen 
     <td align="center" colspan="2"><b>4×2</b></td>
   </tr>
   <tr>
-    <td align="center"><img src="docs/screenshots/widget_2x2.png" alt="2x2 Widget" width="150"/></td>
+    <td align="center"><img src="docs/screenshots/widget_2x2.png" alt="2x2 Widget" width="180"/></td>
     <td align="center"><img src="docs/screenshots/widget_4x1.png" alt="4x1 Widget" width="290"/></td>
     <td align="center" colspan="2"><img src="docs/screenshots/widget_4x2.png" alt="4x2 Widget" width="290"/></td>
   </tr>

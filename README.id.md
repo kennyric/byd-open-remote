@@ -63,7 +63,7 @@ Aplikasi remote control Android & widget layar utama Material You yang gratis, o
     <td align="center"><img src="docs/screenshots/widget_style_tank.png" alt="Gaya Baterai Tank" width="230"/></td>
   </tr>
   <tr>
-    <td align="center" colspan="4"><b>Bisa Diubah Ukurannya — Gaya Tetap Sama</b></td>
+    <td align="center" colspan="4"><b>Bisa Diubah Ukurannya — Gaya Tetap Sama (Gaya Capsule ditampilkan)</b></td>
   </tr>
   <tr>
     <td align="center"><b>2×2</b></td>
@@ -71,7 +71,7 @@ Aplikasi remote control Android & widget layar utama Material You yang gratis, o
     <td align="center" colspan="2"><b>4×2</b></td>
   </tr>
   <tr>
-    <td align="center"><img src="docs/screenshots/widget_2x2.png" alt="Widget 2x2" width="150"/></td>
+    <td align="center"><img src="docs/screenshots/widget_2x2.png" alt="Widget 2x2" width="180"/></td>
     <td align="center"><img src="docs/screenshots/widget_4x1.png" alt="Widget 4x1" width="290"/></td>
     <td align="center" colspan="2"><img src="docs/screenshots/widget_4x2.png" alt="Widget 4x2" width="290"/></td>
   </tr>
@@ -181,7 +181,7 @@ Hasil APK (`BYD-Open-Remote-v<versi>.apk`) berada di `app/build/outputs/apk/debu
 ```text
 .
 ├── app/               # Aplikasi Android (com.bydopenremote.app), widget Material You, klien cloud BYD & tes Robolectric
-├── docs/screenshots/  # Tangkapan layar emulator & aset vektor dokumentasi
+├── docs/screenshots/  # Tangkapan layar emulator dokumentasi
 └── gradle/            # Gradle wrapper & skrip build
 ```
 
