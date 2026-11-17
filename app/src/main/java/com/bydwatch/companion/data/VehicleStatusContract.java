@@ -27,6 +27,10 @@ public final class VehicleStatusContract {
     public static final String PERMISSION = "com.bydopenremote.app.permission.READ_VEHICLE";
     /** Sent after every cache update so listeners refetch immediately instead of polling. */
     public static final String ACTION_STATUS_CHANGED = "com.bydopenremote.app.action.VEHICLE_STATUS_CHANGED";
+    /** Sent by a consumer that wants fresher data than the periodic sync provides. */
+    public static final String ACTION_REQUEST_REFRESH = "com.bydopenremote.app.action.REQUEST_REFRESH";
+    /** Shortest gap between consumer-requested cloud fetches, so nobody can hammer the account. */
+    public static final long MIN_REFRESH_GAP_MS = 5L * 60L * 1000L;
     public static final String MIME_TYPE = "vnd.android.cursor.item/vnd.bydopenremote.vehicle_status";
 
     public static final String COLUMN_SOC = "soc";
@@ -66,6 +70,18 @@ public final class VehicleStatusContract {
         }
         String unit = status.distanceUnit == null || status.distanceUnit.isEmpty()
                 ? DEFAULT_UNIT : status.distanceUnit;
-        return new Object[]{status.soc, status.rangeKm, status.ts, unit, status.vin};
+        return new Object[]{status.soc, status.rangeKm, toEpochMillis(status.ts), unit, status.vin};
+    }
+
+    /**
+     * The vehicle payload carries seconds; consumers compare against wall-clock milliseconds.
+     * Anything below this threshold is read as seconds and scaled, so a consumer's staleness rule
+     * cannot silently discard every reading.
+     */
+    private static final long SECONDS_THRESHOLD = 100_000_000_000L;
+
+    static long toEpochMillis(long timestamp) {
+        if (timestamp <= 0) return 0L;
+        return timestamp < SECONDS_THRESHOLD ? timestamp * 1000L : timestamp;
     }
 }

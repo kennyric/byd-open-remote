@@ -114,6 +114,32 @@ public class BydRepository {
                 || !java.util.Objects.equals(previous.distanceUnit, current.distanceUnit);
     }
 
+    private volatile long lastRequestedRefreshAt;
+
+    /**
+     * Refetches from the cloud on a consumer's request (the patched Maps poking on an interval).
+     * Debounced here rather than trusted from the caller: the account is the thing at risk.
+     */
+    public void refreshNow() {
+        long now = System.currentTimeMillis();
+        if (now - lastRequestedRefreshAt < VehicleStatusContract.MIN_REFRESH_GAP_MS) {
+            VehicleStatusContract.log("refresh request ignored (too soon)");
+            return;
+        }
+        String vin = configStore.getVin();
+        if (vin == null || vin.trim().isEmpty()) {
+            VehicleStatusContract.log("refresh request ignored (no vehicle)");
+            return;
+        }
+        lastRequestedRefreshAt = now;
+        VehicleStatusContract.log("refresh requested by consumer");
+        try {
+            executor.execute(() -> autoRefresh(vin));
+        } catch (RuntimeException rejected) {
+            VehicleStatusContract.log("refresh request rejected");
+        }
+    }
+
     public void addStatusListener(StatusListener listener) {
         if (listener != null) {
             statusListeners.add(listener);

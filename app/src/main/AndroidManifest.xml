@@ -139,6 +139,15 @@
             android:grantUriPermissions="true"
             android:readPermission="com.bydopenremote.app.permission.READ_VEHICLE" />
 
+        <!-- A consumer may ask for fresher data; the repository debounces the request itself. -->
+        <receiver
+            android:name="com.bydwatch.companion.data.VehicleRefreshRequestReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.bydopenremote.app.action.REQUEST_REFRESH" />
+            </intent-filter>
+        </receiver>
+
     </application>
 
 </manifest>
