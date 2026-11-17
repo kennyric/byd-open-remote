@@ -42,6 +42,16 @@ public final class VehicleStatusBroadcaster {
 
     /** Sends the nudge to the configured target. */
     public static void notifyChanged(Context context) {
-        notifyChanged(context, targetPackage);
+        String destination = targetPackage;
+        try {
+            com.bydwatch.companion.BydWatchApp app = com.bydwatch.companion.BydWatchApp.getInstance();
+            if (app != null) {
+                String configured = app.getConfigStore().getVehicleStatusTargetPackage();
+                if (configured != null && !configured.trim().isEmpty()) destination = configured.trim();
+            }
+        } catch (RuntimeException ignored) {
+            // Fall back to the compiled-in default.
+        }
+        notifyChanged(context, destination);
     }
 }

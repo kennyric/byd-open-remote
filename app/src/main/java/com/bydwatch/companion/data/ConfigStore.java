@@ -81,6 +81,10 @@ public interface ConfigStore {
     default String getCustomVehicleName() { return ""; }
     default void setCustomVehicleName(String customVehicleName) {}
 
+    /** Package that receives the vehicle-status nudge; the patched Maps, renamed or not. */
+    default String getVehicleStatusTargetPackage() { return VehicleStatusBroadcaster.DEFAULT_TARGET_PACKAGE; }
+    default void setVehicleStatusTargetPackage(String targetPackage) {}
+
     default List<VehicleSummary> getVehicles() { return Collections.emptyList(); }
     default void setVehicles(List<VehicleSummary> vehicles) {}
 
