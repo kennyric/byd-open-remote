@@ -1,5 +1,6 @@
 package com.bydwatch.companion.data;
 
+import com.bydwatch.companion.BydWatchApp;
 import com.bydwatch.companion.model.VehicleStatus;
 import com.bydwatch.companion.model.VehicleSummary;
 import com.bydwatch.companion.protocol.WatchCommand;
@@ -86,13 +87,56 @@ public class BydRepository {
     }
 
     public void setCachedStatus(VehicleStatus status) {
-        cachedStatus.set(status);
+        VehicleStatus previous = cachedStatus.getAndSet(status);
         if (status != null) {
             for (StatusListener listener : statusListeners) {
                 try {
                     listener.onStatusUpdated(status);
                 } catch (Exception ignored) {}
             }
+            if (changed(previous, status)) {
+                VehicleStatusContract.log("status soc=" + status.soc + "% range=" + status.rangeKm
+                        + status.distanceUnit + " ts=" + status.ts);
+            }
+            // Nudge an external consumer (the patched Google Maps) so it refetches immediately
+            // instead of polling. Carries no data: the provider stays the single source of truth.
+            BydWatchApp app = BydWatchApp.getInstance();
+            if (app != null) VehicleStatusBroadcaster.notifyChanged(app);
+        }
+    }
+
+    /** True when a field a consumer can see actually moved; keeps the drive log readable. */
+    private static boolean changed(VehicleStatus previous, VehicleStatus current) {
+        return previous == null
+                || previous.soc != current.soc
+                || previous.rangeKm != current.rangeKm
+                || previous.ts != current.ts
+                || !java.util.Objects.equals(previous.distanceUnit, current.distanceUnit);
+    }
+
+    private volatile long lastRequestedRefreshAt;
+
+    /**
+     * Refetches from the cloud on a consumer's request (the patched Maps poking on an interval).
+     * Debounced here rather than trusted from the caller: the account is the thing at risk.
+     */
+    public void refreshNow() {
+        long now = System.currentTimeMillis();
+        if (now - lastRequestedRefreshAt < VehicleStatusContract.MIN_REFRESH_GAP_MS) {
+            VehicleStatusContract.log("refresh request ignored (too soon)");
+            return;
+        }
+        String vin = configStore.getVin();
+        if (vin == null || vin.trim().isEmpty()) {
+            VehicleStatusContract.log("refresh request ignored (no vehicle)");
+            return;
+        }
+        lastRequestedRefreshAt = now;
+        VehicleStatusContract.log("refresh requested by consumer");
+        try {
+            executor.execute(() -> autoRefresh(vin));
+        } catch (RuntimeException rejected) {
+            VehicleStatusContract.log("refresh request rejected");
         }
     }
 
