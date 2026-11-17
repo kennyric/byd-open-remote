@@ -142,7 +142,8 @@
         <!-- A consumer may ask for fresher data; the repository debounces the request itself. -->
         <receiver
             android:name="com.bydwatch.companion.data.VehicleRefreshRequestReceiver"
-            android:exported="true">
+            android:exported="true"
+            android:permission="com.bydopenremote.app.permission.READ_VEHICLE">
             <intent-filter>
                 <action android:name="com.bydopenremote.app.action.REQUEST_REFRESH" />
             </intent-filter>

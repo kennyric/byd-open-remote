@@ -34,7 +34,7 @@ public class VehicleStatusProviderTest {
         assertNotNull(cursor);
         assertEquals(1, cursor.getCount());
         assertTrue(cursor.moveToFirst());
-        assertEquals(VehicleStatusContract.COLUMNS.length, cursor.getColumnCount());
+        assertEquals(4, cursor.getColumnCount());
         // Nothing signed in yet: unknown values, never a null row or a throw.
         assertEquals(-1, cursor.getInt(cursor.getColumnIndexOrThrow(VehicleStatusContract.COLUMN_SOC)));
         assertEquals(-1, cursor.getInt(cursor.getColumnIndexOrThrow(VehicleStatusContract.COLUMN_RANGE_KM)));

@@ -22,8 +22,7 @@ public class VehicleStatusContractTest {
         assertEquals(310, row[1]);
         assertEquals(stamp, ((Number) row[2]).longValue());
         assertNotNull(row[3]);
-        assertTrue(row[4] == null || "".equals(row[4]));
-        assertEquals(VehicleStatusContract.COLUMNS.length, row.length);
+        assertEquals(4, row.length);
     }
 
     @Test
@@ -34,7 +33,20 @@ public class VehicleStatusContractTest {
         assertEquals(-1, row[1]);
         assertEquals(0L, row[2]);
         assertEquals("km", row[3]);
-        assertNull(row[4]);
+        assertEquals(4, row.length);
+    }
+
+    @Test
+    public void secondsAreUpscaledToEpochMillis() {
+        long seconds = 1_792_922_899L; // the shape the BYD payload actually carries
+        VehicleStatus status = new VehicleStatus(32, 84, true, false, null, 22, seconds);
+
+        Object[] row = VehicleStatusContract.row(status);
+
+        assertEquals(seconds * 1000L, ((Number) row[2]).longValue());
+        assertEquals(1_792_922_899_000L, VehicleStatusContract.toEpochMillis(seconds));
+        assertEquals(1_792_922_899_000L, VehicleStatusContract.toEpochMillis(1_792_922_899_000L));
+        assertEquals(0L, VehicleStatusContract.toEpochMillis(0));
     }
 
     @Test

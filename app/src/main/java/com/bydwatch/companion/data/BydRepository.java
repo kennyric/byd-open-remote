@@ -96,7 +96,7 @@ public class BydRepository {
             }
             if (changed(previous, status)) {
                 VehicleStatusContract.log("status soc=" + status.soc + "% range=" + status.rangeKm
-                        + status.distanceUnit + " ts=" + status.ts + " vin=" + status.vin);
+                        + status.distanceUnit + " ts=" + status.ts);
             }
             // Nudge an external consumer (the patched Google Maps) so it refetches immediately
             // instead of polling. Carries no data: the provider stays the single source of truth.

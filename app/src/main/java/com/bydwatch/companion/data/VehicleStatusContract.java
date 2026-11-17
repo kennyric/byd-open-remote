@@ -37,10 +37,10 @@ public final class VehicleStatusContract {
     public static final String COLUMN_RANGE_KM = "range_km";
     public static final String COLUMN_TS = "ts";
     public static final String COLUMN_DISTANCE_UNIT = "distance_unit";
-    public static final String COLUMN_VIN = "vin";
 
+    /** Only what a consumer renders: charge, range, freshness and unit. */
     public static final String[] COLUMNS = {
-            COLUMN_SOC, COLUMN_RANGE_KM, COLUMN_TS, COLUMN_DISTANCE_UNIT, COLUMN_VIN
+            COLUMN_SOC, COLUMN_RANGE_KM, COLUMN_TS, COLUMN_DISTANCE_UNIT
     };
 
     /** Unit reported when nothing better is known, matching Maps' own default. */
@@ -66,11 +66,11 @@ public final class VehicleStatusContract {
      */
     public static Object[] row(VehicleStatus status) {
         if (status == null) {
-            return new Object[]{-1, -1, 0L, DEFAULT_UNIT, null};
+            return new Object[]{-1, -1, 0L, DEFAULT_UNIT};
         }
         String unit = status.distanceUnit == null || status.distanceUnit.isEmpty()
                 ? DEFAULT_UNIT : status.distanceUnit;
-        return new Object[]{status.soc, status.rangeKm, toEpochMillis(status.ts), unit, status.vin};
+        return new Object[]{status.soc, status.rangeKm, toEpochMillis(status.ts), unit};
     }
 
     /**
