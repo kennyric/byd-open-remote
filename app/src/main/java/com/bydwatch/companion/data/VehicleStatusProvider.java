@@ -27,10 +27,16 @@ public final class VehicleStatusProvider extends ContentProvider {
     }
 
     private static com.bydwatch.companion.model.VehicleStatus cachedStatus() {
-        BydWatchApp app = BydWatchApp.getInstance();
-        if (app == null) return null;
-        BydRepository repository = app.getRepository();
-        return repository == null ? null : repository.getCachedStatus();
+        // A provider must never throw at its consumer: an unavailable repository (not signed in,
+        // keystore unavailable, process starting) yields the "unknown" row instead.
+        try {
+            BydWatchApp app = BydWatchApp.getInstance();
+            if (app == null) return null;
+            BydRepository repository = app.getRepository();
+            return repository == null ? null : repository.getCachedStatus();
+        } catch (Throwable unavailable) {
+            return null;
+        }
     }
 
     @Override
