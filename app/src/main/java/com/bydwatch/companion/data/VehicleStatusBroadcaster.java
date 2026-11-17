@@ -26,6 +26,29 @@ public final class VehicleStatusBroadcaster {
         return targetPackage;
     }
 
+    /**
+     * Grants the target read access for this process lifetime, so the integration works no matter
+     * which app was installed first: a normal-level permission is only granted at the consumer's
+     * install time, which fails when the consumer predates this app.
+     */
+    public static void grantAccess(Context context, String target) {
+        if (context == null) return;
+        String destination = target == null ? "" : target.trim();
+        if (destination.isEmpty()) return;
+        try {
+            context.getPackageManager().getPackageInfo(destination, 0);
+        } catch (Exception absent) {
+            return; // Consumer not installed yet; the next status change retries.
+        }
+        try {
+            context.grantUriPermission(destination, VehicleStatusContract.contentUri(),
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            VehicleStatusContract.log("granted read to " + destination);
+        } catch (RuntimeException refused) {
+            VehicleStatusContract.log("grant refused for " + destination);
+        }
+    }
+
     /** Sends the nudge; a blank target or missing context is a no-op rather than an error. */
     public static void notifyChanged(Context context, String target) {
         if (context == null) return;
@@ -34,7 +57,11 @@ public final class VehicleStatusBroadcaster {
         Intent intent = new Intent(VehicleStatusContract.ACTION_STATUS_CHANGED);
         intent.setPackage(destination);
         try {
+            // Runtime grant first: it survives any install order, because it does not depend on a
+            // normal permission having existed when the consumer was installed.
+            grantAccess(context, destination);
             context.sendBroadcast(intent);
+            VehicleStatusContract.log("nudge -> " + destination);
         } catch (RuntimeException ignored) {
             // A broadcast is an optimisation; the provider stays the source of truth.
         }

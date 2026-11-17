@@ -136,6 +136,7 @@
             android:name="com.bydwatch.companion.data.VehicleStatusProvider"
             android:authorities="com.bydopenremote.app.vehicle"
             android:exported="true"
+            android:grantUriPermissions="true"
             android:readPermission="com.bydopenremote.app.permission.READ_VEHICLE" />
 
     </application>

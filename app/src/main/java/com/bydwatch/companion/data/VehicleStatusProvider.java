@@ -21,8 +21,11 @@ public final class VehicleStatusProvider extends ContentProvider {
 
     @Override
     public Cursor query(Uri uri, String[] projection, String selection, String[] selectionArgs, String sortOrder) {
+        com.bydwatch.companion.model.VehicleStatus status = cachedStatus();
+        Object[] row = VehicleStatusContract.row(status);
+        VehicleStatusContract.log("served soc=" + row[0] + "% range=" + row[1] + row[3] + " ts=" + row[2]);
         MatrixCursor cursor = new MatrixCursor(VehicleStatusContract.COLUMNS);
-        cursor.addRow(VehicleStatusContract.row(cachedStatus()));
+        cursor.addRow(row);
         return cursor;
     }
 

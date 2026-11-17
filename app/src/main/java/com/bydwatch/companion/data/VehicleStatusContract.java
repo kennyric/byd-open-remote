@@ -41,6 +41,17 @@ public final class VehicleStatusContract {
 
     /** Unit reported when nothing better is known, matching Maps' own default. */
     static final String DEFAULT_UNIT = "km";
+    /** One log tag for the whole integration, so `adb logcat -s BydTelemetry` shows the story. */
+    public static final String LOG_TAG = "BydTelemetry";
+
+    /** Logs through one seam, silently: the same classes run in JVM tests where Log is a stub. */
+    public static void log(String message) {
+        try {
+            android.util.Log.i(LOG_TAG, message);
+        } catch (RuntimeException stub) {
+            // Not on Android (unit test): the message is irrelevant there.
+        }
+    }
 
     private VehicleStatusContract() {
     }
