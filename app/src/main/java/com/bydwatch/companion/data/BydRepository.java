@@ -1,5 +1,6 @@
 package com.bydwatch.companion.data;
 
+import com.bydwatch.companion.BydWatchApp;
 import com.bydwatch.companion.model.VehicleStatus;
 import com.bydwatch.companion.model.VehicleSummary;
 import com.bydwatch.companion.protocol.WatchCommand;
@@ -93,6 +94,10 @@ public class BydRepository {
                     listener.onStatusUpdated(status);
                 } catch (Exception ignored) {}
             }
+            // Nudge an external consumer (the patched Google Maps) so it refetches immediately
+            // instead of polling. Carries no data: the provider stays the single source of truth.
+            BydWatchApp app = BydWatchApp.getInstance();
+            if (app != null) VehicleStatusBroadcaster.notifyChanged(app);
         }
     }
 

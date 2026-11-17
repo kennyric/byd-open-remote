@@ -17,6 +17,12 @@
         <package android:name="com.huawei.hwid" />
     </queries>
 
+    <!-- Read-only vehicle telemetry for external consumers (the patched Google Maps). Normal level:
+         the consumer is re-signed, so a signature permission could never be granted. -->
+    <permission
+        android:name="com.bydopenremote.app.permission.READ_VEHICLE"
+        android:protectionLevel="normal" />
+
     <application
         android:name=".BydWatchApp"
         android:allowBackup="false"
@@ -123,6 +129,14 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
+
+        <!-- One read-only row of charge/range for the patched Google Maps. Exported because the
+             consumer is a different package; guarded by the normal-level READ_VEHICLE permission. -->
+        <provider
+            android:name="com.bydwatch.companion.data.VehicleStatusProvider"
+            android:authorities="com.bydopenremote.app.vehicle"
+            android:exported="true"
+            android:readPermission="com.bydopenremote.app.permission.READ_VEHICLE" />
 
     </application>
 
