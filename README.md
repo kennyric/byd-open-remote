@@ -188,9 +188,9 @@ BYD Open Remote (`≥ 1.1.0`) publishes your car's live SoC and remaining range 
 1. Install **[Morphe Manager](https://morphe.software/)** on your phone.
 2. Add the patch source using either method:
    - **One-tap link**: Open `https://morphe.software/add-source?github=kennyric/byd-maps-patches`
-   - **Manual**: In Morphe Manager → **Settings → Sources → Add**, paste:
+   - **Manual**: Switch to the **Sources** tab, tap **`+`**, and paste:
      ```text
-     https://github.com/kennyric/byd-maps-patches/releases/latest/download/patches-bundle.json
+     https://github.com/kennyric/byd-maps-patches
      ```
 3. Download **Google Maps `26.44.06.1006895251`** (`versionCode 1068856906`) from APKMirror, select it in Morphe Manager, and patch with the default patches (optionally enable **`Add microG-RE support`** if you want Google sign-in via MicroG-RE).
 4. Install the patched APK via **KingInstaller + Shizuku** (or `adb install -i com.android.vending -r ...`) and enable **Ungoogled Maps** in **Settings → Android Auto → Customize launcher**.
