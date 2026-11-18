@@ -180,6 +180,24 @@ The APK (`BYD-Open-Remote-v<version>.apk`) is written to `app/build/outputs/apk/
 
 ---
 
+## Android Auto Battery & Arrival SoC (Google Maps + Morphe)
+
+BYD Open Remote (`≥ 1.1.0`) publishes your car's live SoC and remaining range to patched Google Maps for Android Auto via [byd-maps-patches](https://github.com/kennyric/byd-maps-patches), showing a dynamic Day/Night battery pill (`86% → 11%`) above the navigation ETA card.
+
+### How to Add the Patch Repo to Morphe
+1. Install **[Morphe Manager](https://morphe.software/)** on your phone.
+2. Add the patch source using either method:
+   - **One-tap link**: Open `https://morphe.software/add-source?github=kennyric/byd-maps-patches`
+   - **Manual**: In Morphe Manager → **Settings → Sources → Add**, paste:
+     ```text
+     https://github.com/kennyric/byd-maps-patches/releases/latest/download/patches-bundle.json
+     ```
+3. Download **Google Maps `26.44.06.1006895251`** (`versionCode 1068856906`) from APKMirror, select it in Morphe Manager, and patch with the default patches (optionally enable **`Add microG-RE support`** if you want Google sign-in via MicroG-RE).
+4. Install the patched APK via **KingInstaller + Shizuku** (or `adb install -i com.android.vending -r ...`) and enable **Ungoogled Maps** in **Settings → Android Auto → Customize launcher**.
+   - If you enabled `Add microG-RE support`, set the target package in BYD Open Remote to `org.ungoogled.android.apps.maps.microg` (otherwise the default `org.ungoogled.android.apps.maps` matches).
+
+---
+
 ## Repository Structure
 
 ```text
