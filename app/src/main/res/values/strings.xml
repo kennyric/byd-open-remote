@@ -36,6 +36,8 @@
     <string name="helper_pin_required">6-digit vehicle remote operation PIN</string>
     <string name="helper_pin_saved">Saved securely — leave blank to keep existing PIN</string>
     <string name="helper_vin">Auto-filled via Fetch VIN (required before saving)</string>
+    <string name="label_battery_capacity_kwh">Battery capacity (kWh, optional)</string>
+    <string name="helper_battery_capacity_kwh">Used with recent kWh/100km for Maps arrival %. Leave blank to use car estimated range.</string>
     <string name="account_summary_unconfigured">Not configured — tap to enter BYD credentials</string>
     <string name="btn_edit_account">Edit</string>
     <string name="btn_hide_account">Hide</string>

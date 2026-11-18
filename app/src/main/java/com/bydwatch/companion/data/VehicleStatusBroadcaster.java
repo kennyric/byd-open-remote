@@ -11,6 +11,21 @@ import android.content.Intent;
 public final class VehicleStatusBroadcaster {
     /** Package that receives the nudge by default; the patched Google Maps. */
     public static final String DEFAULT_TARGET_PACKAGE = "org.ungoogled.android.apps.maps";
+    /** MicroG-RE variant of the patched Google Maps. */
+    public static final String MICROG_TARGET_PACKAGE = "org.ungoogled.android.apps.maps.microg";
+
+    /** True when {@code pkg} matches either the configured target or the MicroG-RE Maps package. */
+    public static boolean isAllowedPackage(String configured, String pkg) {
+        if (pkg == null) return false;
+        String clean = pkg.trim();
+        if (clean.isEmpty()) return false;
+        if (configured != null && !configured.trim().isEmpty() && configured.trim().equals(clean)) {
+            return true;
+        }
+        return (configured == null || configured.trim().isEmpty()
+                || DEFAULT_TARGET_PACKAGE.equals(configured.trim()))
+                && MICROG_TARGET_PACKAGE.equals(clean);
+    }
 
     private static volatile String targetPackage = DEFAULT_TARGET_PACKAGE;
 
@@ -67,7 +82,7 @@ public final class VehicleStatusBroadcaster {
         }
     }
 
-    /** Sends the nudge to the configured target. */
+    /** Sends the nudge to the configured target (and MicroG-RE variant if installed). */
     public static void notifyChanged(Context context) {
         String destination = targetPackage;
         try {
@@ -80,5 +95,8 @@ public final class VehicleStatusBroadcaster {
             // Fall back to the compiled-in default.
         }
         notifyChanged(context, destination);
+        if (DEFAULT_TARGET_PACKAGE.equals(destination)) {
+            notifyChanged(context, MICROG_TARGET_PACKAGE);
+        }
     }
 }

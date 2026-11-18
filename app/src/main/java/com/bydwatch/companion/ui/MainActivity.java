@@ -160,6 +160,7 @@ public class MainActivity extends AppCompatActivity {
     private EditText etPassword;
     private EditText etPin;
     private EditText etVin;
+    private EditText etBatteryCapacityKwh;
     private Button btnSaveCredentials;
     private Button btnFetchVin;
 
@@ -446,6 +447,7 @@ public class MainActivity extends AppCompatActivity {
         etPassword = findViewById(R.id.etPassword);
         etPin = findViewById(R.id.etPin);
         etVin = findViewById(R.id.etVin);
+        etBatteryCapacityKwh = findViewById(R.id.etBatteryCapacityKwh);
         btnSaveCredentials = findViewById(R.id.btnSaveCredentials);
         btnFetchVin = findViewById(R.id.btnFetchVin);
 
@@ -655,6 +657,11 @@ public class MainActivity extends AppCompatActivity {
 
                 String vin = configStore.getVin();
                 if (vin != null) etVin.setText(vin);
+
+                if (etBatteryCapacityKwh != null) {
+                    float kwh = configStore.getBatteryCapacityKwh();
+                    etBatteryCapacityKwh.setText(kwh > 0f ? formatKwhInput(kwh) : "");
+                }
             }
         } finally {
             updatingAccountFields = false;
@@ -1489,6 +1496,11 @@ public class MainActivity extends AppCompatActivity {
             configStore.setRegion(selectedRegion);
             configStore.setCountryCode(countryCode);
             configStore.setDefaultTempC(targetTempC);
+            if (etBatteryCapacityKwh != null && etBatteryCapacityKwh.getText() != null) {
+                float kwh = parseBatteryCapacityKwh(etBatteryCapacityKwh.getText().toString());
+                configStore.setBatteryCapacityKwh(kwh);
+                com.bydwatch.companion.data.VehicleStatusBroadcaster.notifyChanged(this);
+            }
         }
 
         // Clear typed secret fields immediately after persisting so saved secrets stay hidden.
@@ -1503,6 +1515,26 @@ public class MainActivity extends AppCompatActivity {
         }
         updateAccountUiState();
         return true;
+    }
+
+    private static float parseBatteryCapacityKwh(String raw) {
+        if (raw == null) return 0f;
+        String clean = raw.trim().replace(',', '.');
+        if (clean.isEmpty()) return 0f;
+        try {
+            float val = Float.parseFloat(clean);
+            return Float.isFinite(val) && val > 0f ? val : 0f;
+        } catch (NumberFormatException ignored) {
+            return 0f;
+        }
+    }
+
+    private static String formatKwhInput(float kwh) {
+        if (kwh <= 0f) return "";
+        if (Math.abs(kwh - Math.round(kwh)) < 0.005f) {
+            return String.valueOf(Math.round(kwh));
+        }
+        return String.format(Locale.US, "%.2f", kwh).replaceAll("0+$", "").replaceAll("\\.$", "");
     }
 
     private void attachAccountCredentialWatchers() {

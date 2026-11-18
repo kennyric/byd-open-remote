@@ -33,7 +33,7 @@
         android:layout_height="wrap_content"
         android:layout_weight="1"
         android:ellipsize="end"
-        android:maxLines="1"
+        android:maxLines="2"
         android:text="@string/location_widget_empty"
         android:textColor="@color/widget_on_surface"
         android:textSize="12.5sp"

@@ -31,7 +31,7 @@ public final class VehicleStatusProvider extends ContentProvider {
             VehicleStatusContract.log("query refused for uid " + Binder.getCallingUid());
             return new MatrixCursor(VehicleStatusContract.COLUMNS);
         }
-        Object[] row = VehicleStatusContract.row(cachedStatus());
+        Object[] row = VehicleStatusContract.row(cachedStatus(), batteryCapacityKwh());
         VehicleStatusContract.log("served soc=" + row[0] + "% range=" + row[1] + row[3] + " ts=" + row[2]);
         MatrixCursor cursor = new MatrixCursor(VehicleStatusContract.COLUMNS);
         cursor.addRow(row);
@@ -49,11 +49,22 @@ public final class VehicleStatusProvider extends ContentProvider {
             if (allowed == null || allowed.trim().isEmpty()) return false;
             String[] packages = app.getPackageManager().getPackagesForUid(uid);
             if (packages == null) return false;
-            for (String name : packages) if (allowed.trim().equals(name)) return true;
+            for (String name : packages) {
+                if (VehicleStatusBroadcaster.isAllowedPackage(allowed, name)) return true;
+            }
         } catch (RuntimeException unavailable) {
             return false;
         }
         return false;
+    }
+
+    private static float batteryCapacityKwh() {
+        try {
+            BydWatchApp app = BydWatchApp.getInstance();
+            return app == null ? 0f : app.getConfigStore().getBatteryCapacityKwh();
+        } catch (Throwable unavailable) {
+            return 0f;
+        }
     }
 
     private static com.bydwatch.companion.model.VehicleStatus cachedStatus() {

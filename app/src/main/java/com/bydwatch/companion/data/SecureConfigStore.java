@@ -43,6 +43,7 @@ public class SecureConfigStore implements ConfigStore {
     private static final String PREF_ALERTS_ENABLED = "byd_alerts_enabled";
     private static final String PREF_DISCLAIMER_ACCEPTED = "byd_disclaimer_accepted";
     private static final String PREF_WIDGET_SYNC_MINUTES = "byd_widget_sync_minutes";
+    private static final String PREF_BATTERY_CAPACITY_KWH = "byd_battery_capacity_kwh";
     private static final String PREF_WIDGET_STYLE = "byd_widget_style";
     private static final String PREF_HIDE_EXTRA_CONTROLS = "byd_hide_extra_controls";
     private static final String PREF_VERBOSE_LOGS = "byd_verbose_logs";
@@ -148,6 +149,21 @@ public class SecureConfigStore implements ConfigStore {
     public void setRegion(String region) {
         String toSave = (region != null && !region.trim().isEmpty()) ? region : DEFAULT_REGION;
         prefs.edit().putString(PREF_REGION, toSave).apply();
+    }
+
+    @Override
+    public float getBatteryCapacityKwh() {
+        float val = prefs.getFloat(PREF_BATTERY_CAPACITY_KWH, 0f);
+        return val > 0f && Float.isFinite(val) ? val : 0f;
+    }
+
+    @Override
+    public void setBatteryCapacityKwh(float kwh) {
+        if (kwh > 0f && Float.isFinite(kwh)) {
+            prefs.edit().putFloat(PREF_BATTERY_CAPACITY_KWH, kwh).apply();
+        } else {
+            prefs.edit().remove(PREF_BATTERY_CAPACITY_KWH).apply();
+        }
     }
 
     @Override

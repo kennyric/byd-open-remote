@@ -20,7 +20,7 @@ public final class VehicleRefreshRequestReceiver extends BroadcastReceiver {
         if (app == null) return;
         String allowed = app.getConfigStore().getVehicleStatusTargetPackage();
         String sender = senderPackage();
-        if (sender != null && (allowed == null || !allowed.trim().equals(sender))) {
+        if (sender != null && !VehicleStatusBroadcaster.isAllowedPackage(allowed, sender)) {
             VehicleStatusContract.log("refresh refused from " + sender);
             return;
         }

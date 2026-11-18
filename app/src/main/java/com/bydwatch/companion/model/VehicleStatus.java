@@ -61,6 +61,7 @@ public final class VehicleStatus {
     public final Double latitude;
     public final Double longitude;
     public final Long gpsTs;
+    public final double recentKwhPer100Km;
     public final List<VehicleSummary> vehicles;
 
     public VehicleStatus(
@@ -115,6 +116,7 @@ public final class VehicleStatus {
         this.latitude = b.latitude;
         this.longitude = b.longitude;
         this.gpsTs = b.gpsTs;
+        this.recentKwhPer100Km = b.recentKwhPer100Km;
         this.vehicles = b.vehicles != null
                 ? Collections.unmodifiableList(new ArrayList<>(b.vehicles))
                 : Collections.emptyList();
@@ -178,6 +180,7 @@ public final class VehicleStatus {
                 .acPreset(targetTempGear, fanLevel, windMode)
                 .units(distanceUnit, tempUnit, pressureUnit)
                 .location(latitude, longitude, gpsTs)
+                .recentKwhPer100Km(recentKwhPer100Km)
                 .vehicles(vehicles);
     }
 
@@ -236,6 +239,7 @@ public final class VehicleStatus {
                     obj.put("gpsTs", gpsTs);
                 }
             }
+            if (recentKwhPer100Km > 0d) obj.put("recentKwh", recentKwhPer100Km);
             if (!vehicles.isEmpty()) {
                 JSONArray arr = new JSONArray();
                 for (VehicleSummary v : vehicles) {
@@ -307,6 +311,10 @@ public final class VehicleStatus {
         Integer gear = (json.has("tempGear") && !json.isNull("tempGear")) ? json.optInt("tempGear") : null;
         Integer fan = (json.has("fanLevel") && !json.isNull("fanLevel")) ? json.optInt("fanLevel") : null;
         Integer vent = (json.has("windMode") && !json.isNull("windMode")) ? json.optInt("windMode") : null;
+        if (json.has("windMode") && !json.isNull("windMode")) { /* handled below */ }
+        if (json.has("recentKwh") && !json.isNull("recentKwh")) {
+            b.recentKwhPer100Km(json.optDouble("recentKwh", -1d));
+        }
         b.acPreset(gear, fan, vent);
         b.units(
                 json.optString("uDist", UnitPreferences.DIST_KM),
@@ -376,6 +384,7 @@ public final class VehicleStatus {
                 && Objects.equals(latitude, that.latitude)
                 && Objects.equals(longitude, that.longitude)
                 && Objects.equals(gpsTs, that.gpsTs)
+                && Double.compare(recentKwhPer100Km, that.recentKwhPer100Km) == 0
                 && Objects.equals(vehicles, that.vehicles);
     }
 
@@ -389,7 +398,7 @@ public final class VehicleStatus {
                 batteryHeatOn, driverSeatLevel,
                 canWindows, canBatteryHeat, canSeatClimate, manualAc,
                 targetTempGear, fanLevel, windMode,
-                distanceUnit, tempUnit, pressureUnit, latitude, longitude, gpsTs, vehicles);
+                distanceUnit, tempUnit, pressureUnit, latitude, longitude, gpsTs, recentKwhPer100Km, vehicles);
     }
 
     @Override
@@ -446,6 +455,7 @@ public final class VehicleStatus {
         private Double latitude;
         private Double longitude;
         private Long gpsTs;
+        private double recentKwhPer100Km = -1d;
         private List<VehicleSummary> vehicles;
 
         public Builder(int soc, int rangeKm, boolean locked, boolean acOn,
@@ -523,6 +533,10 @@ public final class VehicleStatus {
                 this.longitude = null;
                 this.gpsTs = null;
             }
+            return this;
+        }
+        public Builder recentKwhPer100Km(double kwhPer100Km) {
+            this.recentKwhPer100Km = Double.isFinite(kwhPer100Km) && kwhPer100Km > 0d ? kwhPer100Km : -1d;
             return this;
         }
         public Builder vehicles(List<VehicleSummary> vehicles) { this.vehicles = vehicles; return this; }

@@ -873,8 +873,28 @@ public class CloudBydGateway implements BydGateway {
                 .acPreset(liveTempGear, liveFanLevel, liveWindMode)
                 .units(uDist, uTemp, uPres)
                 .location(lat, lng, gpsTs)
+                .recentKwhPer100Km(extractRecentKwhPer100Km(vi))
                 .vehicles(cars)
                 .build();
+    }
+
+    private static double extractRecentKwhPer100Km(JSONObject vi) {
+        if (vi == null) return -1d;
+        double nearest = vi.optDouble("nearestEnergyConsumption", -1d);
+        if (Double.isFinite(nearest) && nearest > 0d) return nearest;
+        double energy = vi.optDouble("energyConsumption", -1d);
+        if (Double.isFinite(energy) && energy > 0d) return energy;
+        String recent50 = vi.optString("recent50kmEnergy", "");
+        if (!recent50.isEmpty()) {
+            java.util.regex.Matcher m = java.util.regex.Pattern.compile("([0-9]+(?:\\.[0-9]+)?)").matcher(recent50);
+            if (m.find()) {
+                try {
+                    double parsed = Double.parseDouble(m.group(1));
+                    if (Double.isFinite(parsed) && parsed > 0d) return parsed;
+                } catch (NumberFormatException ignored) {}
+            }
+        }
+        return -1d;
     }
 
     private static Integer extractTempFromSources(JSONObject[] sources, String key, double minValid, double maxValid) {

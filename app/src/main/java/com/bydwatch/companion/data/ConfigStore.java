@@ -85,6 +85,10 @@ public interface ConfigStore {
     default String getVehicleStatusTargetPackage() { return VehicleStatusBroadcaster.DEFAULT_TARGET_PACKAGE; }
     default void setVehicleStatusTargetPackage(String targetPackage) {}
 
+    /** Optional usable battery capacity in kWh (<= 0 means unset; falls back to car's estimated range). */
+    default float getBatteryCapacityKwh() { return 0f; }
+    default void setBatteryCapacityKwh(float kwh) {}
+
     default List<VehicleSummary> getVehicles() { return Collections.emptyList(); }
     default void setVehicles(List<VehicleSummary> vehicles) {}
 

@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Fixed 88dp Action Row: 3-row widgets have spare height, give it to the touch targets -->
+<!-- Compact 68dp Action Row: keeps touch targets comfortable without squeezing the battery card -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="88dp"
+    android:layout_height="68dp"
     android:orientation="horizontal">
 
     <LinearLayout

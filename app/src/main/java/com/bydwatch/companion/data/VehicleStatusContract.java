@@ -30,7 +30,7 @@ public final class VehicleStatusContract {
     /** Sent by a consumer that wants fresher data than the periodic sync provides. */
     public static final String ACTION_REQUEST_REFRESH = "com.bydopenremote.app.action.REQUEST_REFRESH";
     /** Shortest gap between consumer-requested cloud fetches, so nobody can hammer the account. */
-    public static final long MIN_REFRESH_GAP_MS = 5L * 60L * 1000L;
+    public static final long MIN_REFRESH_GAP_MS = 2L * 60L * 1000L;
     public static final String MIME_TYPE = "vnd.android.cursor.item/vnd.bydopenremote.vehicle_status";
 
     public static final String COLUMN_SOC = "soc";
@@ -65,12 +65,29 @@ public final class VehicleStatusContract {
      * "unknown" values rather than nulls, so callers can render nothing instead of failing.
      */
     public static Object[] row(VehicleStatus status) {
+        return row(status, 0f);
+    }
+
+    /**
+     * Same as {@link #row(VehicleStatus)}, but when {@code batteryCapacityKwh > 0} and the car
+     * reports recent kWh/100km, computes range from {@code batteryCapacityKwh} and recent
+     * consumption; falls back to {@code status.rangeKm} when either is unavailable.
+     */
+    public static Object[] row(VehicleStatus status, float batteryCapacityKwh) {
         if (status == null) {
             return new Object[]{-1, -1, 0L, DEFAULT_UNIT};
         }
         String unit = status.distanceUnit == null || status.distanceUnit.isEmpty()
                 ? DEFAULT_UNIT : status.distanceUnit;
-        return new Object[]{status.soc, status.rangeKm, toEpochMillis(status.ts), unit};
+        return new Object[]{status.soc, effectiveRangeKm(status, batteryCapacityKwh), toEpochMillis(status.ts), unit};
+    }
+
+    static int effectiveRangeKm(VehicleStatus status, float batteryCapacityKwh) {
+        if (status == null) return -1;
+        if (batteryCapacityKwh > 0f && status.soc > 0 && status.recentKwhPer100Km > 0d) {
+            return Math.max(0, (int) Math.round((batteryCapacityKwh * status.soc) / status.recentKwhPer100Km));
+        }
+        return status.rangeKm;
     }
 
     /**
