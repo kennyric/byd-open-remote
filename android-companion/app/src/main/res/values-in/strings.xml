@@ -389,4 +389,16 @@
     <string name="lab_section_smart">Pengisian pintar</string>
     <string name="lab_section_raw">Endpoint mentah</string>
     <string name="lab_section_console">Konsol panggilan</string>
+    <string name="lab_read_limit">Baca batas</string>
+    <string name="lab_active_limit">Aktif</string>
+    <string name="lab_supported_limits">Didukung</string>
+    <string name="lab_limit_value">Nilai</string>
+    <string name="lab_limit_value_hint">mis. 10A atau MAX</string>
+    <string name="lab_console_empty">Belum ada panggilan.</string>
+    <string name="lab_copy_all">Salin</string>
+    <string name="lab_share">Bagikan</string>
+    <string name="lab_clear">Hapus</string>
+    <string name="lab_copied">Disalin</string>
+    <string name="lab_share_title">Bagikan log Lab</string>
+    <string name="lab_read_failed">Gagal membaca</string>
 </resources>

@@ -1,10 +1,19 @@
 package com.bydwatch.companion.lab;
 
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
+import android.content.Intent;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.view.View;
+import android.widget.ArrayAdapter;
+import android.widget.AutoCompleteTextView;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -18,6 +27,7 @@ import com.bydwatch.companion.data.ConfigStore;
 import com.bydwatch.companion.model.VehicleStatus;
 import com.bydwatch.companion.model.VehicleSummary;
 import com.overdrive.app.byd.cloud.BydCloudClient;
+import com.overdrive.app.byd.cloud.CloudCallTrace;
 
 import java.util.List;
 
@@ -42,6 +52,12 @@ public class LabActivity extends AppCompatActivity {
     private TextView tvLabChargeState;
     private TextView tvLabPinState;
     private TextView tvLabUnavailable;
+    private TextView tvLabActiveLimit;
+    private TextView tvLabOptions;
+    private AutoCompleteTextView acLabLimitValue;
+    private TextView tvLabConsole;
+    private ScrollView svLabConsole;
+    private final LabConsole console = new LabConsole(200);
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -82,6 +98,20 @@ public class LabActivity extends AppCompatActivity {
         tvLabChargeState = findViewById(R.id.tvLabChargeState);
         tvLabPinState = findViewById(R.id.tvLabPinState);
         tvLabUnavailable = findViewById(R.id.tvLabUnavailable);
+        tvLabActiveLimit = findViewById(R.id.tvLabActiveLimit);
+        tvLabOptions = findViewById(R.id.tvLabOptions);
+        acLabLimitValue = findViewById(R.id.acLabLimitValue);
+        tvLabConsole = findViewById(R.id.tvLabConsole);
+        svLabConsole = findViewById(R.id.svLabConsole);
+
+        View readLimit = findViewById(R.id.btnLabReadLimit);
+        if (readLimit != null) readLimit.setOnClickListener(v -> readLimit());
+        View copyAll = findViewById(R.id.btnLabCopyAll);
+        if (copyAll != null) copyAll.setOnClickListener(v -> copyConsole());
+        View share = findViewById(R.id.btnLabShare);
+        if (share != null) share.setOnClickListener(v -> shareConsole());
+        View clear = findViewById(R.id.btnLabClear);
+        if (clear != null) clear.setOnClickListener(v -> clearConsole());
 
         ImageButton back = findViewById(R.id.btnLabBack);
         if (back != null) back.setOnClickListener(v -> finish());
@@ -145,6 +175,71 @@ public class LabActivity extends AppCompatActivity {
             state = state + " · " + String.format(java.util.Locale.US, "%.1f kW", status.chargePowerKw);
         }
         tvLabChargeState.setText(state);
+    }
+
+    private void readLimit() {
+        if (client == null || repository == null) return;
+        String typed = etLabEnergy != null ? etLabEnergy.getText().toString().trim() : "";
+        final String energyType = typed.isEmpty() ? "0" : typed;
+        final String vin = activeVin;
+        repository.getExecutor().execute(() -> {
+            BydCloudClient.AcCurrentLimitResult result =
+                    client.readAcCurrentLimit(vin, energyType);
+            runOnUiThread(() -> renderReadResult(result));
+        });
+    }
+
+    private void renderReadResult(BydCloudClient.AcCurrentLimitResult result) {
+        if (result == null || result.trace == null) return;
+        CloudCallTrace trace = result.trace;
+        if (result.limit != null) {
+            String active = result.limit.active != null ? result.limit.active : "—";
+            if (tvLabActiveLimit != null) tvLabActiveLimit.setText(active);
+            if (tvLabOptions != null) {
+                tvLabOptions.setText(result.limit.options.isEmpty()
+                        ? "—" : TextUtils.join("  ", result.limit.options));
+            }
+            if (acLabLimitValue != null) {
+                if (result.limit.active != null) acLabLimitValue.setText(result.limit.active);
+                ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
+                        android.R.layout.simple_dropdown_item_1line, result.limit.options);
+                acLabLimitValue.setAdapter(adapter);
+            }
+        } else if (tvLabActiveLimit != null) {
+            String detail = trace.error != null ? trace.error
+                    : (trace.code + (trace.message.isEmpty() ? "" : " " + trace.message));
+            tvLabActiveLimit.setText(getString(R.string.lab_read_failed) + ": " + detail);
+        }
+        console.add(trace);
+        renderConsole();
+    }
+
+    private void renderConsole() {
+        if (tvLabConsole == null) return;
+        String text = console.text();
+        tvLabConsole.setText(text.isEmpty() ? getString(R.string.lab_console_empty) : text);
+        if (svLabConsole != null) {
+            svLabConsole.post(() -> svLabConsole.fullScroll(View.FOCUS_DOWN));
+        }
+    }
+
+    private void copyConsole() {
+        ClipboardManager manager = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+        if (manager == null) return;
+        manager.setPrimaryClip(ClipData.newPlainText("BYD Lab", console.shareText()));
+        Toast.makeText(this, R.string.lab_copied, Toast.LENGTH_SHORT).show();
+    }
+
+    private void shareConsole() {
+        Intent send = new Intent(Intent.ACTION_SEND);
+        send.setType("text/plain");
+        send.putExtra(Intent.EXTRA_TEXT, console.shareText());
+        startActivity(Intent.createChooser(send, getString(R.string.lab_share_title)));
+    }
+
+    private void clearConsole() {
+        console.clear();
+        renderConsole();
     }
 
     private void refreshContext() {

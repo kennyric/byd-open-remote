@@ -472,4 +472,16 @@
     <string name="lab_section_smart">Smart charging</string>
     <string name="lab_section_raw">Raw endpoint</string>
     <string name="lab_section_console">Call console</string>
+    <string name="lab_read_limit">Read limit</string>
+    <string name="lab_active_limit">Active</string>
+    <string name="lab_supported_limits">Supported</string>
+    <string name="lab_limit_value">Value</string>
+    <string name="lab_limit_value_hint">e.g. 10A or MAX</string>
+    <string name="lab_console_empty">No calls yet.</string>
+    <string name="lab_copy_all">Copy</string>
+    <string name="lab_share">Share</string>
+    <string name="lab_clear">Clear</string>
+    <string name="lab_copied">Copied</string>
+    <string name="lab_share_title">Share Lab log</string>
+    <string name="lab_read_failed">Read failed</string>
 </resources>
