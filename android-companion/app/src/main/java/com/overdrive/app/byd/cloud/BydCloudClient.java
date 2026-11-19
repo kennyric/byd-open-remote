@@ -962,6 +962,115 @@ public class BydCloudClient {
         return true;
     }
 
+    // ── Lab / Diagnostic AC current limit ───────────────────────────────
+
+    /** Result of a read or write call, carrying both parsed data and raw evidence. */
+    public static final class AcCurrentLimitResult {
+        public final CloudCallTrace trace;
+        /** Parsed limit for a read; null for a write or a failed read. */
+        public final AcCurrentLimit limit;
+
+        public AcCurrentLimitResult(CloudCallTrace trace, AcCurrentLimit limit) {
+            this.trace = trace;
+            this.limit = limit;
+        }
+    }
+
+    /**
+     * Post an allowlisted control endpoint through the plain token envelope.
+     *
+     * <p>This is the trial Lab's diagnostic path. It never throws: transport,
+     * session, decrypt, and parsing failures are captured in the returned
+     * trace so the screen can show exactly what happened.
+     */
+    public CloudCallTrace callControlEndpoint(String endpoint, JSONObject extraInner) {
+        long startedMs = System.currentTimeMillis();
+        JSONObject request = copyJson(extraInner);
+
+        if (!LabEndpointPolicy.isAllowed(endpoint)) {
+            return new CloudCallTrace(endpoint, request, new JSONObject(), new JSONObject(),
+                    "", "", System.currentTimeMillis() - startedMs, "endpoint not allowed");
+        }
+
+        JSONObject outer = null;
+        JSONObject decoded = null;
+        String code = "";
+        String message = "";
+        String error = null;
+        try {
+            BydCloudSession session = ensureSession();
+            long nowMs = System.currentTimeMillis();
+            JSONObject inner = buildInner(nowMs);
+            if (extraInner != null) {
+                Iterator<String> keys = extraInner.keys();
+                while (keys.hasNext()) {
+                    String key = keys.next();
+                    inner.put(key, extraInner.get(key));
+                }
+            }
+            request = copyJson(inner);
+            TokenEnvelope env = buildTokenOuterEnvelope(nowMs, session, inner);
+            JSONObject response = transport.postSecure(endpoint, env.outer);
+            outer = response != null ? response : new JSONObject();
+            code = outer.optString("code", "");
+            message = outer.optString("message", "");
+            String respondData = outer.optString("respondData", "");
+            if (!respondData.isEmpty()) {
+                decoded = BydCloudTransport.decryptRespondData(respondData, env.contentKey);
+            }
+        } catch (Exception e) {
+            error = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+        }
+        return new CloudCallTrace(endpoint, request, outer, decoded, code, message,
+                System.currentTimeMillis() - startedMs, error);
+    }
+
+    /** Read the active and supported AC charging current limits. */
+    public AcCurrentLimitResult readAcCurrentLimit(String vin, String energyType) {
+        String normalizedEnergyType = energyType == null || energyType.trim().isEmpty()
+                ? "0" : energyType.trim();
+        JSONObject extra = new JSONObject();
+        try {
+            extra.put("vin", vin);
+            extra.put("energyType", normalizedEnergyType);
+        } catch (Exception ignored) {
+        }
+        CloudCallTrace trace = callControlEndpoint(
+                "/control/smartCharge/getAcCurrentLimit", extra);
+        AcCurrentLimit limit = null;
+        if (trace.isSuccess() && trace.decoded != null) {
+            limit = AcCurrentLimit.parse(vin, trace.decoded);
+        }
+        return new AcCurrentLimitResult(trace, limit);
+    }
+
+    /** Write the AC charging current limit, e.g. {@code "10A"} or {@code "MAX"}. */
+    public AcCurrentLimitResult writeAcCurrentLimit(String vin, String value) {
+        JSONObject extra = new JSONObject();
+        try {
+            extra.put("vin", vin);
+            extra.put("limitCurrentValue", value);
+        } catch (Exception ignored) {
+        }
+        CloudCallTrace trace = callControlEndpoint(
+                "/control/smartCharge/limitCurrentControl", extra);
+        return new AcCurrentLimitResult(trace, null);
+    }
+
+    private static JSONObject copyJson(JSONObject source) {
+        JSONObject copy = new JSONObject();
+        if (source == null) return copy;
+        try {
+            Iterator<String> keys = source.keys();
+            while (keys.hasNext()) {
+                String key = keys.next();
+                copy.put(key, source.get(key));
+            }
+        } catch (Exception ignored) {
+        }
+        return copy;
+    }
+
     /** Bounded terminal confirmation for saveOrUpdate and immediate start. */
     private static final int SMART_CHARGE_CONFIRM_ATTEMPTS = 6;
     private static final long SMART_CHARGE_CONFIRM_SLEEP_MS = 2_000L;
