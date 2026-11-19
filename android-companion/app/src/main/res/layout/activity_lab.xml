@@ -351,10 +351,134 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:layout_marginBottom="10dp"
                     android:text="@string/lab_section_smart"
                     android:textColor="?attr/colorOnSurface"
                     android:textSize="15sp"
                     android:textStyle="bold" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnLabHomePage"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/lab_home_page"
+                    android:textAllCaps="false" />
+
+                <com.google.android.material.switchmaterial.SwitchMaterial
+                    android:id="@+id/switchLabSmartCharge"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:text="@string/lab_smart_on"
+                    android:textColor="?attr/colorOnSurface" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnLabToggle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/lab_toggle_smart"
+                    android:textAllCaps="false" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnLabStartCharge"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="@string/lab_start_charge"
+                    android:textAllCaps="false" />
+
+                <EditText
+                    android:id="@+id/etLabScheduleStart"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:hint="@string/lab_schedule_start"
+                    android:inputType="time"
+                    android:textColor="?attr/colorOnSurface" />
+
+                <EditText
+                    android:id="@+id/etLabScheduleEnd"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="@string/lab_schedule_end"
+                    android:inputType="text"
+                    android:textColor="?attr/colorOnSurface" />
+
+                <EditText
+                    android:id="@+id/etLabScheduleWay"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="@string/lab_schedule_way"
+                    android:inputType="text"
+                    android:textColor="?attr/colorOnSurface" />
+
+                <com.google.android.material.switchmaterial.SwitchMaterial
+                    android:id="@+id/switchLabScheduleEnabled"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:checked="true"
+                    android:text="@string/lab_schedule_enabled"
+                    android:textColor="?attr/colorOnSurface" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnLabSaveSchedule"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/lab_save_schedule"
+                    android:textAllCaps="false" />
+
+                <EditText
+                    android:id="@+id/etLabSocLimit"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:hint="@string/lab_soc_limit"
+                    android:inputType="number"
+                    android:textColor="?attr/colorOnSurface" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnLabSetSoc"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/lab_set_soc"
+                    android:textAllCaps="false" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnLabStopCharge"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="8dp"
+                        android:text="@string/lab_stop_charge"
+                        android:textAllCaps="false" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnLabContinueCharge"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/lab_continue_charge"
+                        android:textAllCaps="false" />
+                </LinearLayout>
+
+                <EditText
+                    android:id="@+id/etLabRequestSerial"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:hint="@string/lab_request_serial"
+                    android:inputType="text"
+                    android:textColor="?attr/colorOnSurface" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnLabPollLimitResult"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/lab_poll_result"
+                    android:textAllCaps="false" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
@@ -376,10 +500,45 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:layout_marginBottom="10dp"
                     android:text="@string/lab_section_raw"
                     android:textColor="?attr/colorOnSurface"
                     android:textSize="15sp"
                     android:textStyle="bold" />
+
+                <Spinner
+                    android:id="@+id/spLabEndpoint"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content" />
+
+                <EditText
+                    android:id="@+id/etLabCustomEndpoint"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:hint="@string/lab_custom_endpoint"
+                    android:inputType="text"
+                    android:textColor="?attr/colorOnSurface" />
+
+                <EditText
+                    android:id="@+id/etLabRawInner"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:gravity="top|start"
+                    android:hint="@string/lab_inner_json"
+                    android:inputType="textMultiLine"
+                    android:minLines="3"
+                    android:fontFamily="monospace"
+                    android:textColor="?attr/colorOnSurface"
+                    android:textSize="12sp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnLabSendRaw"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/lab_send"
+                    android:textAllCaps="false" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 

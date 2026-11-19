@@ -491,4 +491,24 @@
     <string name="lab_cancel">Cancel</string>
     <string name="lab_reread">Re-read after set</string>
     <string name="lab_verdict_idle">No write yet</string>
+    <string name="lab_home_page">Read homePage</string>
+    <string name="lab_smart_on">Smart charging enabled</string>
+    <string name="lab_toggle_smart">Toggle smart charging</string>
+    <string name="lab_start_charge">Start charging now</string>
+    <string name="lab_schedule_start">Start HH:MM</string>
+    <string name="lab_schedule_end">End HH:MM or full</string>
+    <string name="lab_schedule_way">chargeWay (s / e / 0,1,2)</string>
+    <string name="lab_schedule_enabled">Schedule enabled</string>
+    <string name="lab_save_schedule">Save schedule</string>
+    <string name="lab_soc_limit">Target SoC %</string>
+    <string name="lab_set_soc">Set SoC limit</string>
+    <string name="lab_stop_charge">Stop charging</string>
+    <string name="lab_continue_charge">Continue charging</string>
+    <string name="lab_request_serial">requestSerial</string>
+    <string name="lab_poll_result">Poll limit result</string>
+    <string name="lab_custom_endpoint">Custom path (overrides spinner)</string>
+    <string name="lab_inner_json">Inner JSON</string>
+    <string name="lab_send">Send</string>
+    <string name="lab_invalid_json">Invalid JSON</string>
+    <string name="lab_endpoint">Endpoint</string>
 </resources>

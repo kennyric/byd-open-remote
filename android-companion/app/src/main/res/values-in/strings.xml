@@ -408,4 +408,24 @@
     <string name="lab_cancel">Batal</string>
     <string name="lab_reread">Baca ulang setelah setel</string>
     <string name="lab_verdict_idle">Belum ada penulisan</string>
+    <string name="lab_home_page">Baca homePage</string>
+    <string name="lab_smart_on">Pengisian pintar aktif</string>
+    <string name="lab_toggle_smart">Alihkan pengisian pintar</string>
+    <string name="lab_start_charge">Mulai pengisian sekarang</string>
+    <string name="lab_schedule_start">Mulai HH:MM</string>
+    <string name="lab_schedule_end">Selesai HH:MM atau full</string>
+    <string name="lab_schedule_way">chargeWay (s / e / 0,1,2)</string>
+    <string name="lab_schedule_enabled">Jadwal aktif</string>
+    <string name="lab_save_schedule">Simpan jadwal</string>
+    <string name="lab_soc_limit">Target SoC %</string>
+    <string name="lab_set_soc">Setel batas SoC</string>
+    <string name="lab_stop_charge">Hentikan pengisian</string>
+    <string name="lab_continue_charge">Lanjutkan pengisian</string>
+    <string name="lab_request_serial">requestSerial</string>
+    <string name="lab_poll_result">Poll hasil batas</string>
+    <string name="lab_custom_endpoint">Path kustom (mengganti spinner)</string>
+    <string name="lab_inner_json">JSON dalam</string>
+    <string name="lab_send">Kirim</string>
+    <string name="lab_invalid_json">JSON tidak valid</string>
+    <string name="lab_endpoint">Endpoint</string>
 </resources>

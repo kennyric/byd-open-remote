@@ -12,6 +12,7 @@ import android.widget.AutoCompleteTextView;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ScrollView;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -32,6 +33,8 @@ import com.overdrive.app.byd.cloud.BydCloudClient;
 import com.overdrive.app.byd.cloud.ChargeLimitValues;
 import com.overdrive.app.byd.cloud.CloudCallTrace;
 import com.google.android.material.switchmaterial.SwitchMaterial;
+
+import org.json.JSONObject;
 
 import java.util.List;
 
@@ -63,6 +66,16 @@ public class LabActivity extends AppCompatActivity {
     private ScrollView svLabConsole;
     private TextView tvLabVerdict;
     private SwitchMaterial switchLabReRead;
+    private SwitchMaterial switchLabSmartCharge;
+    private SwitchMaterial switchLabScheduleEnabled;
+    private Spinner spLabEndpoint;
+    private EditText etLabCustomEndpoint;
+    private EditText etLabRawInner;
+    private EditText etLabScheduleStart;
+    private EditText etLabScheduleEnd;
+    private EditText etLabScheduleWay;
+    private EditText etLabSocLimit;
+    private EditText etLabRequestSerial;
     private String lastKnownLimit;
     private LabRetryPolicy retryPolicy = LabRetryPolicy.defaults();
     private final LabConsole console = new LabConsole(200);
@@ -93,6 +106,9 @@ public class LabActivity extends AppCompatActivity {
             showUnavailable();
             return;
         }
+        if (etLabRawInner != null && etLabRawInner.getText().toString().trim().isEmpty()) {
+            etLabRawInner.setText("{\"vin\":\"" + activeVin + "\"}");
+        }
         renderAll();
         refreshContext();
     }
@@ -113,11 +129,50 @@ public class LabActivity extends AppCompatActivity {
         svLabConsole = findViewById(R.id.svLabConsole);
         tvLabVerdict = findViewById(R.id.tvLabVerdict);
         switchLabReRead = findViewById(R.id.switchLabReRead);
+        switchLabSmartCharge = findViewById(R.id.switchLabSmartCharge);
+        switchLabScheduleEnabled = findViewById(R.id.switchLabScheduleEnabled);
+        spLabEndpoint = findViewById(R.id.spLabEndpoint);
+        etLabCustomEndpoint = findViewById(R.id.etLabCustomEndpoint);
+        etLabRawInner = findViewById(R.id.etLabRawInner);
+        etLabScheduleStart = findViewById(R.id.etLabScheduleStart);
+        etLabScheduleEnd = findViewById(R.id.etLabScheduleEnd);
+        etLabScheduleWay = findViewById(R.id.etLabScheduleWay);
+        etLabSocLimit = findViewById(R.id.etLabSocLimit);
+        etLabRequestSerial = findViewById(R.id.etLabRequestSerial);
+
+        if (spLabEndpoint != null) {
+            ArrayAdapter<String> paths = new ArrayAdapter<>(this,
+                    android.R.layout.simple_spinner_item, LabEndpoints.rawRunnerPaths());
+            paths.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+            spLabEndpoint.setAdapter(paths);
+        }
 
         View readLimit = findViewById(R.id.btnLabReadLimit);
         if (readLimit != null) readLimit.setOnClickListener(v -> readLimit());
         View setLimit = findViewById(R.id.btnLabSetLimit);
         if (setLimit != null) setLimit.setOnClickListener(v -> confirmWrite());
+
+        View homePage = findViewById(R.id.btnLabHomePage);
+        if (homePage != null) homePage.setOnClickListener(v ->
+                sendControl(LabEndpoints.HOME_PAGE, vinOnly()));
+        View toggle = findViewById(R.id.btnLabToggle);
+        if (toggle != null) toggle.setOnClickListener(v -> toggleSmartCharging());
+        View startCharge = findViewById(R.id.btnLabStartCharge);
+        if (startCharge != null) startCharge.setOnClickListener(v -> startChargingNow());
+        View saveSchedule = findViewById(R.id.btnLabSaveSchedule);
+        if (saveSchedule != null) saveSchedule.setOnClickListener(v -> saveSchedule());
+        View setSoc = findViewById(R.id.btnLabSetSoc);
+        if (setSoc != null) setSoc.setOnClickListener(v -> setSocLimit());
+        View stopCharge = findViewById(R.id.btnLabStopCharge);
+        if (stopCharge != null) stopCharge.setOnClickListener(v ->
+                sendControl(LabEndpoints.STOP_CHARGE, vinOnly()));
+        View continueCharge = findViewById(R.id.btnLabContinueCharge);
+        if (continueCharge != null) continueCharge.setOnClickListener(v ->
+                sendControl(LabEndpoints.CONTINUE_CHARGE, vinOnly()));
+        View pollResult = findViewById(R.id.btnLabPollLimitResult);
+        if (pollResult != null) pollResult.setOnClickListener(v -> pollLimitResult());
+        View sendRaw = findViewById(R.id.btnLabSendRaw);
+        if (sendRaw != null) sendRaw.setOnClickListener(v -> sendRaw());
         View copyAll = findViewById(R.id.btnLabCopyAll);
         if (copyAll != null) copyAll.setOnClickListener(v -> copyConsole());
         View share = findViewById(R.id.btnLabShare);
@@ -344,6 +399,123 @@ public class LabActivity extends AppCompatActivity {
 
     private static String displayLimit(String value) {
         return value == null || value.isEmpty() ? "—" : value;
+    }
+
+    private JSONObject vinOnly() {
+        JSONObject extra = new JSONObject();
+        try {
+            extra.put("vin", activeVin);
+        } catch (Exception ignored) {
+        }
+        return extra;
+    }
+
+    private void sendControl(String endpoint, JSONObject extra) {
+        if (client == null || repository == null || endpoint == null) return;
+        repository.getExecutor().execute(() -> {
+            CloudCallTrace trace = client.callControlEndpoint(endpoint, extra);
+            console.add(trace);
+            runOnUiThread(this::renderConsole);
+        });
+    }
+
+    private void toggleSmartCharging() {
+        boolean enabled = switchLabSmartCharge != null && switchLabSmartCharge.isChecked();
+        JSONObject extra = vinOnly();
+        try {
+            extra.put("smartChargeSwitch", enabled ? "1" : "0");
+        } catch (Exception ignored) {
+        }
+        sendControl(LabEndpoints.CHANGE_CHARGE_STATUS, extra);
+    }
+
+    private void startChargingNow() {
+        JSONObject extra = vinOnly();
+        try {
+            extra.put("timeZone", "");
+            extra.put("status", "1");
+        } catch (Exception ignored) {
+        }
+        sendControl(LabEndpoints.CHANGE_CHARGE_STATUS, extra);
+    }
+
+    private void saveSchedule() {
+        String start = etLabScheduleStart != null
+                ? etLabScheduleStart.getText().toString().trim() : "";
+        String end = etLabScheduleEnd != null
+                ? etLabScheduleEnd.getText().toString().trim() : "";
+        String way = etLabScheduleWay != null
+                ? etLabScheduleWay.getText().toString().trim() : "";
+        if (start.isEmpty() || end.isEmpty() || way.isEmpty()) {
+            Toast.makeText(this, R.string.lab_schedule_start, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        boolean enabled = switchLabScheduleEnabled == null || switchLabScheduleEnabled.isChecked();
+        JSONObject extra = vinOnly();
+        try {
+            extra.put("startChargeTime", start);
+            extra.put("endChargeTime", end);
+            extra.put("chargeWay", way);
+            extra.put("status", enabled ? "1" : "0");
+            extra.put("timeZone", "");
+        } catch (Exception ignored) {
+        }
+        sendControl(LabEndpoints.SAVE_SCHEDULE, extra);
+    }
+
+    private void setSocLimit() {
+        if (etLabSocLimit == null) return;
+        String text = etLabSocLimit.getText().toString().trim();
+        int soc;
+        try {
+            soc = Integer.parseInt(text);
+        } catch (NumberFormatException e) {
+            Toast.makeText(this, R.string.lab_soc_limit, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        JSONObject extra = vinOnly();
+        try {
+            extra.put("chargeSocLimit", soc);
+        } catch (Exception ignored) {
+        }
+        sendControl(LabEndpoints.CHARGE_SOC_LIMIT, extra);
+    }
+
+    private void pollLimitResult() {
+        String serial = etLabRequestSerial != null
+                ? etLabRequestSerial.getText().toString().trim() : "";
+        if (serial.isEmpty()) {
+            Toast.makeText(this, R.string.lab_request_serial, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        JSONObject extra = vinOnly();
+        try {
+            extra.put("requestSerial", serial);
+        } catch (Exception ignored) {
+        }
+        sendControl(LabEndpoints.LIMIT_CURRENT_RESULT, extra);
+    }
+
+    private void sendRaw() {
+        String custom = etLabCustomEndpoint != null
+                ? etLabCustomEndpoint.getText().toString().trim() : "";
+        String endpoint = custom;
+        if (endpoint.isEmpty() && spLabEndpoint != null
+                && spLabEndpoint.getSelectedItem() != null) {
+            endpoint = String.valueOf(spLabEndpoint.getSelectedItem());
+        }
+        if (endpoint.isEmpty()) return;
+
+        JSONObject extra;
+        try {
+            String text = etLabRawInner != null
+                    ? etLabRawInner.getText().toString().trim() : "";
+            extra = text.isEmpty() ? new JSONObject() : new JSONObject(text);
+        } catch (Exception e) {
+            Toast.makeText(this, R.string.lab_invalid_json, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        sendControl(endpoint, extra);
     }
 
     private void refreshContext() {
