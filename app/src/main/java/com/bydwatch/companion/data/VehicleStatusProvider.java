@@ -6,9 +6,11 @@ import android.database.Cursor;
 import android.database.MatrixCursor;
 import android.net.Uri;
 import android.os.Binder;
+import android.os.Bundle;
 import android.os.Process;
 
 import com.bydwatch.companion.BydWatchApp;
+import com.bydwatch.companion.model.VehicleStatus;
 
 /**
  * Serves the repository's cached vehicle status as a single read-only row.
@@ -36,6 +38,30 @@ public final class VehicleStatusProvider extends ContentProvider {
         MatrixCursor cursor = new MatrixCursor(VehicleStatusContract.COLUMNS);
         cursor.addRow(row);
         return cursor;
+    }
+
+    /**
+     * Explicit path for a consumer that wants to force a fetch: ContentResolver.call(uri,
+     * "refresh", null, null). Returns the status timestamp after scheduling the request.
+     */
+    @Override
+    public Bundle call(String method, String arg, Bundle extras) {
+        Bundle result = new Bundle();
+        if (!allowedCaller()) {
+            result.putBoolean("requested", false);
+            return result;
+        }
+        if ("refresh".equals(method)) {
+            BydWatchApp app = BydWatchApp.getInstance();
+            BydRepository repository = app != null ? app.getRepository() : null;
+            if (repository != null) {
+                repository.refreshNow(VehicleStatusContract.CONSUMER_REFRESH_MIN_GAP_MS);
+                result.putBoolean("requested", true);
+            }
+        }
+        VehicleStatus status = cachedStatus();
+        if (status != null) result.putLong("ts", VehicleStatusContract.toEpochMillis(status.ts));
+        return result;
     }
 
     /** True for this app itself, or for the one configured consumer package. */

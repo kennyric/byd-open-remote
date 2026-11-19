@@ -25,7 +25,8 @@ public final class VehicleRefreshRequestReceiver extends BroadcastReceiver {
             return;
         }
         BydRepository repository = app.getRepository();
-        if (repository != null) repository.refreshNow();
+        if (repository != null) repository.refreshNow(
+                VehicleStatusContract.CONSUMER_REFRESH_MIN_GAP_MS);
     }
 
     /**

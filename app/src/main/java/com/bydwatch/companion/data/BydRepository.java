@@ -181,6 +181,18 @@ public class BydRepository {
         return demoBaseSample;
     }
 
+    /** Demo build only: replace one car's sample after a simulated fetch. */
+    public void putDemoSample(String vin, VehicleStatus status) {
+        if (vin == null || status == null) return;
+        java.util.Map<String, VehicleStatus> fleet = demoFleet;
+        if (fleet == null) {
+            fleet = new java.util.HashMap<>();
+            demoFleet = fleet;
+        }
+        fleet.put(vin, status);
+        if (DEMO_BASE_VIN.equals(vin)) demoBaseSample = status;
+    }
+
     /**
      * Demo build only: telemetry for a specific garage VIN, so the Account garage card can show
      * per-car charge/range for cars that are not the active one. Returns null outside the demo.
@@ -215,8 +227,13 @@ public class BydRepository {
      * Debounced here rather than trusted from the caller: the account is the thing at risk.
      */
     public void refreshNow() {
+        refreshNow(VehicleStatusContract.MIN_REFRESH_GAP_MS);
+    }
+
+    /** Same as {@link #refreshNow()} with a caller-supplied debounce (Maps polling path). */
+    public void refreshNow(long minGapMs) {
         long now = System.currentTimeMillis();
-        if (now - lastRequestedRefreshAt < VehicleStatusContract.MIN_REFRESH_GAP_MS) {
+        if (now - lastRequestedRefreshAt < Math.max(15_000L, minGapMs)) {
             VehicleStatusContract.log("refresh request ignored (too soon)");
             return;
         }

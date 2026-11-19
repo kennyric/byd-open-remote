@@ -414,8 +414,8 @@ public final class VehicleStatus {
     }
 
     public static final class Builder {
-        private final int soc;
-        private final int rangeKm;
+        private int soc;
+        private int rangeKm;
         private final boolean locked;
         private boolean acOn;
         private Integer cabinTempC;
@@ -473,6 +473,11 @@ public final class VehicleStatus {
         public Builder acOn(boolean acOn) { this.acOn = acOn; return this; }
         public Builder cabinTempC(Integer cabinTempC) { this.cabinTempC = cabinTempC; return this; }
         public Builder modelName(String modelName) { this.modelName = modelName != null ? modelName : ""; return this; }
+        /** Battery percentage; used by the demo fleet to randomise values. */
+        public Builder soc(int soc) { this.soc = Math.max(0, Math.min(100, soc)); return this; }
+        /** Remaining range in km. */
+        public Builder rangeKm(int rangeKm) { this.rangeKm = Math.max(0, rangeKm); return this; }
+
         public Builder chargingState(int chargingState) { this.chargingState = chargingState; return this; }
         public Builder vehicleOn(boolean vehicleOn) { this.vehicleOn = vehicleOn; return this; }
         public Builder diagSummary(String diagSummary) { this.diagSummary = diagSummary; return this; }

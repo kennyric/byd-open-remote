@@ -121,8 +121,8 @@ android {
             // the Quick Settings tile resolve at runtime.
             applicationId 'com.bydopenremote.demo'
             // Distinct version so an in-place update is unambiguous ("1.1.0-demo2" in Settings).
-            versionCode 16
-            versionNameSuffix '-demo10'
+            versionCode 18
+            versionNameSuffix '-demo12'
             buildConfigField "boolean", "DEMO_BUILD", "true"
             manifestPlaceholders.putAll(demoManifestPlaceholders + [
                 DEMO_SETUP_TILE   : 'true',

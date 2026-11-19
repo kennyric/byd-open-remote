@@ -131,6 +131,7 @@ public class MainActivity extends AppCompatActivity {
     private boolean syncIntervalUnitHours = false;
     private VehicleStatus lastStatus;
     private final Handler climateDebounceHandler = new Handler(Looper.getMainLooper());
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private final Runnable pendingClimateSend = () -> {
         if (!isFinishing() && !isDestroyed()) {
             sendCurrentAcOnCommand();
@@ -226,6 +227,9 @@ public class MainActivity extends AppCompatActivity {
     private LinearLayout layoutVehicleDots;
     private TextView tvVehicleSwipeHint;
     private boolean vehicleCarouselHasCars;
+    private String switchingToName;
+    private String switchPreviousVin;
+    private String switchTargetVin;
     private int vehicleCardWidthPx;
     private String vehicleCarouselKey;
     private float vehicleDownX;
@@ -804,6 +808,35 @@ public class MainActivity extends AppCompatActivity {
         return com.bydwatch.companion.BuildConfig.DEMO_BUILD;
     }
 
+    /** Random battery and charge state for demo cars, keeping the other fields intact. */
+    private static VehicleStatus randomizeDemoStatus(VehicleStatus base, String vin, String model,
+                                                     java.util.Random random) {
+        if (base == null) return null;
+        int soc = 38 + random.nextInt(58);                    // 38..95 %
+        float kmPerPercent = 3.0f + random.nextFloat() * 0.8f;
+        int rangeKm = Math.max(40, Math.round(soc * kmPerPercent));
+        int roll = random.nextInt(3);
+        int chargingState = roll == 0
+                ? VehicleStatus.CHARGING_ACTIVE
+                : (roll == 1 ? VehicleStatus.CHARGING_CONNECTED : VehicleStatus.CHARGING_NONE);
+        Double powerKw = chargingState == VehicleStatus.CHARGING_ACTIVE
+                ? (random.nextBoolean() ? 7.2 : 11.0)
+                : null;
+        Integer remaining = chargingState == VehicleStatus.CHARGING_ACTIVE
+                ? 25 + random.nextInt(150)
+                : null;
+        return base.toBuilder()
+                .vin(vin)
+                .modelName(model)
+                .soc(soc)
+                .rangeKm(rangeKm)
+                .chargingState(chargingState)
+                .chargePowerKw(powerKw)
+                .chargeRemainingMinutes(remaining)
+                .ts(System.currentTimeMillis() / 1000L)
+                .build();
+    }
+
     private void applyDebugDemoState(Intent intent) {
         if (!com.bydwatch.companion.BuildConfig.DEBUG && !isDemoFlavor()) {
             return;
@@ -870,6 +903,10 @@ public class MainActivity extends AppCompatActivity {
                     .capabilities(true, true, true)
                     .location(-6.22460, 106.80850, System.currentTimeMillis() / 1000L)
                     .build();
+
+            java.util.Random demoRandom = new java.util.Random();
+            demo = randomizeDemoStatus(demo, "LGX0DEMO000000001", "BYD Atto 1", demoRandom);
+            second = randomizeDemoStatus(second, "LGX0DEMO000000002", "BYD Seal", demoRandom);
             // Demo default is a two-car garage so the "Switch Car" control is visible without
             // any adb extras. Pass --es demo_scenario single to show the one-car layout instead.
             if (!"single".equalsIgnoreCase(intent.getStringExtra("demo_scenario"))) {
@@ -2046,13 +2083,28 @@ public class MainActivity extends AppCompatActivity {
             setVehicleActionInFlight(true);
         }
         logMessage("Sending " + action + "...");
+        if (com.bydwatch.companion.BuildConfig.DEMO_BUILD && WatchProtocol.ACTION_SWITCH_CAR.equals(action)) {
+            startDemoCarSwitch(vinOverride);
+            return;
+        }
+        if (WatchProtocol.ACTION_SWITCH_CAR.equals(action)) {
+            prepareSwitchTo(vinOverride);
+        }
         if (com.bydwatch.companion.BuildConfig.DEMO_BUILD && !WatchProtocol.ACTION_SWITCH_CAR.equals(action)) {
             // Demo flavor: no cloud account exists. Keep the synthetic sample on every action so
             // a tapped button never replaces it with a sign-in error, and restamp it so the
             // "last updated" clock moves like it would after a real round trip.
             if (repository != null) {
                 VehicleStatus sample = repository.currentStatusOrDemo();
-                if (sample != null) {
+                if (sample != null && WatchProtocol.ACTION_STATUS.equals(action)) {
+                    // A refresh behaves like a real cloud fetch: new battery and charge state.
+                    VehicleStatus fresh = randomizeDemoStatus(sample, sample.vin,
+                            sample.modelName, new java.util.Random());
+                    if (fresh != null) {
+                        repository.putDemoSample(sample.vin, fresh);
+                        sample = fresh;
+                    }
+                } else if (sample != null) {
                     sample = sample.toBuilder().ts(System.currentTimeMillis() / 1000L).build();
                 }
                 repository.setCachedStatus(sample);
@@ -2071,6 +2123,91 @@ public class MainActivity extends AppCompatActivity {
             stopSwipeRefreshing();
             logMessage("Failed to dispatch " + action + ": " + e.getMessage());
             showToast("Failed to send " + formatActionLabel(action) + " command", false);
+        }
+    }
+
+    /** Demo: show the cached car immediately, then deliver "fresh" values after five seconds. */
+    private void startDemoCarSwitch(String vin) {
+        if (vin == null || vin.trim().isEmpty()) {
+            setVehicleActionInFlight(false);
+            return;
+        }
+        String target = vin.trim();
+        List<VehicleSummary> cars = garageVehicles(lastStatus);
+        VehicleSummary car = null;
+        if (cars != null) {
+            for (VehicleSummary v : cars) {
+                if (v != null && target.equals(v.vin)) { car = v; break; }
+            }
+        }
+        String name = car != null ? garageDisplayName(car) : target;
+        String model = car != null ? VehicleSummary.formatDisplayModel(car.watchShortLabel()) : name;
+
+        switchPreviousVin = configStore != null ? configStore.getVin() : "";
+        switchTargetVin = target;
+        switchingToName = name;
+        if (configStore != null) {
+            configStore.setVin(target);
+            if (car != null) configStore.setVehicleName(car.modelName);
+            configStore.setVehicleSwipeHintDismissed(true);
+        }
+        updateVehicleDotsVisibility();
+
+        VehicleStatus cached = repository != null ? repository.demoSampleForVin(target) : null;
+        if (cached == null && repository != null) cached = repository.currentStatusOrDemo();
+        if (cached != null && repository != null) {
+            repository.setCachedStatus(cached.toBuilder()
+                    .vin(target)
+                    .modelName(model)
+                    .ts(System.currentTimeMillis() / 1000L)
+                    .build());
+        } else {
+            updateHeaderVehicleInfo(lastStatus);
+        }
+        updateVehicleDotsVisibility();
+        stopSwipeRefreshing();
+
+        mainHandler.postDelayed(() -> {
+            VehicleStatus base = repository != null ? repository.demoSampleForVin(target) : null;
+            if (base == null && repository != null) base = repository.currentStatusOrDemo();
+            VehicleStatus fresh = randomizeDemoStatus(base, target, model, new java.util.Random());
+            // Clear the switching label before publishing so the fresh timestamp renders.
+            switchingToName = null;
+            switchPreviousVin = null;
+            switchTargetVin = null;
+            if (fresh != null && repository != null) {
+                repository.putDemoSample(target, fresh);
+                repository.setCachedStatus(fresh);
+            } else if (tvLastUpdated != null) {
+                tvLastUpdated.setText(R.string.state_now);
+            }
+            setVehicleActionInFlight(false);
+            logMessage("Demo build: switched to " + name + " (simulated 5s fetch)");
+            showToast("Switched to " + name, false);
+        }, 5000L);
+    }
+
+    /** Real app: show this car's cached telemetry while the switched fetch is in flight. */
+    private void prepareSwitchTo(String vin) {
+        if (vin == null || vin.trim().isEmpty()) return;
+        String target = vin.trim();
+        List<VehicleSummary> cars = garageVehicles(lastStatus);
+        VehicleSummary car = null;
+        if (cars != null) {
+            for (VehicleSummary v : cars) {
+                if (v != null && target.equals(v.vin)) { car = v; break; }
+            }
+        }
+        switchPreviousVin = configStore != null ? configStore.getVin() : "";
+        switchTargetVin = target;
+        switchingToName = car != null ? garageDisplayName(car) : target;
+
+        VehicleStatus cached = repository != null ? repository.getStatusForVin(target) : null;
+        if (cached != null) {
+            if (configStore != null) configStore.setVin(target);
+            repository.setCachedStatus(cached);
+        } else if (tvLastUpdated != null) {
+            tvLastUpdated.setText(getString(R.string.switching_to_fmt, switchingToName));
         }
     }
 
@@ -2181,6 +2318,11 @@ public class MainActivity extends AppCompatActivity {
                                 logMessage("[raw] " + diag);
                             }
                         }
+                        if (WatchProtocol.ACTION_SWITCH_CAR.equals(resp.action)) {
+                            switchingToName = null;
+                            switchPreviousVin = null;
+                            switchTargetVin = null;
+                        }
                         VehicleWidgetProvider.recordSuccessfulSync(this, resp.state);
                         updateTelemetryUi(resp.state, !WatchProtocol.ACTION_AC_ON.equals(resp.action));
                     }
@@ -2194,6 +2336,25 @@ public class MainActivity extends AppCompatActivity {
                     String logSuffix = (detail != null && !detail.isEmpty() && !detail.equals(resp.msg))
                             ? " (" + detail + ")"
                             : "";
+                    if (WatchProtocol.ACTION_SWITCH_CAR.equals(resp.action)) {
+                        if (switchPreviousVin != null && !switchPreviousVin.isEmpty() && configStore != null) {
+                            configStore.setVin(switchPreviousVin);
+                        }
+                        switchingToName = null;
+                        switchPreviousVin = null;
+                        switchTargetVin = null;
+                        renderVehicleCarousel(lastStatus);
+                        updateVehicleDotsVisibility();
+                        if (tvLastUpdated != null) {
+                            if (lastStatus != null && lastStatus.ts > 0) {
+                                long millis = lastStatus.ts > 1_000_000_000_000L
+                                        ? lastStatus.ts : lastStatus.ts * 1000L;
+                                tvLastUpdated.setText(timeFormat.format(new Date(millis)));
+                            } else {
+                                tvLastUpdated.setText(R.string.state_now);
+                            }
+                        }
+                    }
                     logMessage(resp.action + " failed [" + resp.err + "]: " + resp.msg + logSuffix);
                     int detailIdx = reason.indexOf(" (");
                     String toastReason = detailIdx > 0 ? reason.substring(0, detailIdx) : reason;
@@ -2301,7 +2462,9 @@ public class MainActivity extends AppCompatActivity {
             tvCabinTemp.setText("--°" + UnitPreferences.normalizeTempUnit(tempUnit));
         }
         tvAcState.setText(status.acOn ? R.string.btn_ac_on : R.string.btn_ac_off);
-        if (status.ts > 0) {
+        if (switchingToName != null) {
+            tvLastUpdated.setText(getString(R.string.switching_to_fmt, switchingToName));
+        } else if (status.ts > 0) {
             long millis = status.ts > 1_000_000_000_000L ? status.ts : status.ts * 1000L;
             tvLastUpdated.setText(timeFormat.format(new Date(millis)));
         } else {
@@ -3315,9 +3478,9 @@ public class MainActivity extends AppCompatActivity {
         final int target = index;
         final int step = multi ? vehicleCardWidthPx + Math.round(8 * density) : 0;
         scrollVehicle.scrollTo(target * step, 0);
-        scrollVehicle.post(() -> {
+        scrollVehicle.post(() -> scrollVehicle.post(() -> {
             if (scrollVehicle != null) scrollVehicle.scrollTo(target * step, 0);
-        });
+        }));
 
         if (layoutVehicleCarousel != null) {
             layoutVehicleCarousel.setVisibility(
@@ -3347,9 +3510,6 @@ public class MainActivity extends AppCompatActivity {
 
         switchButton.setVisibility(multi ? View.VISIBLE : View.GONE);
         switchButton.setOnClickListener(v -> showGarageSheet());
-        card.setOnClickListener(v -> {
-            if (multi) showGarageSheet();
-        });
 
         setupVehicleSwipeHandler(multi);
         return card;
@@ -3369,9 +3529,9 @@ public class MainActivity extends AppCompatActivity {
                 case MotionEvent.ACTION_DOWN:
                     vehicleDownX = event.getX();
                     vehicleDownY = event.getY();
-                    vehicleDragStartIndex = width > 0
-                            ? Math.max(0, Math.round(scrollVehicle.getScrollX() / (float) width))
-                            : 0;
+                    // Base the direction on the active car, not on scrollX: the carousel may
+                    // still be settling from a programmatic scroll.
+                    vehicleDragStartIndex = indexOfVehicle(garageVehicles(lastStatus), currentActiveVin());
                     if (vehicleVelocityTracker == null) {
                         vehicleVelocityTracker = android.view.VelocityTracker.obtain();
                     } else {
@@ -3398,9 +3558,9 @@ public class MainActivity extends AppCompatActivity {
                     final float fdx = dx;
                     final float fdy = dy;
                     final float fvx = vx;
-                    v.post(() -> finishVehicleSwipe(fdx, fdy, fvx));
-                    // Consume UP so the ScrollView cannot start a fling that overrides the snap.
-                    return true;
+                    // Let the ScrollView finish its own gesture, then snap after its fling starts
+                    // (smoothScrollTo replaces the fling animation).
+                    v.postDelayed(() -> finishVehicleSwipe(fdx, fdy, fvx), 60L);
                 default:
                     break;
             }
@@ -3426,8 +3586,12 @@ public class MainActivity extends AppCompatActivity {
         if (width <= 0) return;
 
         boolean horizontal = Math.abs(dx) > Math.abs(dy) * 1.2f;
-        float distanceThreshold = 28 * density;
-        float flingThreshold = 450 * density;
+        if (!horizontal && Math.abs(dx) < 10 * density && Math.abs(dy) < 10 * density) {
+            if (count > 1) showGarageSheet();
+            return;
+        }
+        float distanceThreshold = 14 * density;
+        float flingThreshold = 300 * density;
 
         int target = vehicleDragStartIndex;
         if (horizontal) {

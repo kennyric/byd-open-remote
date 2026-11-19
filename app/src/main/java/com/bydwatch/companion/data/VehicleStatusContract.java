@@ -60,6 +60,12 @@ public final class VehicleStatusContract {
     public static final String ACTION_REQUEST_REFRESH = appId() + ".action.REQUEST_REFRESH";
     /** Shortest gap between consumer-requested cloud fetches, so nobody can hammer the account. */
     public static final long MIN_REFRESH_GAP_MS = 2L * 60L * 1000L;
+    /**
+     * The Maps patch owns the cadence: its "fetch every N minutes" setting sends a refresh
+     * request at that interval. The app only coalesces accidental bursts; it does not impose
+     * its own schedule on top.
+     */
+    public static final long CONSUMER_REFRESH_MIN_GAP_MS = 20L * 1000L;
     public static final String MIME_TYPE = "vnd.android.cursor.item/vnd.bydopenremote.vehicle_status";
 
     public static final String COLUMN_SOC = "soc";

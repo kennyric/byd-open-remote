@@ -416,6 +416,7 @@
     <string name="vehicle_card_plugged">Plugged in</string>
     <string name="vehicle_card_idle">Idle</string>
     <string name="vehicle_card_no_data">No data yet</string>
+    <string name="switching_to_fmt">Switching to %1$s…</string>
     <string name="edit_vehicle_sub">Name and icon are stored for this car only.</string>
     <string name="edit_vehicle_title_fmt">Edit %1$s</string>
     <string name="garage_icon_desc">Car icon</string>

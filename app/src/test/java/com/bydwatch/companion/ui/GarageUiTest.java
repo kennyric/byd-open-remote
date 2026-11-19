@@ -96,6 +96,36 @@ public class GarageUiTest {
     }
 
     @Test
+    public void demoRandomizerVariesBatteryAndChargeState() throws Exception {
+        java.lang.reflect.Method method = MainActivity.class.getDeclaredMethod(
+                "randomizeDemoStatus", com.bydwatch.companion.model.VehicleStatus.class,
+                String.class, String.class, java.util.Random.class);
+        method.setAccessible(true);
+        com.bydwatch.companion.model.VehicleStatus base =
+                new com.bydwatch.companion.model.VehicleStatus.Builder(70, 240, true, true, 24, 20, 1L)
+                        .vin(VIN_ATTO).modelName("BYD Atto 1")
+                        .chargingState(com.bydwatch.companion.model.VehicleStatus.CHARGING_ACTIVE)
+                        .chargePowerKw(7.2)
+                        .build();
+        java.util.Set<Integer> states = new java.util.HashSet<>();
+        java.util.Set<Integer> socs = new java.util.HashSet<>();
+        java.util.Random random = new java.util.Random(42);
+        for (int i = 0; i < 60; i++) {
+            com.bydwatch.companion.model.VehicleStatus s =
+                    (com.bydwatch.companion.model.VehicleStatus) method.invoke(
+                            null, base, VIN_ATTO, "BYD Atto 1", random);
+            assertNotNull(s);
+            states.add(s.chargingState);
+            socs.add(s.soc);
+            if (s.chargingState != com.bydwatch.companion.model.VehicleStatus.CHARGING_ACTIVE) {
+                assertFalse("power must clear when not charging", s.hasChargePowerKw());
+            }
+        }
+        assertTrue("expected all three charge states, got " + states, states.size() == 3);
+        assertTrue("expected varied SOC, got " + socs, socs.size() > 10);
+    }
+
+    @Test
     public void carouselIsQuietAndFullWidthWithOneCar() {
         launch();
         android.widget.HorizontalScrollView scroller =
