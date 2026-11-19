@@ -76,7 +76,7 @@ public class LabActivity extends AppCompatActivity {
     private EditText etLabScheduleWay;
     private EditText etLabSocLimit;
     private EditText etLabRequestSerial;
-    private String lastKnownLimit;
+    private volatile String lastKnownLimit;
     private LabRetryPolicy retryPolicy = LabRetryPolicy.defaults();
     private final LabConsole console = new LabConsole(200);
 
@@ -339,14 +339,16 @@ public class LabActivity extends AppCompatActivity {
                 && !etLabEnergy.getText().toString().trim().isEmpty()
                 ? etLabEnergy.getText().toString().trim() : "0";
         final boolean reRead = switchLabReRead == null || switchLabReRead.isChecked();
-        final String knownBefore = lastKnownLimit;
         repository.getExecutor().execute(() -> {
-            String before = knownBefore;
-            if (reRead && before == null) {
+            String before = null;
+            if (reRead) {
                 BydCloudClient.AcCurrentLimitResult beforeRead =
                         client.readAcCurrentLimit(vin, energyType);
-                if (beforeRead.limit != null) before = beforeRead.limit.active;
                 console.add(beforeRead.trace);
+                if (beforeRead.limit != null) {
+                    before = beforeRead.limit.active;
+                    lastKnownLimit = before;
+                }
             }
 
             BydCloudClient.AcCurrentLimitResult write =
@@ -362,6 +364,7 @@ public class LabActivity extends AppCompatActivity {
                     console.add(read.trace);
                     if (read.limit != null) {
                         after = read.limit.active;
+                        lastKnownLimit = after;
                         reReadCompleted = true;
                         if (ChargeLimitValues.same(after, value)) break;
                     }

@@ -39,6 +39,7 @@ public class LabWriteTest {
     static class FakeClient extends BydCloudClient {
         String value = "MAX";
         String requested;
+        boolean applyWrites = true;
 
         FakeClient() { super(new BydCloudConfig()); }
 
@@ -63,7 +64,7 @@ public class LabWriteTest {
         @Override
         public AcCurrentLimitResult writeAcCurrentLimit(String vin, String value) {
             requested = value;
-            this.value = value;
+            if (applyWrites) this.value = value;
             return result("/control/smartCharge/limitCurrentControl", new JSONObject());
         }
     }
@@ -85,19 +86,52 @@ public class LabWriteTest {
         activity.findViewById(com.bydwatch.companion.R.id.btnLabReadLimit).performClick();
         drain(repository);
 
-        android.widget.EditText input = activity.findViewById(com.bydwatch.companion.R.id.acLabLimitValue);
-        input.setText("10A");
+        clickSet(activity, repository, "10A");
+
+        assertEquals("10A", client.requested);
+        String verdict = ((android.widget.TextView) activity.findViewById(
+                com.bydwatch.companion.R.id.tvLabVerdict)).getText().toString();
+        assertTrue(verdict.contains("APPLIED"));
+    }
+
+    @Test
+    public void secondWriteUsesFreshBeforeAndReportsUnchangedWhenCarIgnoresIt() throws Exception {
+        BydRepositoryTest.InMemoryConfigStore store = new BydRepositoryTest.InMemoryConfigStore();
+        store.setVin("VIN_TEST_0001");
+        FakeClient client = new FakeClient();
+        CloudBydGateway gateway = new CloudBydGateway(client, new BydCloudConfig(), store);
+        BydRepository repository = new BydRepository(gateway, store);
+        BydWatchApp.setTestDependencies(store, gateway, repository);
+        store.setVehicles(Arrays.asList(VehicleSummary.fromBydVehicleJson(
+                new JSONObject().put("vin", "VIN_TEST_0001").put("energyType", "0"))));
+
+        LabActivity activity = Robolectric.buildActivity(LabActivity.class).setup().get();
+        activity.setRetryPolicyForTesting(new LabRetryPolicy(1, 0L));
+
+        activity.findViewById(com.bydwatch.companion.R.id.btnLabReadLimit).performClick();
+        drain(repository);
+
+        clickSet(activity, repository, "10A");
+
+        client.applyWrites = false;
+        clickSet(activity, repository, "16A");
+
+        String verdict = ((android.widget.TextView) activity.findViewById(
+                com.bydwatch.companion.R.id.tvLabVerdict)).getText().toString();
+        assertTrue("expected UNCHANGED, got: " + verdict, verdict.contains("UNCHANGED"));
+        assertTrue("expected 10A -> 10A, got: " + verdict, verdict.contains("10A → 10A"));
+    }
+
+    private static void clickSet(LabActivity activity, BydRepository repository, String value) {
+        android.widget.EditText input = activity.findViewById(
+                com.bydwatch.companion.R.id.acLabLimitValue);
+        input.setText(value);
         activity.findViewById(com.bydwatch.companion.R.id.btnLabSetLimit).performClick();
 
         androidx.appcompat.app.AlertDialog dialog =
                 (androidx.appcompat.app.AlertDialog) ShadowAlertDialog.getLatestDialog();
         dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE).performClick();
         drain(repository);
-
-        assertEquals("10A", client.requested);
-        String verdict = ((android.widget.TextView) activity.findViewById(
-                com.bydwatch.companion.R.id.tvLabVerdict)).getText().toString();
-        assertTrue(verdict.contains("APPLIED"));
     }
 
     private static void drain(BydRepository repository) {
