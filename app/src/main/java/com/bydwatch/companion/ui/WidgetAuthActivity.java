@@ -86,11 +86,12 @@ public class WidgetAuthActivity extends AppCompatActivity {
 
     static boolean isSyncWidgetAction(@Nullable ConfigStore cfg, @Nullable String action) {
         if (action == null) return false;
-        if (LocationWidgetProvider.ACTION_LOCATION_REFRESH.equals(action)
-                || VehicleWidgetProvider.ACTION_WIDGET_REFRESH.equals(action)) {
+        String base = VehicleWidgetProvider.baseAction(action);
+        if (LocationWidgetProvider.ACTION_LOCATION_REFRESH.equals(base)
+                || VehicleWidgetProvider.ACTION_WIDGET_REFRESH.equals(base)) {
             return true;
         }
-        int slotIdx = VehicleWidgetProvider.parseSlotIndex(action);
+        int slotIdx = VehicleWidgetProvider.parseSlotIndex(base);
         if (slotIdx >= 0) {
             List<WidgetSlotConfig> slots = cfg != null ? cfg.getWidgetSlots() : WidgetSlotConfig.defaults();
             WidgetSlotConfig slot = slotIdx < slots.size()

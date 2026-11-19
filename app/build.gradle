@@ -19,8 +19,8 @@ android {
         applicationId 'com.bydopenremote.app'
         minSdk 26
         targetSdk 34
-        versionCode 7
-        versionName '1.1.0'
+        versionCode 8
+        versionName '1.2.0'
 
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
 
@@ -47,9 +47,43 @@ android {
         }
     }
 
+    // Indicator colors for the demo splash badge now live in src/demo/res/values/colors.xml,
+    // because aapt does not substitute manifest placeholders inside <color> values.
+    def demoManifestPlaceholders = [:]
+
+    flavorDimensions += 'edition'
+    productFlavors {
+        standard {
+            dimension 'edition'
+            buildConfigField "boolean", "DEMO_BUILD", "false"
+            manifestPlaceholders.putAll([DEMO_BUILD: 'false',
+                                         DEMO_SETUP_TILE: 'false',
+                                         DEMO_SPLASH_LABEL: '@string/app_name'])
+        }
+        demo {
+            dimension 'edition'
+            // Completely separate app: own package, own data, no shared authorities,
+            // so it can be installed alongside the release build. The splash label rides on
+            // the launcher activity so it can never replace the app_name key that widgets and
+            // the Quick Settings tile resolve at runtime.
+            applicationId 'com.bydopenremote.demo'
+            // Distinct version so an in-place update is unambiguous ("1.1.0-demo2" in Settings).
+            versionCode 13
+            versionNameSuffix '-demo7'
+            buildConfigField "boolean", "DEMO_BUILD", "true"
+            manifestPlaceholders.putAll(demoManifestPlaceholders + [
+                DEMO_SETUP_TILE   : 'true',
+                DEMO_BUILD        : 'true',
+                DEMO_SPLASH_LABEL : '@string/demo_launcher_label'
+            ])
+        }
+    }
+
     applicationVariants.all { variant ->
         variant.outputs.all {
-            outputFileName = "BYD-Open-Remote.apk"
+            outputFileName = variant.name.toLowerCase().contains("demo")
+                    ? "BYD-Open-Remote-Demo.apk"
+                    : "BYD-Open-Remote.apk"
         }
     }
 

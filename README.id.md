@@ -16,7 +16,7 @@ Aplikasi remote control Android & widget layar utama Material You yang gratis, o
 > **Rekomendasi Keamanan — Selalu Gunakan Akun Kedua BYD:** Jangan masuk menggunakan akun pemilik utama Anda. Otorisasi alamat email kedua dari akun utama Anda di aplikasi resmi BYD dengan izin **Kontrol Jarak Jauh**, atur kata sandi login & PIN Operasi 6 digit pada akun kedua tersebut, uji satu perintah remote di aplikasi resmi, lalu masuk ke **BYD Open Remote**.
 
 > [!NOTE]
-> **Catatan Pendamping Jam Tangan:** Proyek ini awalnya dimulai bersama bridge Huawei Watch GT 4, sehingga namespace paket lama (`com.bydwatch.companion`) masih ada di sebagian kode. **Integrasi Huawei Watch saat ini belum berfungsi** — gunakan **aplikasi ponsel Android, Quick Settings tile, dan widget layar utama** yang berjalan mandiri tanpa jam tangan.
+> **Catatan Pendamping Jam Tangan:** Repositori ini awalnya dibuat bersama bridge Huawei Watch GT 4 (`watch-gt4/`), sehingga beberapa modul jam tangan dan namespace paket lama (`com.bydwatch.companion`) masih ada di kode. **Integrasi Huawei Watch saat ini belum berfungsi** — gunakan **aplikasi ponsel Android, Quick Settings tile, dan widget layar utama** yang berjalan mandiri tanpa jam tangan.
 
 > **Penafian:** Proyek komunitas open-source independen oleh **Kenny Ricardo**, tidak berafiliasi, didukung, atau terhubung dengan BYD Co. Ltd. **Perangkat lunak gratis — *Tidak diperuntukkan untuk jual beli*.**
 
@@ -35,7 +35,7 @@ Aplikasi remote control Android & widget layar utama Material You yang gratis, o
   <tr>
     <td align="center"><img src="docs/screenshots/controls.png" alt="Kontrol Kendaraan" width="240"/></td>
     <td align="center"><img src="docs/screenshots/climate_dialog.png" alt="Popup Pengaturan AC" width="240"/></td>
-    <td align="center"><img src="docs/screenshots/widget_4x3.png" alt="Widget Layar Utama 4×3" width="240"/></td>
+    <td align="center"><img src="docs/screenshots/widget_4x3.png" alt="Widget Layar Utama 4x3" width="240"/></td>
   </tr>
   <tr>
     <td align="center"><b>Pemilih Gaya Widget 4×3</b></td>
@@ -180,9 +180,10 @@ Hasil APK (`BYD-Open-Remote-v<versi>.apk`) berada di `app/build/outputs/apk/debu
 
 ```text
 .
-├── app/               # Aplikasi Android (com.bydopenremote.app), widget Material You, klien cloud BYD & tes Robolectric
-├── docs/screenshots/  # Tangkapan layar emulator dokumentasi
-└── gradle/            # Gradle wrapper & skrip build
+├── app/              # Aplikasi Android (com.bydopenremote.app), widget Material You, klien cloud BYD & tes Robolectric
+├── docs/screenshots/    # Tangkapan layar emulator dokumentasi
+├── watch-gt4/           # Proyek lama HarmonyOS / Huawei Watch GT 4 (belum berfungsi)
+└── watch-gt4-store/     # Varian paket AppGallery jam tangan lama
 ```
 
 ---

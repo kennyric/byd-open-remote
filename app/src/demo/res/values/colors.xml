@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Demo build: demo-only colors live here so the standard release is unaffected. -->
+    <color name="demo_badge_bg">#1B3A2F</color>
+    <color name="demo_badge_text">#7CE0B0</color>
+</resources>

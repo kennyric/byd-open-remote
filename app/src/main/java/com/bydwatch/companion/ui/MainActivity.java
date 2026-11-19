@@ -70,6 +70,7 @@ import com.bydwatch.companion.update.AppUpdateChecker;
 import com.bydwatch.companion.update.AppUpdateInfo;
 import com.bydwatch.companion.wear.WearBridgeService;
 import com.bydwatch.companion.wear.WearEngineBridge;
+import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.button.MaterialButtonToggleGroup;
 import com.google.android.material.card.MaterialCardView;
@@ -97,6 +98,7 @@ public class MainActivity extends AppCompatActivity {
 
     private static final AtomicLong CMD_SEQ = new AtomicLong();
     private final SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm:ss", Locale.getDefault());
+    private final SimpleDateFormat garageTimeFormat = new SimpleDateFormat("HH:mm", Locale.getDefault());
 
     private ConfigStore configStore;
     private BydGateway gateway;
@@ -212,8 +214,15 @@ public class MainActivity extends AppCompatActivity {
     private Button btnCloseWindows;
     private Button btnBatHeat;
     private Button btnSeatHeat;
-    private View layoutMultiCarBar;
-    private Button btnSwitchActiveCar;
+    private View layoutHeaderVehicle;
+    private TextView tvHeaderChevron;
+    private View cardGarage;
+    private TextView tvGarageCount;
+    private TextView tvGarageMeta;
+    private TextView tvGarageEmptyHint;
+    private LinearLayout layoutGarageRows;
+    private Button btnRefreshGarage;
+    private boolean garageHasContent;
     private View cardLocation;
     private TextView tvCarLocation;
     private TextView tvCarLocationHint;
@@ -237,8 +246,6 @@ public class MainActivity extends AppCompatActivity {
     private EditText etSyncInterval;
     private Button btnSyncIntervalUnit;
     private Button btnApplySyncInterval;
-    private EditText etCustomModelName;
-    private Button btnSaveCustomModel;
     private MaterialButtonToggleGroup toggleWidgetStyle;
     private TextView tvWidgetStyleDesc;
     private WidgetComboUiHelper widgetComboUiHelper;
@@ -315,7 +322,8 @@ public class MainActivity extends AppCompatActivity {
             app = BydWatchApp.getInstance();
         }
         configStore = app.getConfigStore();
-        if (com.bydwatch.companion.BuildConfig.DEBUG && getIntent() != null && getIntent().hasExtra("demo_lang")) {
+        if ((com.bydwatch.companion.BuildConfig.DEBUG || com.bydwatch.companion.BuildConfig.DEMO_BUILD)
+                && getIntent() != null && getIntent().hasExtra("demo_lang")) {
             configStore.setAppLanguage(getIntent().getStringExtra("demo_lang"));
         }
         AppLocaleHelper.applyLanguage(configStore.getAppLanguage());
@@ -325,6 +333,7 @@ public class MainActivity extends AppCompatActivity {
 
         bindViews();
         initValues();
+        migrateLegacyVehicleName();
         setupListeners();
         setupBackNavigation();
 
@@ -484,8 +493,14 @@ public class MainActivity extends AppCompatActivity {
         btnCloseWindows = findViewById(R.id.btnCloseWindows);
         btnBatHeat = findViewById(R.id.btnBatHeat);
         btnSeatHeat = findViewById(R.id.btnSeatHeat);
-        layoutMultiCarBar = findViewById(R.id.layoutMultiCarBar);
-        btnSwitchActiveCar = findViewById(R.id.btnSwitchActiveCar);
+        layoutHeaderVehicle = findViewById(R.id.layoutHeaderVehicle);
+        tvHeaderChevron = findViewById(R.id.tvHeaderChevron);
+        cardGarage = findViewById(R.id.cardGarage);
+        tvGarageCount = findViewById(R.id.tvGarageCount);
+        tvGarageMeta = findViewById(R.id.tvGarageMeta);
+        tvGarageEmptyHint = findViewById(R.id.tvGarageEmptyHint);
+        layoutGarageRows = findViewById(R.id.layoutGarageRows);
+        btnRefreshGarage = findViewById(R.id.btnRefreshGarage);
         cardLocation = findViewById(R.id.cardLocation);
         tvCarLocation = findViewById(R.id.tvCarLocation);
         tvCarLocationHint = findViewById(R.id.tvCarLocationHint);
@@ -509,8 +524,6 @@ public class MainActivity extends AppCompatActivity {
         etSyncInterval = findViewById(R.id.etSyncInterval);
         btnSyncIntervalUnit = findViewById(R.id.btnSyncIntervalUnit);
         btnApplySyncInterval = findViewById(R.id.btnApplySyncInterval);
-        etCustomModelName = findViewById(R.id.etCustomModelName);
-        btnSaveCustomModel = findViewById(R.id.btnSaveCustomModel);
         toggleWidgetStyle = findViewById(R.id.toggleWidgetStyle);
         tvWidgetStyleDesc = findViewById(R.id.tvWidgetStyleDesc);
         widgetComboUiHelper = new WidgetComboUiHelper(
@@ -705,9 +718,6 @@ public class MainActivity extends AppCompatActivity {
                 etSyncInterval.setText(String.valueOf(syncIntervalUnitHours ? (intervalMin / 60) : intervalMin));
             }
             updateSyncIntervalUi(intervalMin);
-            if (etCustomModelName != null) {
-                etCustomModelName.setText(configStore.getCustomVehicleName());
-            }
             updateWidgetStyleUi(configStore.getWidgetStyle());
             updateAppLanguageUi(configStore.getAppLanguage());
         }
@@ -715,7 +725,6 @@ public class MainActivity extends AppCompatActivity {
         updateUnitButtons();
         updateWatchTargetLabel();
         updateHeaderVehicleInfo(null);
-        updateMultiCarBar(null);
 
         if (repository != null && repository.getCachedStatus() != null) {
             updateTelemetryUi(repository.getCachedStatus());
@@ -740,14 +749,21 @@ public class MainActivity extends AppCompatActivity {
                 : (configured ? R.id.nav_controls : R.id.nav_account);
         showPage(initialPage);
 
-        if (com.bydwatch.companion.BuildConfig.DEBUG && getIntent() != null
-                && getIntent().getBooleanExtra("demo_mode", false)) {
-            applyDebugDemoState(getIntent());
+        if (isDemoFlavor() || (com.bydwatch.companion.BuildConfig.DEBUG && getIntent() != null
+                && getIntent().getBooleanExtra("demo_mode", false))) {
+            applyDebugDemoState(getIntent() != null ? getIntent() : new Intent());
         }
     }
 
+    private static boolean isDemoFlavor() {
+        return com.bydwatch.companion.BuildConfig.DEMO_BUILD;
+    }
+
     private void applyDebugDemoState(Intent intent) {
-        if (!com.bydwatch.companion.BuildConfig.DEBUG || configStore == null) {
+        if (!com.bydwatch.companion.BuildConfig.DEBUG && !isDemoFlavor()) {
+            return;
+        }
+        if (configStore == null) {
             return;
         }
         configStore.setRegion("id");
@@ -756,7 +772,8 @@ public class MainActivity extends AppCompatActivity {
         configStore.setPin("000000");
         configStore.setVin("LGX0DEMO000000001");
         configStore.setVehicleName("BYD Atto 1");
-        configStore.setCustomVehicleName("BYD Atto 1");
+        // No custom name override: the header must follow the car the switcher selects.
+        configStore.setCustomVehicleName("");
         configStore.setManualAcMode(true);
         configStore.setDefaultTempGear(2);
         configStore.setDefaultFanLevel(4);
@@ -792,6 +809,52 @@ public class MainActivity extends AppCompatActivity {
                 .location(demoLat, demoLng, System.currentTimeMillis() / 1000L)
                 .build();
 
+        if (isDemoFlavor()) {
+            final String demoVin = demo.vin;
+            String primaryName = demo.modelName;
+            final String secondVin = "LGX0DEMO000000002";
+            // The second car gets its own plausible numbers, so a screenshot of the garage does
+            // not show two different cars with identical telemetry.
+            VehicleStatus second = new VehicleStatus.Builder(64, 352, true, false, 24, 22, System.currentTimeMillis() / 1000L)
+                    .vin(secondVin)
+                    .modelName("BYD Seal")
+                    .chargingState(VehicleStatus.CHARGING_NONE)
+                    .totalMileageKm(8310)
+                    .outsideTempC(31)
+                    .tirePressuresKpa(250, 250, 248, 248)
+                    .capabilities(true, true, true)
+                    .location(-6.22460, 106.80850, System.currentTimeMillis() / 1000L)
+                    .build();
+            // Demo default is a two-car garage so the "Switch Car" control is visible without
+            // any adb extras. Pass --es demo_scenario single to show the one-car layout instead.
+            if (!"single".equalsIgnoreCase(intent.getStringExtra("demo_scenario"))) {
+                List<VehicleSummary> garage = new ArrayList<>();
+                garage.add(new VehicleSummary(demoVin, primaryName, "", "EV"));
+                garage.add(new VehicleSummary(secondVin, "BYD Seal", "", "EV"));
+                configStore.setVehicles(Collections.unmodifiableList(garage));
+                demo = demo.toBuilder().vehicles(garage).build();
+                second = second.toBuilder().vehicles(garage).build();
+                java.util.Map<String, VehicleStatus> fleet = new java.util.HashMap<>();
+                fleet.put(demoVin, demo);
+                fleet.put(secondVin, second);
+                repository.setDemoFleet(fleet);
+            } else {
+                List<VehicleSummary> solo = new ArrayList<>();
+                solo.add(new VehicleSummary(demoVin, primaryName, "", "EV"));
+                configStore.setVehicles(Collections.unmodifiableList(solo));
+                demo = demo.toBuilder().vehicles(solo).build();
+                repository.setDemoFleet(null);
+            }
+            final VehicleStatus seeded = demo;
+            // Demo builds have no account, so keep the sample car from being cleared or replaced.
+            repository.setDemoStatusProvider(() -> {
+                VehicleStatus current = repository.getCachedStatus();
+                return current != null && current.vin != null && !current.vin.isEmpty()
+                        ? current
+                        : seeded;
+            });
+        }
+
         if (repository != null) {
             repository.setCachedStatus(demo);
         }
@@ -807,7 +870,6 @@ public class MainActivity extends AppCompatActivity {
         }
         vinVerifiedByFetch = true;
         updateSaveCredentialsButtonState();
-        if (etCustomModelName != null) etCustomModelName.setText("BYD Atto 1");
         updateAccountUiState();
         updateWidgetStyleUi(configStore.getWidgetStyle());
         updateAppLanguageUi(configStore.getAppLanguage());
@@ -870,6 +932,7 @@ public class MainActivity extends AppCompatActivity {
             tilPin.setHelperText(getString(
                     hasPin ? R.string.helper_pin_saved : R.string.helper_pin_required));
         }
+        renderGarageCard();
         if (tvAccountSummary != null) {
             String savedUser = configStore != null ? configStore.getUsername() : null;
             String savedVin = configStore != null ? configStore.getVin() : null;
@@ -981,13 +1044,17 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    private void showPage(int navItemId) {
+    void showPage(int navItemId) {
         currentPageId = navItemId;
         if (cardControls != null) {
             cardControls.setVisibility(navItemId == R.id.nav_controls ? View.VISIBLE : View.GONE);
         }
         if (cardAccount != null) {
             cardAccount.setVisibility(navItemId == R.id.nav_account ? View.VISIBLE : View.GONE);
+        }
+        if (cardGarage != null) {
+            cardGarage.setVisibility(navItemId == R.id.nav_account && garageHasContent
+                    ? View.VISIBLE : View.GONE);
         }
         if (cardPreferences != null) {
             cardPreferences.setVisibility(navItemId == R.id.nav_preferences ? View.VISIBLE : View.GONE);
@@ -1118,8 +1185,8 @@ public class MainActivity extends AppCompatActivity {
         if (btnSeatHeat != null) {
             btnSeatHeat.setOnClickListener(v -> dispatchSingleHomeAction(WidgetSlotConfig.SINGLE_SEAT_HEAT));
         }
-        if (btnSwitchActiveCar != null) {
-            btnSwitchActiveCar.setOnClickListener(v -> showMultiCarPicker());
+        if (btnRefreshGarage != null) {
+            btnRefreshGarage.setOnClickListener(v -> executeWatchAction(WatchProtocol.ACTION_STATUS, -1));
         }
         if (cardLocation != null) {
             cardLocation.setOnClickListener(v -> onLocationCardClicked());
@@ -1144,9 +1211,6 @@ public class MainActivity extends AppCompatActivity {
         }
         if (btnApplySyncInterval != null) {
             btnApplySyncInterval.setOnClickListener(v -> saveWidgetSyncInterval());
-        }
-        if (btnSaveCustomModel != null) {
-            btnSaveCustomModel.setOnClickListener(v -> saveCustomModelName());
         }
         if (toggleAppLanguage != null) {
             toggleAppLanguage.addOnButtonCheckedListener((group, checkedId, isChecked) -> {
@@ -1646,7 +1710,6 @@ public class MainActivity extends AppCompatActivity {
                     updateSaveCredentialsButtonState();
                     updateAccountUiState();
                     updateHeaderVehicleInfo(null);
-                    updateMultiCarBar(null);
                     int count = vehicles != null ? vehicles.size() : (activeVin.isEmpty() ? 0 : 1);
                     logMessage("VIN fetched: " + maskVin(activeVin)
                             + (count > 1 ? " (" + count + " vehicles)" : "")
@@ -1936,6 +1999,22 @@ public class MainActivity extends AppCompatActivity {
             setVehicleActionInFlight(true);
         }
         logMessage("Sending " + action + "...");
+        if (com.bydwatch.companion.BuildConfig.DEMO_BUILD && !WatchProtocol.ACTION_SWITCH_CAR.equals(action)) {
+            // Demo flavor: no cloud account exists. Keep the synthetic sample on every action so
+            // a tapped button never replaces it with a sign-in error, and restamp it so the
+            // "last updated" clock moves like it would after a real round trip.
+            if (repository != null) {
+                VehicleStatus sample = repository.currentStatusOrDemo();
+                if (sample != null) {
+                    sample = sample.toBuilder().ts(System.currentTimeMillis() / 1000L).build();
+                }
+                repository.setCachedStatus(sample);
+            }
+            setVehicleActionInFlight(false);
+            stopSwipeRefreshing();
+            logMessage("Demo build: " + action + " simulated, no command sent");
+            return;
+        }
         try {
             repository.handleWatchJson(json.toString(), responseJson -> {
                 runOnUiThread(() -> handleWatchResponse(responseJson));
@@ -1970,7 +2049,7 @@ public class MainActivity extends AppCompatActivity {
                     btnHorn,
                     btnVentWindows,
                     btnCloseWindows,
-                    btnSwitchActiveCar,
+                    layoutHeaderVehicle,
                     btnRefreshLocation,
                     cardLocation
             };
@@ -2269,7 +2348,6 @@ public class MainActivity extends AppCompatActivity {
 
         updateClimateControlsUi();
         updateHeaderVehicleInfo(status);
-        updateMultiCarBar(status);
         updateLocationCard(status);
         updateAccountUiState();
         VehicleWidgetProvider.refreshWidgets(this);
@@ -2867,29 +2945,65 @@ public class MainActivity extends AppCompatActivity {
         );
     }
 
-    private void saveCustomModelName() {
-        if (configStore == null || etCustomModelName == null) return;
-        String custom = etCustomModelName.getText() != null
-                ? etCustomModelName.getText().toString().trim().replaceAll("\\s+", " ")
-                : "";
-        configStore.setCustomVehicleName(custom);
-        etCustomModelName.setText(custom);
-        etCustomModelName.clearFocus();
+    /** Rename dialog for one garage car; the override is stored per VIN. */
+    private void showRenameVehicleDialog(VehicleSummary car) {
+        if (configStore == null || car == null || car.vin == null) return;
+        View content = LayoutInflater.from(this).inflate(R.layout.dialog_rename_vehicle, null);
+        EditText input = content.findViewById(R.id.etGarageRename);
+        String saved = configStore.getVehicleCustomName(car.vin);
+        input.setText(saved);
+        input.setHint(VehicleSummary.formatDisplayModel(car.watchShortLabel()));
+        String titleName = saved != null && !saved.trim().isEmpty() ? saved.trim() : car.watchShortLabel();
+        input.setSelection(input.getText() != null ? input.getText().length() : 0);
+
+        new AlertDialog.Builder(this)
+                .setTitle(getString(R.string.garage_rename_title_fmt, titleName))
+                .setView(content)
+                .setPositiveButton(R.string.btn_save, (d, w) -> {
+                    String name = input.getText() != null
+                            ? input.getText().toString().trim().replaceAll("\s+", " ")
+                            : "";
+                    applyVehicleRename(car.vin, name);
+                })
+                .setNeutralButton(R.string.garage_rename_reset, (d, w) -> applyVehicleRename(car.vin, ""))
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
+    }
+
+    private void applyVehicleRename(String vin, String name) {
+        if (configStore == null || vin == null) return;
+        configStore.setVehicleCustomName(vin, name);
         updateHeaderVehicleInfo(lastStatus);
+        renderGarageCard();
         if (widgetComboUiHelper != null) {
             widgetComboUiHelper.refreshUi();
         }
         VehicleWidgetProvider.refreshWidgets(this);
         LocationWidgetProvider.refreshWidgets(this);
-        String msg = custom.isEmpty()
-                ? "Car model reset to auto-detect"
-                : ("Car model set to " + custom);
+        String msg = name.isEmpty()
+                ? getString(R.string.garage_rename_cleared)
+                : getString(R.string.garage_rename_done_fmt, name);
         logMessage(msg);
         showToast(msg, false);
     }
 
+    /** Old installs stored one global override; adopt it for the active car, then clear it. */
+    private void migrateLegacyVehicleName() {
+        if (configStore == null) return;
+        String legacy = configStore.getCustomVehicleName();
+        if (legacy == null || legacy.trim().isEmpty()) return;
+        String vin = configStore.getVin();
+        if (vin != null && !vin.trim().isEmpty() && configStore.getVehicleCustomName(vin).trim().isEmpty()) {
+            configStore.setVehicleCustomName(vin, legacy.trim());
+        }
+        configStore.setCustomVehicleName("");
+    }
+
     private void updateHeaderVehicleInfo(VehicleStatus status) {
-        String customModel = configStore != null ? configStore.getCustomVehicleName() : "";
+        String activeVin = status != null && status.vin != null && !status.vin.trim().isEmpty()
+                ? status.vin.trim()
+                : (configStore != null && configStore.getVin() != null ? configStore.getVin().trim() : "");
+        String customModel = configStore != null ? configStore.resolveVehicleCustomName(activeVin) : "";
         String displayModel = (customModel != null && !customModel.trim().isEmpty())
                 ? customModel.trim()
                 : VehicleSummary.formatDisplayModel(resolveDisplayModelName(status));
@@ -2903,6 +3017,7 @@ public class MainActivity extends AppCompatActivity {
         if (tvControlsTitle != null) {
             tvControlsTitle.setText(getString(R.string.controls_title_format, displayModel));
         }
+        updateHeaderSwitcher(status);
     }
 
     private String resolveDisplayModelName(VehicleStatus status) {
@@ -2928,43 +3043,193 @@ public class MainActivity extends AppCompatActivity {
         return VehicleSummary.DEFAULT_MODEL_NAME;
     }
 
-    private void updateMultiCarBar(VehicleStatus status) {
-        if (layoutMultiCarBar == null || btnSwitchActiveCar == null) return;
-        List<VehicleSummary> list = status != null && status.vehicles != null && !status.vehicles.isEmpty()
-                ? status.vehicles
-                : (configStore != null ? configStore.getVehicles() : null);
-        if (list != null && list.size() > 1) {
-            layoutMultiCarBar.setVisibility(View.VISIBLE);
-            String activeVin = status != null && status.vin != null && !status.vin.isEmpty()
-                    ? status.vin
-                    : (configStore != null ? configStore.getVin() : "");
-            btnSwitchActiveCar.setText(getString(R.string.btn_switch_car, list.size(), maskVin(activeVin)));
-        } else {
-            layoutMultiCarBar.setVisibility(View.GONE);
+    /** The garage as the account knows it: live status first, else the persisted vehicle list. */
+    private List<VehicleSummary> garageVehicles(VehicleStatus status) {
+        if (status != null && status.vehicles != null && !status.vehicles.isEmpty()) {
+            return status.vehicles;
+        }
+        return configStore != null ? configStore.getVehicles() : null;
+    }
+
+    /** Chevron + tap target on the header car name, only when there is another car to switch to. */
+    private void updateHeaderSwitcher(VehicleStatus status) {
+        List<VehicleSummary> cars = garageVehicles(status);
+        boolean multi = cars != null && cars.size() > 1;
+        if (tvHeaderChevron != null) {
+            tvHeaderChevron.setVisibility(multi ? View.VISIBLE : View.GONE);
+        }
+        if (layoutHeaderVehicle != null) {
+            if (multi) {
+                layoutHeaderVehicle.setOnClickListener(v -> showGarageSheet());
+            } else {
+                layoutHeaderVehicle.setOnClickListener(null);
+                layoutHeaderVehicle.setClickable(false);
+            }
         }
     }
 
-    private void showMultiCarPicker() {
-        List<VehicleSummary> list = lastStatus != null && lastStatus.vehicles != null && !lastStatus.vehicles.isEmpty()
-                ? lastStatus.vehicles
-                : (configStore != null ? configStore.getVehicles() : null);
-        if (list == null || list.isEmpty()) {
-            showToast("Fetch vehicles first to populate garage list", false);
-            return;
+    /**
+     * Account page: show what Fetch VIN returned, per car. Until vehicles are fetched the card
+     * stays hidden; once present it lists every car with its telemetry (when known) and an
+     * ACTIVE badge on the one driving the controls page.
+     */
+    private void renderGarageCard() {
+        if (cardGarage == null) return;
+        List<VehicleSummary> cars = garageVehicles(lastStatus);
+        boolean has = cars != null && !cars.isEmpty();
+        garageHasContent = has;
+        cardGarage.setVisibility(has && currentPageId == R.id.nav_account ? View.VISIBLE : View.GONE);
+        if (!has) return;
+
+        String activeVin = lastStatus != null && lastStatus.vin != null && !lastStatus.vin.trim().isEmpty()
+                ? lastStatus.vin.trim()
+                : (configStore != null && configStore.getVin() != null ? configStore.getVin().trim() : "");
+
+        if (tvGarageCount != null) {
+            tvGarageCount.setText(getResources().getQuantityString(
+                    R.plurals.garage_count, cars.size(), cars.size()));
         }
-        String[] labels = new String[list.size()];
-        for (int i = 0; i < list.size(); i++) {
-            VehicleSummary v = list.get(i);
-            labels[i] = v.watchShortLabel() + " (" + maskVin(v.vin) + ")";
+        if (tvGarageMeta != null) {
+            long fetchedAt = configStore != null ? configStore.getVehiclesFetchedAt() : 0L;
+            String activeName = displayNameForVin(cars, activeVin);
+            if (fetchedAt > 0L) {
+                tvGarageMeta.setText(getString(R.string.garage_meta_fmt,
+                        garageTimeFormat.format(new Date(fetchedAt)), activeName));
+            } else {
+                tvGarageMeta.setText(getString(R.string.garage_meta_no_time, activeName));
+            }
         }
-        new AlertDialog.Builder(this)
-                .setTitle(R.string.dialog_switch_vehicle_title)
-                .setItems(labels, (dialog, which) -> {
-                    VehicleSummary picked = list.get(which);
-                    executeWatchAction(WatchProtocol.ACTION_SWITCH_CAR, -1, picked.vin, -1);
-                })
-                .setNegativeButton(android.R.string.cancel, null)
-                .show();
+        if (layoutGarageRows != null) {
+            layoutGarageRows.removeAllViews();
+            for (VehicleSummary car : cars) {
+                if (car == null) continue;
+                View row = buildGarageRow(layoutGarageRows, car, activeVin, true);
+                row.setOnClickListener(v -> switchToGarageVehicle(car));
+                layoutGarageRows.addView(row);
+            }
+        }
+    }
+
+    /** Row label for a car: its per-VIN rename when set, else the detected model. */
+    private String garageDisplayName(VehicleSummary car) {
+        if (car == null) return getString(R.string.garage_title);
+        String custom = configStore != null ? configStore.resolveVehicleCustomName(car.vin) : "";
+        return custom != null && !custom.trim().isEmpty() ? custom.trim() : car.watchShortLabel();
+    }
+
+    private String displayNameForVin(List<VehicleSummary> cars, String vin) {
+        if (cars != null && vin != null) {
+            for (VehicleSummary v : cars) {
+                if (v != null && vin.equals(v.vin)) return garageDisplayName(v);
+            }
+        }
+        return getString(R.string.garage_title);
+    }
+
+    /** Telemetry for a garage row: the active car's live status, or a demo sample in demo builds. */
+    private VehicleStatus garageStatusForVin(String vin) {
+        if (vin == null) return null;
+        if (lastStatus != null && vin.equals(lastStatus.vin)) return lastStatus;
+        VehicleStatus cached = repository != null ? repository.currentStatusOrDemo() : null;
+        if (cached != null && vin.equals(cached.vin)) return cached;
+        return repository != null ? repository.demoSampleForVin(vin) : null;
+    }
+
+    private View buildGarageRow(ViewGroup parent, VehicleSummary car, String activeVin, boolean allowRename) {
+        View row = LayoutInflater.from(this).inflate(R.layout.item_garage_car, parent, false);
+        TextView name = row.findViewById(R.id.tvGarageRowName);
+        TextView meta = row.findViewById(R.id.tvGarageRowMeta);
+        android.widget.RadioButton radio = row.findViewById(R.id.rbGarageRow);
+        boolean active = car.vin != null && car.vin.equals(activeVin);
+
+        name.setText(garageDisplayName(car));
+        meta.setText(buildGarageMeta(car, active));
+        if (radio != null) {
+            radio.setChecked(active);
+        }
+        if (active) {
+            name.setTextColor(ContextCompat.getColor(this, R.color.accent_emerald));
+        }
+        View rename = row.findViewById(R.id.btnGarageRowRename);
+        if (rename != null) {
+            rename.setVisibility(allowRename ? View.VISIBLE : View.GONE);
+            rename.setOnClickListener(v -> showRenameVehicleDialog(car));
+        }
+        return row;
+    }
+
+    private String buildGarageMeta(VehicleSummary car, boolean active) {
+        String masked = maskVin(car.vin);
+        VehicleStatus status = garageStatusForVin(car.vin);
+        if (status == null) {
+            return masked + " · " + getString(R.string.garage_row_tap);
+        }
+        String distUnit = configStore != null ? configStore.getDistanceUnit() : null;
+        StringBuilder sb = new StringBuilder(masked)
+                .append(" · ").append(status.soc).append("%")
+                .append(" · ").append(UnitPreferences.formatDistance(status.rangeKm, distUnit));
+        if (status.chargingState == VehicleStatus.CHARGING_ACTIVE) {
+            sb.append(" · ").append(getString(R.string.garage_row_charging));
+        }
+        return sb.toString();
+    }
+
+    private void switchToGarageVehicle(VehicleSummary car) {
+        if (car == null || car.vin == null || car.vin.trim().isEmpty()) return;
+        String activeVin = configStore != null ? configStore.getVin() : null;
+        if (car.vin.equals(activeVin)) return;
+        executeWatchAction(WatchProtocol.ACTION_SWITCH_CAR, -1, car.vin, -1);
+    }
+
+    /** Header switcher: a bottom sheet listing every car with its telemetry, ACTIVE marked. */
+    private void showGarageSheet() {
+        List<VehicleSummary> cars = garageVehicles(lastStatus);
+        if (cars == null || cars.size() < 2) return;
+
+        View content = LayoutInflater.from(this).inflate(R.layout.sheet_garage, null);
+        LinearLayout rows = content.findViewById(R.id.layoutGarageSheetRows);
+        TextView subtitle = content.findViewById(R.id.tvGarageSheetSubtitle);
+        TextView fetched = content.findViewById(R.id.tvGarageSheetFetched);
+        Button refresh = content.findViewById(R.id.btnGarageSheetRefresh);
+
+        subtitle.setText(getResources().getQuantityString(
+                R.plurals.garage_sheet_sub, cars.size(), cars.size()));
+
+        long fetchedAt = configStore != null ? configStore.getVehiclesFetchedAt() : 0L;
+        fetched.setText(fetchedAt > 0L
+                ? getString(R.string.garage_meta_fmt, garageTimeFormat.format(new Date(fetchedAt)),
+                        displayNameForVin(cars, currentActiveVin()))
+                : getString(R.string.garage_meta_no_time, displayNameForVin(cars, currentActiveVin())));
+
+        final BottomSheetDialog dialog = new BottomSheetDialog(this);
+        String activeVin = currentActiveVin();
+        if (rows != null) {
+            rows.removeAllViews();
+            for (VehicleSummary car : cars) {
+                if (car == null) continue;
+                View row = buildGarageRow(rows, car, activeVin, false);
+                row.setOnClickListener(v -> {
+                    dialog.dismiss();
+                    switchToGarageVehicle(car);
+                });
+                rows.addView(row);
+            }
+        }
+        if (refresh != null) {
+            refresh.setOnClickListener(v -> {
+                dialog.dismiss();
+                executeWatchAction(WatchProtocol.ACTION_STATUS, -1);
+            });
+        }
+        dialog.setContentView(content);
+        dialog.show();
+    }
+
+    private String currentActiveVin() {
+        if (lastStatus != null && lastStatus.vin != null && !lastStatus.vin.trim().isEmpty()) {
+            return lastStatus.vin.trim();
+        }
+        return configStore != null && configStore.getVin() != null ? configStore.getVin().trim() : "";
     }
 
     private void updateWatchTargetLabel() {

@@ -344,7 +344,10 @@ public class BydRepositoryTest {
         private String countryCode = "";
         private String vehicleName = VehicleSummary.DEFAULT_MODEL_NAME;
         private String customVehicleName = "";
+        private final java.util.Map<String, String> vehicleCustomNames = new java.util.HashMap<>();
+        private final java.util.Map<Integer, String> widgetVehicles = new java.util.HashMap<>();
         private List<VehicleSummary> vehicles = java.util.Collections.emptyList();
+        private long vehiclesFetchedAt = 0L;
         private String distanceUnit = com.bydwatch.companion.model.UnitPreferences.DIST_KM;
         private String tempUnit = com.bydwatch.companion.model.UnitPreferences.TEMP_C;
         private String pressureUnit = com.bydwatch.companion.model.UnitPreferences.PRES_KPA;
@@ -393,9 +396,33 @@ public class BydRepositoryTest {
 
         @Override public String getCustomVehicleName() { return customVehicleName != null ? customVehicleName : ""; }
         @Override public void setCustomVehicleName(String customVehicleName) { this.customVehicleName = customVehicleName != null ? customVehicleName.trim() : ""; }
+        @Override public String getWidgetVehicle(int appWidgetId) {
+            String vin = widgetVehicles.get(appWidgetId);
+            return vin != null ? vin : "";
+        }
+        @Override public void setWidgetVehicle(int appWidgetId, String vin) {
+            if (vin == null || vin.trim().isEmpty()) widgetVehicles.remove(appWidgetId);
+            else widgetVehicles.put(appWidgetId, vin.trim());
+        }
+
+        @Override public String getVehicleCustomName(String vin) {
+            String name = vehicleCustomNames.get(vin);
+            return name != null ? name : "";
+        }
+        @Override public void setVehicleCustomName(String vin, String customName) {
+            if (vin == null || vin.trim().isEmpty()) return;
+            String val = customName != null ? customName.trim() : "";
+            if (val.isEmpty()) vehicleCustomNames.remove(vin.trim());
+            else vehicleCustomNames.put(vin.trim(), val);
+        }
 
         @Override public List<VehicleSummary> getVehicles() { return vehicles != null ? vehicles : java.util.Collections.emptyList(); }
-        @Override public void setVehicles(List<VehicleSummary> vehicles) { this.vehicles = vehicles != null ? vehicles : java.util.Collections.emptyList(); }
+        @Override public void setVehicles(List<VehicleSummary> vehicles) {
+            this.vehicles = vehicles != null ? vehicles : java.util.Collections.emptyList();
+            this.vehiclesFetchedAt = System.currentTimeMillis();
+        }
+        @Override public long getVehiclesFetchedAt() { return vehiclesFetchedAt; }
+        @Override public void setVehiclesFetchedAt(long epochMillis) { this.vehiclesFetchedAt = epochMillis; }
 
         @Override public String getDistanceUnit() { return distanceUnit; }
         @Override public void setDistanceUnit(String unit) { this.distanceUnit = com.bydwatch.companion.model.UnitPreferences.normalizeDistanceUnit(unit); }

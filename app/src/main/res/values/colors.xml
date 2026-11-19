@@ -35,4 +35,7 @@
     <color name="widget_rose_container">#FFDAD6</color>
     <color name="widget_on_rose_container">#410002</color>
     <color name="widget_outline">#C1CCC5</color>
+    <!-- Widget car selector pill (multi-car) -->
+    <color name="widget_car_pill_bg">#E6F7EF</color>
+    <color name="widget_car_pill_stroke">#9AD9BE</color>
 </resources>

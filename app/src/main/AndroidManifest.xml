@@ -20,7 +20,7 @@
     <!-- Read-only vehicle telemetry for external consumers (the patched Google Maps). Normal level:
          the consumer is re-signed, so a signature permission could never be granted. -->
     <permission
-        android:name="com.bydopenremote.app.permission.READ_VEHICLE"
+        android:name="${applicationId}.permission.READ_VEHICLE"
         android:protectionLevel="normal" />
 
     <application
@@ -42,7 +42,8 @@
 
         <activity
             android:name=".ui.SplashActivity"
-            android:exported="true">
+            android:exported="true"
+            android:label="${DEMO_SPLASH_LABEL}">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -56,6 +57,13 @@
 
         <activity
             android:name=".ui.NavigationPromptActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:noHistory="true"
+            android:theme="@style/Theme.BydWatch.TranslucentDialog" />
+
+        <activity
+            android:name=".ui.WidgetVehiclePickerActivity"
             android:excludeFromRecents="true"
             android:exported="false"
             android:noHistory="true"
@@ -81,6 +89,19 @@
             android:exported="true"
             android:icon="@drawable/ic_byd_lock"
             android:label="@string/tile_label"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
+        <!-- Demo build only: lets screenshot automation add the widgets without pinning them by hand. -->
+        <service
+            android:name=".ui.DemoSetupTileService"
+            android:enabled="${DEMO_SETUP_TILE}"
+            android:exported="true"
+            android:icon="@drawable/ic_byd_lock"
+            android:label="@string/demo_tile_label"
             android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
             <intent-filter>
                 <action android:name="android.service.quicksettings.action.QS_TILE" />
@@ -134,18 +155,18 @@
              consumer is a different package; guarded by the normal-level READ_VEHICLE permission. -->
         <provider
             android:name="com.bydwatch.companion.data.VehicleStatusProvider"
-            android:authorities="com.bydopenremote.app.vehicle"
+            android:authorities="${applicationId}.vehicle"
             android:exported="true"
             android:grantUriPermissions="true"
-            android:readPermission="com.bydopenremote.app.permission.READ_VEHICLE" />
+            android:readPermission="${applicationId}.permission.READ_VEHICLE" />
 
         <!-- A consumer may ask for fresher data; the repository debounces the request itself. -->
         <receiver
             android:name="com.bydwatch.companion.data.VehicleRefreshRequestReceiver"
             android:exported="true"
-            android:permission="com.bydopenremote.app.permission.READ_VEHICLE">
+            android:permission="${applicationId}.permission.READ_VEHICLE">
             <intent-filter>
-                <action android:name="com.bydopenremote.app.action.REQUEST_REFRESH" />
+                <action android:name="${applicationId}.action.REQUEST_REFRESH" />
             </intent-filter>
         </receiver>
 

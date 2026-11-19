@@ -18,6 +18,17 @@
         android:gravity="center_vertical"
         android:orientation="vertical">
 
+        <TextView
+            android:id="@+id/tvWidgetCarModel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textColor="@color/accent_emerald"
+            android:textSize="8sp"
+            android:textStyle="bold"
+            android:visibility="gone" />
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -46,7 +57,7 @@
                 android:textColor="@color/widget_on_surface_variant"
                 android:textSize="11sp"
                 android:textStyle="bold" />
-        </LinearLayout>
+</LinearLayout>
 
         <ProgressBar
             android:id="@+id/pbWidgetSoc"
@@ -67,7 +78,7 @@
             android:maxLines="1"
             android:text="Ready"
             android:textColor="@color/widget_on_surface_variant"
-            android:textSize="9.5sp" />
+            android:textSize="11sp" />
     </LinearLayout>
 
     <!-- Right 4x1 Compact Action Row: Outer pill containers center icon+label tightly -->
@@ -81,7 +92,7 @@
             android:id="@+id/tileWidgetLock"
             android:layout_width="0dp"
             android:layout_height="match_parent"
-            android:layout_marginEnd="3dp"
+            android:layout_marginEnd="2dp"
             android:layout_weight="1"
             android:background="@drawable/bg_widget_btn_primary"
             android:gravity="center"
@@ -90,8 +101,8 @@
 
             <ImageView
                 android:id="@+id/ivWidgetLock"
-                android:layout_width="15dp"
-                android:layout_height="15dp"
+                android:layout_width="17dp"
+                android:layout_height="17dp"
                 android:layout_marginBottom="2dp"
                 android:importantForAccessibility="no"
                 android:src="@drawable/ic_slot_lock"
@@ -112,7 +123,7 @@
                 android:text="Lock"
                 android:textAllCaps="false"
                 android:textColor="@color/widget_on_primary_container"
-                android:textSize="9.5sp"
+                android:textSize="11sp"
                 android:textStyle="bold" />
         </LinearLayout>
 
@@ -120,7 +131,7 @@
             android:id="@+id/tileWidgetUnlock"
             android:layout_width="0dp"
             android:layout_height="match_parent"
-            android:layout_marginHorizontal="3dp"
+            android:layout_marginHorizontal="2dp"
             android:layout_weight="1"
             android:background="@drawable/bg_widget_btn_tertiary"
             android:gravity="center"
@@ -129,8 +140,8 @@
 
             <ImageView
                 android:id="@+id/ivWidgetUnlock"
-                android:layout_width="15dp"
-                android:layout_height="15dp"
+                android:layout_width="17dp"
+                android:layout_height="17dp"
                 android:layout_marginBottom="2dp"
                 android:importantForAccessibility="no"
                 android:src="@drawable/ic_slot_unlock"
@@ -151,7 +162,7 @@
                 android:text="Unlock"
                 android:textAllCaps="false"
                 android:textColor="@color/widget_on_tertiary_container"
-                android:textSize="9.5sp"
+                android:textSize="11sp"
                 android:textStyle="bold" />
         </LinearLayout>
 
@@ -159,7 +170,7 @@
             android:id="@+id/tileWidgetAc"
             android:layout_width="0dp"
             android:layout_height="match_parent"
-            android:layout_marginHorizontal="3dp"
+            android:layout_marginHorizontal="2dp"
             android:layout_weight="1"
             android:background="@drawable/bg_widget_btn_secondary"
             android:gravity="center"
@@ -168,8 +179,8 @@
 
             <ImageView
                 android:id="@+id/ivWidgetAc"
-                android:layout_width="15dp"
-                android:layout_height="15dp"
+                android:layout_width="17dp"
+                android:layout_height="17dp"
                 android:layout_marginBottom="2dp"
                 android:importantForAccessibility="no"
                 android:src="@drawable/ic_slot_ac"
@@ -190,7 +201,7 @@
                 android:text="AC On"
                 android:textAllCaps="false"
                 android:textColor="@color/widget_on_secondary_container"
-                android:textSize="9.5sp"
+                android:textSize="11sp"
                 android:textStyle="bold" />
         </LinearLayout>
 
@@ -207,8 +218,8 @@
 
             <ImageView
                 android:id="@+id/ivWidgetRefresh"
-                android:layout_width="15dp"
-                android:layout_height="15dp"
+                android:layout_width="17dp"
+                android:layout_height="17dp"
                 android:layout_marginBottom="2dp"
                 android:importantForAccessibility="no"
                 android:src="@drawable/ic_slot_sync"
@@ -229,7 +240,7 @@
                 android:text="Sync"
                 android:textAllCaps="false"
                 android:textColor="@color/widget_on_surface_variant"
-                android:textSize="9.5sp"
+                android:textSize="11sp"
                 android:textStyle="bold" />
         </LinearLayout>
     </LinearLayout>

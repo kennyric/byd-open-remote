@@ -988,23 +988,6 @@ public class MainActivityTest {
         assertEquals("SEAGULL/BYD AT", tvHeaderTitle.getText().toString());
         assertEquals("SEAGULL/BYD AT Controls", tvControlsTitle.getText().toString());
 
-        EditText etCustomModelName = activity.findViewById(R.id.etCustomModelName);
-        Button btnSaveCustomModel = activity.findViewById(R.id.btnSaveCustomModel);
-        etCustomModelName.setText("BYD Atto 1");
-        btnSaveCustomModel.performClick();
-        ShadowLooper.idleMainLooper();
-
-        assertEquals("BYD Atto 1", configStore.getCustomVehicleName());
-        assertEquals("BYD Atto 1", tvHeaderTitle.getText().toString());
-        assertEquals("BYD Atto 1 Controls", tvControlsTitle.getText().toString());
-
-        etCustomModelName.setText("");
-        btnSaveCustomModel.performClick();
-        ShadowLooper.idleMainLooper();
-
-        assertEquals("", configStore.getCustomVehicleName());
-        assertEquals("SEAGULL/BYD AT", tvHeaderTitle.getText().toString());
-        assertEquals("SEAGULL/BYD AT Controls", tvControlsTitle.getText().toString());
     }
 
     @Test
@@ -1883,7 +1866,7 @@ public class MainActivityTest {
         Button btnCloseWindows = activity.findViewById(R.id.btnCloseWindows);
         Button btnBatHeat = activity.findViewById(R.id.btnBatHeat);
         Button btnSeatHeat = activity.findViewById(R.id.btnSeatHeat);
-        Button btnSwitchActiveCar = activity.findViewById(R.id.btnSwitchActiveCar);
+        View layoutHeaderVehicle = activity.findViewById(R.id.layoutHeaderVehicle);
         Button btnRefreshLocation = activity.findViewById(R.id.btnRefreshLocation);
         View cardLocation = activity.findViewById(R.id.cardLocation);
         SwipeRefreshLayout swipeRefresh = activity.findViewById(R.id.swipeRefresh);
@@ -1912,7 +1895,7 @@ public class MainActivityTest {
         assertFalse(btnCloseWindows.isEnabled());
         assertFalse(btnBatHeat.isEnabled());
         assertFalse(btnSeatHeat.isEnabled());
-        assertFalse(btnSwitchActiveCar.isEnabled());
+        assertFalse(layoutHeaderVehicle.isEnabled());
         assertFalse(btnRefreshLocation.isEnabled());
         assertFalse(cardLocation.isEnabled());
         assertFalse(swipeRefresh.isEnabled());
@@ -1941,7 +1924,7 @@ public class MainActivityTest {
         assertTrue(btnHorn.isEnabled());
         assertTrue(btnVentWindows.isEnabled());
         assertTrue(btnCloseWindows.isEnabled());
-        assertTrue(btnSwitchActiveCar.isEnabled());
+        assertTrue(layoutHeaderVehicle.isEnabled());
         assertTrue(btnRefreshLocation.isEnabled());
         assertTrue(cardLocation.isEnabled());
         assertTrue(swipeRefresh.isEnabled());

@@ -420,7 +420,7 @@ public final class VehicleStatus {
         private boolean acOn;
         private Integer cabinTempC;
         private final int targetTempC;
-        private final long ts;
+        private long ts;
 
         private String vin = "";
         private String modelName = "";
@@ -490,6 +490,8 @@ public final class VehicleStatus {
         public Builder trunkOpen(boolean open) { this.trunkOpen = open; return this; }
         public Builder totalMileageKm(Integer km) { this.totalMileageKm = km; return this; }
         public Builder outsideTempC(Integer c) { this.outsideTempC = c; return this; }
+        /** Epoch seconds of the reading; shown as the "last updated" clock. */
+        public Builder ts(long epochSeconds) { this.ts = epochSeconds; return this; }
         public Builder fuelPercent(Integer pct) { this.fuelPercent = pct; return this; }
         public Builder fuelRangeKm(Integer km) { this.fuelRangeKm = km; return this; }
         public Builder tirePressuresKpa(Integer lf, Integer rf, Integer lr, Integer rr) {

@@ -14,7 +14,7 @@ Free, open-source, unofficial Android remote control & Material You home-screen 
 > **Security Recommendation — Use a Secondary BYD Account:** Do **not** sign in with your primary owner account. Authorize a secondary email address from your main BYD account with Remote Control permissions, register or sign into that secondary account in the official BYD App, configure its login password and 6-digit Operation PIN, verify a remote command once in the official app, and then sign into BYD Open Remote.
 
 > [!NOTE]
-> **Watch Companion Notice:** This project originally started alongside a Huawei Watch GT 4 bridge, so legacy package namespaces (`com.bydwatch.companion`) remain in parts of the codebase. **Huawei Watch integration is currently not working** — use the **Android phone app, Quick Settings tile, and home-screen widgets**, which work standalone without a watch.
+> **Watch Companion Notice:** This repository originated alongside a Huawei Watch GT 4 bridge (`watch-gt4/`), so legacy watch modules and Java package namespaces (`com.bydwatch.companion`) remain in the codebase. **Huawei Watch integration is currently not working** — use the **Android phone app, Quick Settings tile, and home-screen widgets**, which work standalone without a watch.
 
 > **Disclaimer:** Independent open-source community project by **Kenny Ricardo**, not affiliated with, endorsed by, or connected to BYD Co. Ltd. **Free software — not for commercial sale or resale (*Tidak diperuntukkan untuk jual beli*).**
 
@@ -33,7 +33,7 @@ Free, open-source, unofficial Android remote control & Material You home-screen 
   <tr>
     <td align="center"><img src="docs/screenshots/controls.png" alt="Vehicle Controls" width="240"/></td>
     <td align="center"><img src="docs/screenshots/climate_dialog.png" alt="Climate Settings Popup" width="240"/></td>
-    <td align="center"><img src="docs/screenshots/widget_4x3.png" alt="Home Screen 4×3 Widget" width="240"/></td>
+    <td align="center"><img src="docs/screenshots/widget_4x3.png" alt="Home Screen 4x3 Widget" width="240"/></td>
   </tr>
   <tr>
     <td align="center"><b>4×3 Widget Style Switcher</b></td>
@@ -166,35 +166,62 @@ Configuring a dedicated secondary account in the official **BYD App** takes ~2 m
 
 ### Build Debug APK & Run Unit Tests
 
+The app has two editions (`flavorDimensions 'edition'`):
+
+| Flavor | Application ID | Output APK | Purpose |
+| :--- | :--- | :--- | :--- |
+| `standard` | `com.bydopenremote.app` | `BYD-Open-Remote.apk` | The real app. Identical to the release build. |
+| `demo` | `com.bydopenremote.demo` | `BYD-Open-Remote-Demo.apk` | Screenshot/marketing build. Sample data only. |
+
 On Linux / macOS:
 ```bash
-./gradlew testDebugUnitTest assembleDebug
+./gradlew testStandardDebugUnitTest assembleStandardDebug
+./gradlew assembleDemoDebug          # screenshot build
 ```
 
 On Windows PowerShell:
 ```powershell
-.\gradlew.bat testDebugUnitTest assembleDebug
+.\gradlew.bat testStandardDebugUnitTest assembleStandardDebug
+.\gradlew.bat assembleDemoDebug
 ```
 
-The APK (`BYD-Open-Remote-v<version>.apk`) is written to `app/build/outputs/apk/debug/`.
+Assembled APKs are written to `app/build/outputs/apk/<flavor>/debug/`.
 
----
+### Screenshot (Demo) Build
 
-## Android Auto Battery & Arrival SoC (Google Maps + Morphe)
+The demo APK is a **separate app**, so it installs alongside the real one without conflict:
 
-BYD Open Remote (`≥ 1.1.0`) publishes your car's live SoC and remaining range to patched Google Maps for Android Auto via [byd-maps-patches](https://github.com/kennyric/byd-maps-patches), showing a dynamic Day/Night battery pill (`86% → 11%`) above the navigation ETA card.
+- Own application ID `com.bydopenremote.demo`, own launcher label **BYD Open Remote (Demo)**, own Splash badge *DEMO BUILD · SAMPLE DATA*.
+- Own provider authority (`com.bydopenremote.demo.vehicle`), own permission, own refresh action, and widget/QS labels suffixed **(Demo)**. Nothing is shared with `com.bydopenremote.app`.
+- Opens straight into a two-car garage:
+  - **BYD Atto 1** — 78 %, charging at 7.2 kW, 12,450 km, Jakarta location.
+  - **BYD SEAL** — 64 %, not charging, 8,310 km, own GPS fix.
+- Switching cars: tap the car name in the header (`▾`) to open the **Your garage** sheet. Each row
+  shows model, masked VIN, charge, range and charging state; the active car carries an `ACTIVE`
+  badge. Picking a row switches and refreshes telemetry immediately.
+- The **Account** page has a matching **Garage** card that reports what was fetched
+  (`2 vehicles · Fetched 09:02 · ATTO 1 active`), with `Refresh vehicles`.
+- Rename any car with the pencil on its garage row. Names are stored per VIN, so renaming the
+  Seal never renames the Atto; the header and widgets follow the active car. `Reset` returns the
+  car to its detected model.
+- There is no login screen and no cloud traffic; every control is simulated and restamps the
+  "last updated" clock.
+- Long press the **Add Demo Widgets** Quick Settings tile to pin both the status and location widgets in one tap.
+- Optional intents for scripted captures:
 
-### How to Add the Patch Repo to Morphe
-1. Install **[Morphe Manager](https://morphe.software/)** on your phone.
-2. Add the patch source using either method:
-   - **One-tap link**: Open `https://morphe.software/add-source?github=kennyric/byd-maps-patches`
-   - **Manual**: Switch to the **Sources** tab, tap **`+`**, and paste:
-     ```text
-     https://github.com/kennyric/byd-maps-patches
-     ```
-3. Download **Google Maps `26.44.06.1006895251`** (`versionCode 1068856906`) from APKMirror, select it in Morphe Manager, and patch with the default patches (optionally enable **`Add microG-RE support`** if you want Google sign-in via MicroG-RE).
-4. Install the patched APK via **KingInstaller + Shizuku** (or `adb install -i com.android.vending -r ...`) and enable **Ungoogled Maps** in **Settings → Android Auto → Customize launcher**.
-   - If you enabled `Add microG-RE support`, set the target package in BYD Open Remote to `org.ungoogled.android.apps.maps.microg` (otherwise the default `org.ungoogled.android.apps.maps` matches).
+```bash
+# Single-car layout (no header switcher, no garage sheet)
+adb shell am start -n com.bydopenremote.demo/com.bydwatch.companion.ui.SplashActivity \
+  --ez demo_mode true --es demo_scenario single
+# Specific page / popup
+adb shell am start -n com.bydopenremote.demo/com.bydwatch.companion.ui.SplashActivity \
+  --ez demo_mode true --es demo_page preferences --ez demo_climate_dialog true
+```
+
+Accepted extras: `demo_mode` (bool), `demo_page` (`controls` | `account` | `preferences` | `watch`),
+`demo_scenario` (`single`; `multi` is the default), `demo_climate_dialog`, `demo_setup_guide`, `demo_lang` (`en` | `in`), `demo_widget_style` (0–3).
+
+The demo code is gated on `BuildConfig.DEMO_BUILD`, a compile-time constant, so the standard release strips every demo branch.
 
 ---
 
@@ -202,9 +229,9 @@ BYD Open Remote (`≥ 1.1.0`) publishes your car's live SoC and remaining range 
 
 ```text
 .
-├── app/               # Android app (com.bydopenremote.app), Material You widgets, BYD cloud client & Robolectric tests
-├── docs/screenshots/  # Emulator screenshots used in documentation
-└── gradle/            # Gradle wrapper & build scripts
+├── app/              # Android app (com.bydopenremote.app), Material You widgets, BYD cloud client & Robolectric tests
+├── docs/screenshots/ # Emulator screenshots used in documentation
+└── gradle/           # Gradle wrapper
 ```
 
 ---

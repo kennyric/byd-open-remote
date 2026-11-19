@@ -18,6 +18,7 @@ import android.widget.RemoteViews;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
 
+import com.bydwatch.companion.BuildConfig;
 import com.bydwatch.companion.BydWatchApp;
 import com.bydwatch.companion.R;
 import com.bydwatch.companion.data.BydRepository;
@@ -25,6 +26,7 @@ import com.bydwatch.companion.data.ConfigStore;
 import com.bydwatch.companion.model.CustomActionCombo;
 import com.bydwatch.companion.model.UnitPreferences;
 import com.bydwatch.companion.model.VehicleStatus;
+import com.bydwatch.companion.model.VehicleSummary;
 import com.bydwatch.companion.model.WidgetSlotConfig;
 import com.bydwatch.companion.protocol.WatchProtocol;
 import com.bydwatch.companion.protocol.WatchResponse;
@@ -84,6 +86,11 @@ public class VehicleWidgetProvider extends AppWidgetProvider {
     private static final String KEY_LAST_STATUS_JSON = "last_status_json";
     private static final String KEY_LAST_SYNC_MS = "last_sync_ms";
     private static final String KEY_BANNER_TEXT = "banner_text";
+    private static final String KEY_STATUS_PREFIX = "widget_status_";
+    private static final String KEY_STATUS_VIN_PREFIX = "widget_status_vin_";
+    private static final String KEY_SYNC_PREFIX = "widget_sync_ms_";
+    /** Widget action strings carry their instance id so each tile acts on its own car. */
+    private static final String WIDGET_ID_SEP = "|wid=";
     private static final String KEY_BANNER_EXPIRES_MS = "banner_expires_ms";
 
     private static final long BANNER_TTL_MS = 18_000L;
@@ -194,12 +201,52 @@ public class VehicleWidgetProvider extends AppWidgetProvider {
     }
 
     @Override
+    public void onDeleted(Context context, int[] appWidgetIds) {
+        super.onDeleted(context, appWidgetIds);
+        if (context == null || appWidgetIds == null) return;
+        BydWatchApp app = resolveApp(context);
+        ConfigStore cfg = app != null ? app.getConfigStore() : null;
+        SharedPreferences.Editor prefs = context
+                .getSharedPreferences(PREFS_WIDGET, Context.MODE_PRIVATE).edit();
+        for (int id : appWidgetIds) {
+            if (cfg != null) cfg.setWidgetVehicle(id, "");
+            prefs.remove(KEY_STATUS_PREFIX + id)
+                    .remove(KEY_STATUS_VIN_PREFIX + id)
+                    .remove(KEY_SYNC_PREFIX + id);
+        }
+        prefs.apply();
+    }
+
+    @Override
     public void onReceive(Context context, Intent intent) {
         super.onReceive(context, intent);
         // Custom widget actions are routed exclusively through unexported WidgetActionReceiver.
     }
 
+    static String withWidgetId(String action, int appWidgetId) {
+        if (action == null || appWidgetId < 0) return action;
+        return action + WIDGET_ID_SEP + appWidgetId;
+    }
+
+    static String baseAction(@Nullable String action) {
+        if (action == null) return "";
+        int idx = action.indexOf(WIDGET_ID_SEP);
+        return idx < 0 ? action : action.substring(0, idx);
+    }
+
+    static int parseWidgetId(@Nullable String action) {
+        if (action == null) return -1;
+        int idx = action.indexOf(WIDGET_ID_SEP);
+        if (idx < 0) return -1;
+        try {
+            return Integer.parseInt(action.substring(idx + WIDGET_ID_SEP.length()));
+        } catch (Exception ignored) {
+            return -1;
+        }
+    }
+
     static boolean handlesAction(String act) {
+        act = baseAction(act);
         return ACTION_WIDGET_AUTO_SYNC.equals(act)
                 || ACTION_WIDGET_REFRESH.equals(act)
                 || ACTION_WIDGET_LOCK.equals(act)
@@ -208,10 +255,12 @@ public class VehicleWidgetProvider extends AppWidgetProvider {
                 || parseSlotIndex(act) >= 0;
     }
 
-    static void handleInternalAction(BroadcastReceiver receiver, Context context, String act) {
+    static void handleInternalAction(BroadcastReceiver receiver, Context context, String rawAct) {
+        String act = baseAction(rawAct);
+        int appWidgetId = parseWidgetId(rawAct);
         if (ACTION_WIDGET_AUTO_SYNC.equals(act)) {
             if (WidgetSyncJobService.hasAnyActiveWidgets(context)) {
-                executeActionAsync(receiver, context, WatchProtocol.ACTION_STATUS, false);
+                syncEveryWidgetVehicle(receiver, context);
                 WidgetSyncJobService.rescheduleShortAlarmIfNeeded(context);
             } else {
                 WidgetSyncJobService.cancelPeriodicSync(context);
@@ -226,7 +275,7 @@ public class VehicleWidgetProvider extends AppWidgetProvider {
             WidgetSlotConfig slot = slotIdx < slots.size()
                     ? slots.get(slotIdx)
                     : WidgetSlotConfig.defaults().get(slotIdx);
-            executeSlotAsync(receiver, context, slot);
+            executeSlotAsync(receiver, context, slot, appWidgetId);
             return;
         }
         String watchAction = null;
@@ -237,14 +286,14 @@ public class VehicleWidgetProvider extends AppWidgetProvider {
         } else if (ACTION_WIDGET_UNLOCK.equals(act)) {
             watchAction = WatchProtocol.ACTION_UNLOCK;
         } else if (ACTION_WIDGET_AC.equals(act)) {
-            VehicleStatus st = resolveStatus(context);
+            VehicleStatus st = resolveStatus(context, appWidgetId);
             watchAction = (st != null && st.acOn)
                     ? WatchProtocol.ACTION_AC_OFF
                     : WatchProtocol.ACTION_AC_ON;
         }
 
         if (watchAction != null) {
-            executeActionAsync(receiver, context, watchAction, true);
+            executeActionAsync(receiver, context, watchAction, true, appWidgetId);
         }
     }
 
@@ -296,6 +345,16 @@ public class VehicleWidgetProvider extends AppWidgetProvider {
             boolean showProgressBanner,
             @Nullable Runnable onComplete
     ) {
+        return executeWidgetAction(context, watchAction, showProgressBanner, -1, onComplete);
+    }
+
+    public static boolean executeWidgetAction(
+            Context context,
+            String watchAction,
+            boolean showProgressBanner,
+            int appWidgetId,
+            @Nullable Runnable onComplete
+    ) {
         BydWatchApp app = resolveApp(context);
         BydRepository repo = app != null ? app.getRepository() : null;
         ConfigStore cfg = app != null ? app.getConfigStore() : null;
@@ -313,9 +372,13 @@ public class VehicleWidgetProvider extends AppWidgetProvider {
         }
 
         try {
+            String boundVin = boundVinFor(context, appWidgetId);
             JSONObject cmd = new JSONObject();
             cmd.put("id", "wdg_" + System.currentTimeMillis() + "_" + CMD_SEQ.incrementAndGet());
             cmd.put("action", watchAction);
+            if (!boundVin.isEmpty()) {
+                cmd.put("vin", boundVin);
+            }
             if (WatchProtocol.ACTION_AC_ON.equals(watchAction)) {
                 if (cfg.isManualAcMode()) {
                     cmd.put("tempGear", cfg.getDefaultTempGear());
@@ -326,11 +389,25 @@ public class VehicleWidgetProvider extends AppWidgetProvider {
                 }
                 cmd.put("acDurationMin", cfg.getDefaultAcDurationMinutes());
             }
+            if (BuildConfig.DEMO_BUILD) {
+                // Demo build: show the synthetic sample instead of calling BYD Cloud.
+                VehicleStatus demoSample = boundVin.isEmpty()
+                        ? repo.currentStatusOrDemo()
+                        : repo.demoSampleForVin(boundVin);
+                if (demoSample == null) demoSample = repo.currentStatusOrDemo();
+                persistStatus(context, demoSample, true, appWidgetId);
+                clearTransientBanner(context);
+                refreshWidgets(context);
+                if (onComplete != null) {
+                    onComplete.run();
+                }
+                return true;
+            }
             repo.handleWatchJson(cmd.toString(), respStr -> {
                 try {
                     WatchResponse resp = WatchResponse.fromJson(new JSONObject(respStr));
                     if (resp != null && resp.ok && resp.state != null) {
-                        persistStatus(context, resp.state, true);
+                        persistStatus(context, resp.state, true, appWidgetId);
                         clearTransientBanner(context);
                     } else if (showProgressBanner) {
                         setTransientBanner(context, shortWidgetErrorBanner(resp));
@@ -363,6 +440,16 @@ public class VehicleWidgetProvider extends AppWidgetProvider {
             String watchAction,
             boolean showProgressBanner
     ) {
+        executeActionAsync(receiver, context, watchAction, showProgressBanner, -1);
+    }
+
+    static void executeActionAsync(
+            @Nullable BroadcastReceiver receiver,
+            Context context,
+            String watchAction,
+            boolean showProgressBanner,
+            int appWidgetId
+    ) {
         PendingResult pendingResult = receiver != null ? receiver.goAsync() : null;
         AtomicBoolean finished = new AtomicBoolean(false);
         Runnable finishOnce = () -> {
@@ -376,7 +463,7 @@ public class VehicleWidgetProvider extends AppWidgetProvider {
         Handler mainHandler = new Handler(Looper.getMainLooper());
         mainHandler.postDelayed(finishOnce, GO_ASYNC_GUARD_MS);
 
-        boolean started = executeWidgetAction(context, watchAction, showProgressBanner, () -> {
+        boolean started = executeWidgetAction(context, watchAction, showProgressBanner, appWidgetId, () -> {
             mainHandler.removeCallbacks(finishOnce);
             finishOnce.run();
         });
@@ -390,6 +477,15 @@ public class VehicleWidgetProvider extends AppWidgetProvider {
             @Nullable BroadcastReceiver receiver,
             Context context,
             @Nullable WidgetSlotConfig slot
+    ) {
+        executeSlotAsync(receiver, context, slot, -1);
+    }
+
+    static void executeSlotAsync(
+            @Nullable BroadcastReceiver receiver,
+            Context context,
+            @Nullable WidgetSlotConfig slot,
+            int appWidgetId
     ) {
         if (slot != null && slot.isCombo()) {
             BydWatchApp app = resolveApp(context);
@@ -413,21 +509,32 @@ public class VehicleWidgetProvider extends AppWidgetProvider {
             Handler mainHandler = new Handler(Looper.getMainLooper());
             mainHandler.postDelayed(finishOnce, GO_ASYNC_GUARD_MS);
 
-            executeCombo(context, combo, true, null, () -> {
+            executeCombo(context, combo, true, appWidgetId, null, () -> {
                 mainHandler.removeCallbacks(finishOnce);
                 finishOnce.run();
             });
             return;
         }
         String target = slot != null ? slot.targetId : WidgetSlotConfig.SINGLE_STATUS;
-        String watchAction = resolveWatchActionForSingleSlot(context, target);
-        executeActionAsync(receiver, context, watchAction, true);
+        String watchAction = resolveWatchActionForSingleSlot(context, target, appWidgetId);
+        executeActionAsync(receiver, context, watchAction, true, appWidgetId);
     }
 
     public static void executeCombo(
             Context context,
             CustomActionCombo combo,
             boolean updateWidgetBanner,
+            @Nullable ComboProgressListener listener,
+            @Nullable Runnable onComplete
+    ) {
+        executeCombo(context, combo, updateWidgetBanner, -1, listener, onComplete);
+    }
+
+    public static void executeCombo(
+            Context context,
+            CustomActionCombo combo,
+            boolean updateWidgetBanner,
+            int appWidgetId,
             @Nullable ComboProgressListener listener,
             @Nullable Runnable onComplete
     ) {
@@ -479,10 +586,11 @@ public class VehicleWidgetProvider extends AppWidgetProvider {
                     mainHandler.post(() -> listener.onStepProgress(idx, total, stepLabel));
                 }
 
-                WatchResponse resp = executeComboStepSync(repo, cfg, step);
+                String boundVin = boundVinFor(context, appWidgetId);
+                WatchResponse resp = executeComboStepSync(repo, cfg, step, boundVin);
                 if (resp != null && resp.ok) {
                     if (resp.state != null) {
-                        persistStatus(context, resp.state, true);
+                        persistStatus(context, resp.state, true, appWidgetId);
                     }
                 } else {
                     allOk = false;
@@ -530,8 +638,17 @@ public class VehicleWidgetProvider extends AppWidgetProvider {
             ConfigStore cfg,
             CustomActionCombo.ComboStep step
     ) {
+        return executeComboStepSync(repo, cfg, step, "");
+    }
+
+    private static WatchResponse executeComboStepSync(
+            BydRepository repo,
+            ConfigStore cfg,
+            CustomActionCombo.ComboStep step,
+            String vin
+    ) {
         try {
-            JSONObject cmd = buildCommandJsonForStep(cfg, step);
+            JSONObject cmd = buildCommandJsonForStep(cfg, step, vin);
             CountDownLatch latch = new CountDownLatch(1);
             AtomicReference<WatchResponse> ref = new AtomicReference<>();
             repo.handleWatchJson(cmd.toString(), respStr -> {
@@ -550,9 +667,16 @@ public class VehicleWidgetProvider extends AppWidgetProvider {
     }
 
     static JSONObject buildCommandJsonForStep(ConfigStore cfg, CustomActionCombo.ComboStep step) throws Exception {
+        return buildCommandJsonForStep(cfg, step, "");
+    }
+
+    static JSONObject buildCommandJsonForStep(ConfigStore cfg, CustomActionCombo.ComboStep step, String vin) throws Exception {
         JSONObject cmd = new JSONObject();
         cmd.put("id", "cmb_" + System.currentTimeMillis() + "_" + CMD_SEQ.incrementAndGet());
         cmd.put("action", step.action);
+        if (vin != null && !vin.isEmpty()) {
+            cmd.put("vin", vin);
+        }
         if (WatchProtocol.ACTION_AC_ON.equals(step.action)) {
             if (step.useCustomAc) {
                 if (step.manualAc) {
@@ -581,6 +705,10 @@ public class VehicleWidgetProvider extends AppWidgetProvider {
     }
 
     static String resolveWatchActionForSingleSlot(Context context, String singleKey) {
+        return resolveWatchActionForSingleSlot(context, singleKey, -1);
+    }
+
+    static String resolveWatchActionForSingleSlot(Context context, String singleKey, int appWidgetId) {
         if (WidgetSlotConfig.SINGLE_LOCK.equals(singleKey)) {
             return WatchProtocol.ACTION_LOCK;
         }
@@ -588,7 +716,7 @@ public class VehicleWidgetProvider extends AppWidgetProvider {
             return WatchProtocol.ACTION_UNLOCK;
         }
         if (WidgetSlotConfig.SINGLE_AC_TOGGLE.equals(singleKey)) {
-            VehicleStatus st = resolveStatus(context);
+            VehicleStatus st = resolveStatus(context, appWidgetId);
             return (st != null && st.acOn) ? WatchProtocol.ACTION_AC_OFF : WatchProtocol.ACTION_AC_ON;
         }
         if (WidgetSlotConfig.SINGLE_LIGHTS.equals(singleKey)) {
@@ -604,7 +732,7 @@ public class VehicleWidgetProvider extends AppWidgetProvider {
             return WatchProtocol.ACTION_CLOSE_WINDOWS;
         }
         if (WidgetSlotConfig.SINGLE_BAT_HEAT.equals(singleKey)) {
-            VehicleStatus st = resolveStatus(context);
+            VehicleStatus st = resolveStatus(context, appWidgetId);
             return (st != null && Boolean.TRUE.equals(st.batteryHeatOn))
                     ? WatchProtocol.ACTION_BATTERY_HEAT_OFF
                     : WatchProtocol.ACTION_BATTERY_HEAT_ON;
@@ -732,6 +860,62 @@ public class VehicleWidgetProvider extends AppWidgetProvider {
         return app;
     }
 
+    /** Vehicle pinned to this widget, or "" for "follow the active car". Only multi-car accounts bind. */
+    static String boundVinFor(Context context, int appWidgetId) {
+        if (appWidgetId < 0) return "";
+        BydWatchApp app = resolveApp(context);
+        ConfigStore cfg = app != null ? app.getConfigStore() : null;
+        if (cfg == null) return "";
+        List<VehicleSummary> cars = cfg.getVehicles();
+        if (cars == null || cars.size() < 2) return "";
+        String vin = cfg.getWidgetVehicle(appWidgetId);
+        if (vin == null || vin.trim().isEmpty()) return "";
+        for (VehicleSummary car : cars) {
+            if (car != null && vin.equals(car.vin)) return vin;
+        }
+        return "";
+    }
+
+    static boolean canBindWidgetToVehicle(@Nullable ConfigStore cfg) {
+        return cfg != null && cfg.getVehicles() != null && cfg.getVehicles().size() > 1;
+    }
+
+    /** Status for one widget: its bound car when pinned, else the active car. */
+    @Nullable
+    static VehicleStatus resolveStatus(Context context, int appWidgetId) {
+        String bound = boundVinFor(context, appWidgetId);
+        if (bound.isEmpty()) {
+            return resolveStatus(context);
+        }
+        BydWatchApp app = resolveApp(context);
+        BydRepository repo = app != null ? app.getRepository() : null;
+        VehicleStatus cached = repo != null ? repo.getStatusForVin(bound) : null;
+        if (cached != null) return cached;
+        if (repo != null) {
+            VehicleStatus demo = repo.demoSampleForVin(bound);
+            if (demo != null) return demo;
+        }
+        SharedPreferences prefs = context.getSharedPreferences(PREFS_WIDGET, Context.MODE_PRIVATE);
+        if (!bound.equals(prefs.getString(KEY_STATUS_VIN_PREFIX + appWidgetId, null))) {
+            return null;
+        }
+        String raw = prefs.getString(KEY_STATUS_PREFIX + appWidgetId, null);
+        if (raw == null || raw.isEmpty()) return null;
+        try {
+            return VehicleStatus.fromJson(new JSONObject(raw));
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    private static long lastSyncFor(Context context, @Nullable ConfigStore cfg, int appWidgetId) {
+        if (boundVinFor(context, appWidgetId).isEmpty()) {
+            return cfg != null ? cfg.getWidgetLastSyncMs() : 0L;
+        }
+        return context.getSharedPreferences(PREFS_WIDGET, Context.MODE_PRIVATE)
+                .getLong(KEY_SYNC_PREFIX + appWidgetId, 0L);
+    }
+
     @Nullable
     static VehicleStatus resolveStatus(Context context) {
         BydWatchApp app = resolveApp(context);
@@ -739,6 +923,13 @@ public class VehicleWidgetProvider extends AppWidgetProvider {
         VehicleStatus st = repo != null ? repo.getCachedStatus() : null;
         if (st != null) {
             return st;
+        }
+        // Demo builds render their synthetic sample car instead of an empty widget.
+        if (repo != null) {
+            VehicleStatus demo = repo.currentStatusOrDemo();
+            if (demo != null) {
+                return demo;
+            }
         }
         ConfigStore cfg = app != null ? app.getConfigStore() : null;
         String raw = cfg != null ? cfg.getWidgetStatusJson() : null;
@@ -769,6 +960,32 @@ public class VehicleWidgetProvider extends AppWidgetProvider {
         } catch (Exception ignored) {
             return null;
         }
+    }
+
+    private static void persistStatus(Context context, VehicleStatus status, boolean updateLastSyncMs,
+                                      int appWidgetId) {
+        if (context == null || status == null) return;
+        String bound = boundVinFor(context, appWidgetId);
+        if (!bound.isEmpty()) {
+            // Only telemetry for this widget's own car may be stored; action responses for another
+            // car must not overwrite it.
+            if (status.vin == null || !bound.equals(status.vin)) return;
+            VehicleStatus sanitized = status.toBuilder()
+                    .vin("")
+                    .vehicles(Collections.emptyList())
+                    .build();
+            SharedPreferences.Editor editor = context
+                    .getSharedPreferences(PREFS_WIDGET, Context.MODE_PRIVATE)
+                    .edit()
+                    .putString(KEY_STATUS_PREFIX + appWidgetId, sanitized.toJson().toString())
+                    .putString(KEY_STATUS_VIN_PREFIX + appWidgetId, bound);
+            if (updateLastSyncMs) {
+                editor.putLong(KEY_SYNC_PREFIX + appWidgetId, System.currentTimeMillis());
+            }
+            editor.apply();
+            return;
+        }
+        persistStatus(context, status, updateLastSyncMs);
     }
 
     private static void persistStatus(Context context, VehicleStatus status, boolean updateLastSyncMs) {
@@ -850,11 +1067,10 @@ public class VehicleWidgetProvider extends AppWidgetProvider {
     private static void updateAllWidgets(Context context, AppWidgetManager mgr, int[] ids) {
         BydWatchApp app = resolveApp(context);
         ConfigStore cfg = app != null ? app.getConfigStore() : null;
-        VehicleStatus st = resolveStatus(context);
         String banner = getActiveBanner(context);
-        long lastSyncMs = cfg != null ? cfg.getWidgetLastSyncMs() : 0L;
 
         boolean anyTallWide = false;
+        VehicleStatus streetSource = null;
         for (int appWidgetId : ids) {
             Bundle options = mgr != null ? mgr.getAppWidgetOptions(appWidgetId) : null;
             int minWidthDp = options != null ? options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 0) : 0;
@@ -870,14 +1086,61 @@ public class VehicleWidgetProvider extends AppWidgetProvider {
                     : (tallWide
                             ? resolveTallLayoutRes(cfg)
                             : (wide ? resolveWide4x2LayoutRes(cfg) : R.layout.widget_vehicle_2x2));
+            VehicleStatus st = resolveStatus(context, appWidgetId);
+            long lastSyncMs = lastSyncFor(context, cfg, appWidgetId);
             RemoteViews views = buildWidgetRemoteViews(
-                    context, cfg, layoutRes, wide, shortWide, tallWide, st, lastSyncMs, banner);
+                    context, cfg, layoutRes, wide, shortWide, tallWide, st, lastSyncMs, banner, appWidgetId);
             mgr.updateAppWidget(appWidgetId, views);
+            if (tallWide && st != null && st.hasLocation()) {
+                streetSource = st;
+            }
         }
-        if (anyTallWide && st != null && st.hasLocation()
-                && VehicleLocationHelper.getCachedStreetName(st.latitude, st.longitude) == null) {
-            VehicleLocationHelper.resolveStreetName(context, st.latitude, st.longitude,
+        if (anyTallWide && streetSource != null
+                && VehicleLocationHelper.getCachedStreetName(streetSource.latitude, streetSource.longitude) == null) {
+            VehicleLocationHelper.resolveStreetName(context, streetSource.latitude, streetSource.longitude,
                     street -> refreshWidgets(context));
+        }
+    }
+
+    /** Periodic sync: refresh the active car plus every car a widget is pinned to. */
+    private static void syncEveryWidgetVehicle(@Nullable BroadcastReceiver receiver, Context context) {
+        executeActionAsync(receiver, context, WatchProtocol.ACTION_STATUS, false, -1);
+
+        BydWatchApp app = resolveApp(context);
+        ConfigStore cfg = app != null ? app.getConfigStore() : null;
+        BydRepository repo = app != null ? app.getRepository() : null;
+        if (cfg == null || repo == null) return;
+
+        String activeVin = cfg.getVin();
+        AppWidgetManager mgr = AppWidgetManager.getInstance(context);
+        int[] ids = mgr.getAppWidgetIds(new ComponentName(context, VehicleWidgetProvider.class));
+        java.util.Set<String> extraVins = new java.util.LinkedHashSet<>();
+        if (ids != null) {
+            for (int id : ids) {
+                String bound = boundVinFor(context, id);
+                if (!bound.isEmpty() && !bound.equals(activeVin)) {
+                    extraVins.add(bound);
+                }
+            }
+        }
+        for (String vin : extraVins) {
+            refreshVehicleAsync(context, vin);
+        }
+    }
+
+    /** Fetch one specific car (widget binding) without disturbing the app's active car. */
+    public static void refreshVehicleAsync(Context context, String vin) {
+        if (context == null || vin == null || vin.trim().isEmpty()) return;
+        BydWatchApp app = resolveApp(context);
+        BydRepository repo = app != null ? app.getRepository() : null;
+        if (repo == null) return;
+        try {
+            JSONObject cmd = new JSONObject();
+            cmd.put("id", "wdv_" + System.currentTimeMillis() + "_" + CMD_SEQ.incrementAndGet());
+            cmd.put("action", WatchProtocol.ACTION_STATUS);
+            cmd.put("vin", vin.trim());
+            repo.handleWatchJson(cmd.toString(), resp -> refreshWidgets(context));
+        } catch (Exception ignored) {
         }
     }
 
@@ -891,6 +1154,22 @@ public class VehicleWidgetProvider extends AppWidgetProvider {
             @Nullable VehicleStatus st,
             long lastSyncMs,
             @Nullable String banner
+    ) {
+        return buildWidgetRemoteViews(context, cfg, layoutRes, wide, shortWide, tallWide,
+                st, lastSyncMs, banner, -1);
+    }
+
+    public static RemoteViews buildWidgetRemoteViews(
+            Context context,
+            @Nullable ConfigStore cfg,
+            int layoutRes,
+            boolean wide,
+            boolean shortWide,
+            boolean tallWide,
+            @Nullable VehicleStatus st,
+            long lastSyncMs,
+            @Nullable String banner,
+            int appWidgetId
     ) {
         Context resCtx = AppLocaleHelper.localizedContext(context, cfg);
         String distUnit = cfg != null ? cfg.getDistanceUnit() : UnitPreferences.DIST_KM;
@@ -921,7 +1200,8 @@ public class VehicleWidgetProvider extends AppWidgetProvider {
         views.setTextViewText(R.id.tvWidgetSoc, socText);
         views.setOnClickPendingIntent(R.id.widgetHeader, openPi);
 
-        bindWidgetSlots(context, resCtx, views, cfg, st, flags);
+        bindWidgetSlots(context, resCtx, views, cfg, st, flags, appWidgetId);
+
 
         if (wide) {
             views.setProgressBar(R.id.pbWidgetSoc, 100, socProgress, false);
@@ -1014,7 +1294,45 @@ public class VehicleWidgetProvider extends AppWidgetProvider {
             views.setTextViewText(R.id.tvWidgetRange, banner != null ? banner : compactSubtitle);
         }
 
+        // Multi-car: the car name becomes an outlined pill that opens the picker.
+        if (canBindWidgetToVehicle(cfg)) {
+            String carLabel = widgetCarLabel(context, cfg, appWidgetId, st);
+            if (carLabel != null && !carLabel.isEmpty()) {
+                int dp4 = Math.round(6 * resCtx.getResources().getDisplayMetrics().density);
+                int dp2 = Math.round(2 * resCtx.getResources().getDisplayMetrics().density);
+                views.setTextViewText(R.id.tvWidgetCarModel, carLabel + "  \u25BE");
+                views.setInt(R.id.tvWidgetCarModel, "setBackgroundResource", R.drawable.bg_widget_car_pill);
+                views.setTextColor(R.id.tvWidgetCarModel,
+                        ContextCompat.getColor(resCtx, R.color.accent_emerald));
+                views.setViewPadding(R.id.tvWidgetCarModel, dp4, dp2, dp4, dp2);
+                views.setViewVisibility(R.id.tvWidgetCarModel, View.VISIBLE);
+                Intent pickerIntent = WidgetVehiclePickerActivity.createIntent(context, appWidgetId);
+                PendingIntent pickerPi = PendingIntent.getActivity(
+                        context, 7000 + Math.max(0, appWidgetId), pickerIntent, flags);
+                views.setOnClickPendingIntent(R.id.tvWidgetCarModel, pickerPi);
+            }
+        }
+
         return views;
+    }
+
+    /** Short model label for the widget header; null for single-car accounts. */
+    @Nullable
+    private static String widgetCarLabel(Context context, @Nullable ConfigStore cfg, int appWidgetId,
+                                         @Nullable VehicleStatus st) {
+        if (!canBindWidgetToVehicle(cfg)) return null;
+        String bound = boundVinFor(context, appWidgetId);
+        String vin = !bound.isEmpty()
+                ? bound
+                : (st != null && st.vin != null && !st.vin.isEmpty() ? st.vin : cfg.getVin());
+        String custom = cfg.resolveVehicleCustomName(vin);
+        if (custom != null && !custom.trim().isEmpty()) return custom.trim();
+        for (VehicleSummary car : cfg.getVehicles()) {
+            if (car != null && vin != null && vin.equals(car.vin)) {
+                return car.watchShortLabel();
+            }
+        }
+        return null;
     }
 
     private static void bindWidgetSlots(
@@ -1024,6 +1342,18 @@ public class VehicleWidgetProvider extends AppWidgetProvider {
             @Nullable ConfigStore cfg,
             @Nullable VehicleStatus st,
             int piFlags
+    ) {
+        bindWidgetSlots(context, resCtx, views, cfg, st, piFlags, -1);
+    }
+
+    private static void bindWidgetSlots(
+            Context context,
+            Context resCtx,
+            RemoteViews views,
+            @Nullable ConfigStore cfg,
+            @Nullable VehicleStatus st,
+            int piFlags,
+            int appWidgetId
     ) {
         List<WidgetSlotConfig> slots = cfg != null ? cfg.getWidgetSlots() : WidgetSlotConfig.defaults();
         List<CustomActionCombo> combos = cfg != null ? cfg.getActionCombos() : Collections.emptyList();
@@ -1042,17 +1372,19 @@ public class VehicleWidgetProvider extends AppWidgetProvider {
                     && WidgetSlotConfig.SINGLE_STATUS.equals(slot.targetId);
             boolean requireWidgetAuth = BiometricLockHelper.isWidgetProtectionEnabled(cfg)
                     && (!isSyncSlot || (cfg != null && cfg.isBiometricWidgetSyncRequired()));
+            String actionWithId = withWidgetId(slotAction(i), appWidgetId);
+            int idOffset = appWidgetId < 0 ? 0 : appWidgetId * 10;
             PendingIntent slotPi = requireWidgetAuth
                     ? PendingIntent.getActivity(
                             context,
-                            120 + i,
-                            WidgetAuthActivity.createIntent(context, slotAction(i)),
+                            120 + i + idOffset,
+                            WidgetAuthActivity.createIntent(context, actionWithId),
                             piFlags
                     )
                     : PendingIntent.getBroadcast(
                             context,
-                            20 + i,
-                            new Intent(context, WidgetActionReceiver.class).setAction(slotAction(i)),
+                            20 + i + idOffset,
+                            new Intent(context, WidgetActionReceiver.class).setAction(actionWithId),
                             piFlags
                     );
             views.setOnClickPendingIntent(SLOT_BTN_IDS[i], slotPi);
@@ -1297,7 +1629,7 @@ public class VehicleWidgetProvider extends AppWidgetProvider {
     @Nullable
     static String resolvePreferredModelName(@Nullable ConfigStore cfg) {
         if (cfg == null) return null;
-        String custom = cfg.getCustomVehicleName();
+        String custom = cfg.resolveVehicleCustomName(cfg.getVin());
         return (custom != null && !custom.trim().isEmpty()) ? custom.trim() : null;
     }
 

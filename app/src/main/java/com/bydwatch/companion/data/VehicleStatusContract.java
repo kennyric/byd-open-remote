@@ -9,10 +9,39 @@ import com.bydwatch.companion.model.VehicleStatus;
  * and electric range. Kept free of Android framework behaviour so it can be unit-tested.
  */
 public final class VehicleStatusContract {
-    /** Authority the provider is published under. */
-    public static final String AUTHORITY = "com.bydopenremote.app.vehicle";
+    /**
+     * Authority the provider is published under. Derived from the running package so a debug/demo
+     * build (com.bydopenremote.demo) carries its own provider instead of colliding with the release
+     * app's provider. Falls back to the release values off-device (JVM tests).
+     */
+    public static final String AUTHORITY = appId() + ".vehicle";
     public static final String PATH_STATUS = "status";
     private static volatile Uri contentUri;
+
+    /** Release application id, also the default when no package can be resolved. */
+    private static final String RELEASE_PACKAGE = "com.bydopenremote.app";
+
+    /** Application id of the running process, so permission/action names cannot collide. */
+    private static String appId() {
+        return packagePrefix();
+    }
+
+    private static String packagePrefix() {
+        try {
+            Object app = Class.forName("android.app.ActivityThread")
+                    .getMethod("currentApplication")
+                    .invoke(null);
+            if (app instanceof android.content.Context) {
+                String name = ((android.content.Context) app).getPackageName();
+                if (name != null && !name.isEmpty()) {
+                    return name;
+                }
+            }
+        } catch (Throwable ignored) {
+            // Not on Android, or no current application: tests and tooling use the release id.
+        }
+        return RELEASE_PACKAGE;
+    }
 
     /** The one row this provider serves; built lazily so JVM tests never touch Android's stubs. */
     public static Uri contentUri() {
@@ -24,11 +53,11 @@ public final class VehicleStatusContract {
         return uri;
     }
     /** Normal-level permission: a re-signed Maps cannot hold a signature one. */
-    public static final String PERMISSION = "com.bydopenremote.app.permission.READ_VEHICLE";
+    public static final String PERMISSION = appId() + ".permission.READ_VEHICLE";
     /** Sent after every cache update so listeners refetch immediately instead of polling. */
-    public static final String ACTION_STATUS_CHANGED = "com.bydopenremote.app.action.VEHICLE_STATUS_CHANGED";
+    public static final String ACTION_STATUS_CHANGED = appId() + ".action.VEHICLE_STATUS_CHANGED";
     /** Sent by a consumer that wants fresher data than the periodic sync provides. */
-    public static final String ACTION_REQUEST_REFRESH = "com.bydopenremote.app.action.REQUEST_REFRESH";
+    public static final String ACTION_REQUEST_REFRESH = appId() + ".action.REQUEST_REFRESH";
     /** Shortest gap between consumer-requested cloud fetches, so nobody can hammer the account. */
     public static final long MIN_REFRESH_GAP_MS = 2L * 60L * 1000L;
     public static final String MIME_TYPE = "vnd.android.cursor.item/vnd.bydopenremote.vehicle_status";

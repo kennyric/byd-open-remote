@@ -9,6 +9,9 @@ import androidx.security.crypto.MasterKey;
 import com.bydwatch.companion.model.UnitPreferences;
 import com.bydwatch.companion.model.VehicleSummary;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.util.List;
 
 /**
@@ -29,6 +32,9 @@ public class SecureConfigStore implements ConfigStore {
     private static final String PREF_VEHICLE_NAME = "byd_vehicle_name";
     private static final String PREF_CUSTOM_VEHICLE_NAME = "byd_custom_vehicle_name";
     private static final String PREF_VEHICLES_JSON = "byd_vehicles_json";
+    private static final String PREF_VEHICLES_FETCHED_AT = "byd_vehicles_fetched_at";
+    private static final String PREF_VEHICLE_CUSTOM_NAMES = "byd_vehicle_custom_names";
+    private static final String PREF_WIDGET_VEHICLES = "byd_widget_vehicles";
     private static final String PREF_DEFAULT_TEMP_C = "byd_default_temp_c";
     private static final String PREF_DEFAULT_TEMP_GEAR = "byd_default_temp_gear";
     private static final String PREF_DEFAULT_FAN_LEVEL = "byd_default_fan_level";
@@ -298,13 +304,89 @@ public class SecureConfigStore implements ConfigStore {
     }
 
     @Override
+    public String getVehicleCustomName(String vin) {
+        if (vin == null || vin.trim().isEmpty()) return "";
+        String name = readVehicleCustomNames().optString(vin.trim(), "");
+        return name != null ? name.trim() : "";
+    }
+
+    @Override
+    public void setVehicleCustomName(String vin, String customName) {
+        if (vin == null || vin.trim().isEmpty()) return;
+        String key = vin.trim();
+        String val = customName != null ? customName.trim().replaceAll("\\s+", " ") : "";
+        JSONObject names = readVehicleCustomNames();
+        try {
+            if (val.isEmpty()) {
+                names.remove(key);
+            } else {
+                names.put(key, val);
+            }
+        } catch (JSONException ignored) {
+            return;
+        }
+        prefs.edit().putString(PREF_VEHICLE_CUSTOM_NAMES, names.toString()).apply();
+    }
+
+    @Override
+    public String getWidgetVehicle(int appWidgetId) {
+        return readWidgetVehicles().optString(String.valueOf(appWidgetId), "");
+    }
+
+    @Override
+    public void setWidgetVehicle(int appWidgetId, String vin) {
+        JSONObject map = readWidgetVehicles();
+        try {
+            if (vin == null || vin.trim().isEmpty()) {
+                map.remove(String.valueOf(appWidgetId));
+            } else {
+                map.put(String.valueOf(appWidgetId), vin.trim());
+            }
+        } catch (JSONException ignored) {
+            return;
+        }
+        prefs.edit().putString(PREF_WIDGET_VEHICLES, map.toString()).apply();
+    }
+
+    private JSONObject readWidgetVehicles() {
+        String raw = prefs.getString(PREF_WIDGET_VEHICLES, "{}");
+        try {
+            return new JSONObject(raw != null ? raw : "{}");
+        } catch (JSONException e) {
+            return new JSONObject();
+        }
+    }
+
+    private JSONObject readVehicleCustomNames() {
+        String raw = prefs.getString(PREF_VEHICLE_CUSTOM_NAMES, "{}");
+        try {
+            return new JSONObject(raw != null ? raw : "{}");
+        } catch (JSONException e) {
+            return new JSONObject();
+        }
+    }
+
+    @Override
     public List<VehicleSummary> getVehicles() {
         return VehicleSummary.fromJsonArrayString(prefs.getString(PREF_VEHICLES_JSON, ""));
     }
 
     @Override
     public void setVehicles(List<VehicleSummary> vehicles) {
-        prefs.edit().putString(PREF_VEHICLES_JSON, VehicleSummary.toJsonArrayString(vehicles)).apply();
+        prefs.edit()
+                .putString(PREF_VEHICLES_JSON, VehicleSummary.toJsonArrayString(vehicles))
+                .putLong(PREF_VEHICLES_FETCHED_AT, System.currentTimeMillis())
+                .apply();
+    }
+
+    @Override
+    public long getVehiclesFetchedAt() {
+        return prefs.getLong(PREF_VEHICLES_FETCHED_AT, 0L);
+    }
+
+    @Override
+    public void setVehiclesFetchedAt(long epochMillis) {
+        prefs.edit().putLong(PREF_VEHICLES_FETCHED_AT, epochMillis).apply();
     }
 
     @Override

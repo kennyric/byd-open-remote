@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Stands in for the release-only splash badge color when the standard flavor is built. -->
+    <color name="demo_badge_bg">#00000000</color>
+    <color name="demo_badge_text">#00000000</color>
+</resources>

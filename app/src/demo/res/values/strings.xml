@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Demo build: distinct labels everywhere so it never looks like the real app
+         on the launcher, in Settings, in the widget picker or the widget composer. -->
+    <string name="app_name">BYD Open Remote (Demo)</string>
+    <string name="widget_label">BYD Remote Status (Demo)</string>
+    <string name="location_widget_label">Car Location (Demo)</string>
+    <string name="tile_label">EV Quick Lock (Demo)</string>
+    <string name="demo_tile_label">Add Demo Widgets</string>
+    <string name="demo_launcher_label">BYD Open Remote (Demo)</string>
+
+    <string name="demo_badge">DEMO BUILD · SAMPLE DATA</string>
+    <string name="demo_notice_title">FOR SCREENSHOTS ONLY</string>
+    <string name="demo_notice_body">This build is not connected to any BYD account. Every value shown is synthetic sample data, and remote commands are not sent to a vehicle.</string>
+    <string name="splash_title">BYD Open Remote Demo</string>
+</resources>

@@ -32,7 +32,8 @@ public class SplashActivity extends AppCompatActivity {
         if (app != null) {
             try {
                 ConfigStore cfg = app.getConfigStore();
-                if (BuildConfig.DEBUG && getIntent() != null && getIntent().hasExtra("demo_lang")) {
+                if ((BuildConfig.DEBUG || BuildConfig.DEMO_BUILD)
+                        && getIntent() != null && getIntent().hasExtra("demo_lang")) {
                     cfg.setAppLanguage(getIntent().getStringExtra("demo_lang"));
                 }
                 AppLocaleHelper.applyLanguage(cfg.getAppLanguage());
@@ -52,14 +53,16 @@ public class SplashActivity extends AppCompatActivity {
             btnContinue.setOnClickListener(v -> navigateToMain());
         }
 
-        if (BuildConfig.DEBUG && getIntent() != null) {
-            if (getIntent().getBooleanExtra("demo_splash", false)) {
-                handler.removeCallbacks(proceedRunnable);
-                return;
-            }
-            if (getIntent().getBooleanExtra("demo_mode", false)) {
-                navigateToMain();
-                return;
+        if (BuildConfig.DEBUG || BuildConfig.DEMO_BUILD) {
+            if (getIntent() != null) {
+                if (getIntent().getBooleanExtra("demo_splash", false)) {
+                    handler.removeCallbacks(proceedRunnable);
+                    return;
+                }
+                if (getIntent().getBooleanExtra("demo_mode", false)) {
+                    navigateToMain();
+                    return;
+                }
             }
         }
 
@@ -79,7 +82,8 @@ public class SplashActivity extends AppCompatActivity {
         navigated = true;
         handler.removeCallbacks(proceedRunnable);
         Intent mainIntent = new Intent(this, MainActivity.class);
-        if (BuildConfig.DEBUG && getIntent() != null && getIntent().getBooleanExtra("demo_mode", false)) {
+        if ((BuildConfig.DEBUG || BuildConfig.DEMO_BUILD)
+                && getIntent() != null && getIntent().getBooleanExtra("demo_mode", false)) {
             mainIntent.putExtras(getIntent());
         }
         startActivity(mainIntent);

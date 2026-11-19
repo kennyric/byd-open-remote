@@ -61,6 +61,9 @@ public class BydRepository {
     private final ConfigStore configStore;
     private final ExecutorService executor;
     private final AtomicReference<VehicleStatus> cachedStatus = new AtomicReference<>();
+    /** Telemetry per VIN, so a widget bound to another car renders without changing the active one. */
+    private final java.util.concurrent.ConcurrentHashMap<String, VehicleStatus> statusByVin =
+            new java.util.concurrent.ConcurrentHashMap<>();
     private volatile String lastStatusDiag = "";
     private volatile String lastErrorDetail = "";
     private final java.util.List<StatusListener> statusListeners = new java.util.concurrent.CopyOnWriteArrayList<>();
@@ -82,6 +85,29 @@ public class BydRepository {
         return cachedStatus.get();
     }
 
+    /** Last known telemetry for a specific car (widget binding), or null when never fetched. */
+    public VehicleStatus getStatusForVin(String vin) {
+        return vin == null || vin.isEmpty() ? null : statusByVin.get(vin);
+    }
+
+    /** The status to reason about for a VIN: the live one when active, the cached one otherwise. */
+    private VehicleStatus prevFor(String vin) {
+        if (vin != null && configStore != null && vin.equals(configStore.getVin())) {
+            return cachedStatus.get();
+        }
+        return getStatusForVin(vin);
+    }
+
+    /** Publish a status to the active-car UI, or quietly cache it when it belongs to another car. */
+    private void storeStatusFor(String vin, VehicleStatus updated) {
+        if (updated == null) return;
+        if (vin != null && configStore != null && vin.equals(configStore.getVin())) {
+            setCachedStatus(updated);
+        } else if (updated.vin != null && !updated.vin.isEmpty()) {
+            statusByVin.put(updated.vin, updated);
+        }
+    }
+
     public String getLastStatusDiag() {
         return lastStatusDiag;
     }
@@ -89,6 +115,7 @@ public class BydRepository {
     public void setCachedStatus(VehicleStatus status) {
         VehicleStatus previous = cachedStatus.getAndSet(status);
         if (status != null) {
+            if (status.vin != null && !status.vin.isEmpty()) statusByVin.put(status.vin, status);
             for (StatusListener listener : statusListeners) {
                 try {
                     listener.onStatusUpdated(status);
@@ -105,6 +132,73 @@ public class BydRepository {
         }
     }
 
+    /**
+     * Demo build only: supplies the synthetic sample car whenever a refresh finds no cached
+     * status. A demo install has no cloud account, so without this the first failed sync would
+     * replace the sample data with the "not configured" placeholder. Never set in release.
+     */
+    private volatile java.util.function.Supplier<VehicleStatus> demoProvider;
+    /** The unmodified synthetic sample, used to rebuild every demo car from the same telemetry. */
+    private volatile VehicleStatus demoBaseSample;
+    static final String DEMO_BASE_VIN = "LGX0DEMO000000001";
+
+    public void setDemoStatusProvider(java.util.function.Supplier<VehicleStatus> provider) {
+        this.demoProvider = provider;
+        // Remember the untouched sample so a demo car switch can rebuild it from the same telemetry.
+        VehicleStatus sample = provider != null ? provider.get() : null;
+        this.demoBaseSample = sample;
+    }
+
+    /**
+     * Demo build only: per-VIN samples, so a two-car garage does not show identical numbers for
+     * both cars in a screenshot. Cars missing from the map fall back to the base sample.
+     */
+    private volatile java.util.Map<String, VehicleStatus> demoFleet;
+
+    public void setDemoFleet(java.util.Map<String, VehicleStatus> fleet) {
+        this.demoFleet = fleet;
+    }
+
+    /** Demo builds only: true when the given VIN belongs to the synthetic sample garage. */
+    boolean isDemoSampleVin(String vin) {
+        if (demoBaseSample == null) return false;
+        if (DEMO_BASE_VIN.equals(vin)) return true;
+        java.util.Map<String, VehicleStatus> fleet = demoFleet;
+        if (fleet != null && fleet.containsKey(vin)) return true;
+        for (VehicleSummary v : demoBaseSample.vehicles) {
+            if (v != null && vin.equals(v.vin)) return true;
+        }
+        return false;
+    }
+
+    /** The sample to render for a demo VIN: its own fleet entry, else the base sample. */
+    private VehicleStatus demoSampleFor(String vin) {
+        java.util.Map<String, VehicleStatus> fleet = demoFleet;
+        if (fleet != null) {
+            VehicleStatus own = fleet.get(vin);
+            if (own != null) return own;
+        }
+        return demoBaseSample;
+    }
+
+    /**
+     * Demo build only: telemetry for a specific garage VIN, so the Account garage card can show
+     * per-car charge/range for cars that are not the active one. Returns null outside the demo.
+     */
+    public VehicleStatus demoSampleForVin(String vin) {
+        java.util.Map<String, VehicleStatus> fleet = demoFleet;
+        return fleet != null && vin != null ? fleet.get(vin) : null;
+    }
+
+    /** The status the UI should render: the live cache, or the demo sample when there is none. */
+    public VehicleStatus currentStatusOrDemo() {
+        VehicleStatus current = cachedStatus.get();
+        if (current != null) {
+            return current;
+        }
+        java.util.function.Supplier<VehicleStatus> provider = demoProvider;
+        return provider != null ? provider.get() : null;
+    }
     /** True when a field a consumer can see actually moved; keeps the drive log readable. */
     private static boolean changed(VehicleStatus previous, VehicleStatus current) {
         return previous == null
@@ -295,21 +389,38 @@ public class BydRepository {
             return WatchProtocol.error(cmd.id, cmd.action, "BAD_REQUEST", "Duplicate or replayed command ID");
         }
 
-        String vin = configStore.getVin();
+        String activeVin = configStore.getVin();
+        String vin = (cmd.vin != null && !cmd.vin.trim().isEmpty()) ? cmd.vin.trim() : activeVin;
+        boolean backgroundTarget = vin != null && !vin.equals(activeVin);
+        if (backgroundTarget && !isAllowedVehicleVin(vin, configStore.getVehicles(), activeVin)) {
+            return WatchProtocol.error(cmd.id, cmd.action, "BAD_REQUEST", "Unknown VIN not linked to account");
+        }
 
         try {
             switch (cmd.action) {
                 case WatchProtocol.ACTION_STATUS: {
+                    if (demoProvider != null) {
+                        // Demo build: refreshing must not overwrite the sample car with placeholder data.
+                        VehicleStatus sample = currentStatusOrDemo();
+                        return WatchProtocol.ok(cmd.id, cmd.action, "Demo sample data", sample);
+                    }
                     VehicleStatus fresh = gateway.fetchVehicleRealtimeFast(vin);
                     this.lastStatusDiag = (fresh != null && fresh.diagSummary != null)
                             ? fresh.diagSummary : "";
                     if (fresh != null) {
-                        syncConfigStoreFromLiveAc(fresh);
                         fresh = enrichedStatus(fresh);
-                        setCachedStatus(fresh);
-                        triggerBackgroundEnrichment(vin, fresh);
+                        if (backgroundTarget) {
+                            // A widget bound to another car: cache it only, never hijack the app's view.
+                            if (fresh.vin != null && !fresh.vin.isEmpty()) statusByVin.put(fresh.vin, fresh);
+                        } else {
+                            syncConfigStoreFromLiveAc(fresh);
+                            setCachedStatus(fresh);
+                            triggerBackgroundEnrichment(vin, fresh);
+                        }
                     }
-                    return WatchProtocol.ok(cmd.id, cmd.action, "Updated", fresh != null ? fresh : enrichedStatus(cachedStatus.get()));
+                    VehicleStatus statusFallback = backgroundTarget ? prevFor(vin) : cachedStatus.get();
+                    return WatchProtocol.ok(cmd.id, cmd.action, "Updated",
+                            fresh != null ? fresh : enrichedStatus(statusFallback));
                 }
                 case WatchProtocol.ACTION_LOCK: {
                     gateway.verifyControlPassword(vin);
@@ -331,7 +442,7 @@ public class BydRepository {
                 }
                 case WatchProtocol.ACTION_AC_ON: {
                     gateway.verifyControlPassword(vin);
-                    VehicleStatus prev = cachedStatus.get();
+                    VehicleStatus prev = prevFor(vin);
                     boolean explicitAuto = "auto".equalsIgnoreCase(cmd.acMode);
                     boolean explicitManual = "manual".equalsIgnoreCase(cmd.acMode);
                     Boolean manualOverride = configStore.getManualAcOverride();
@@ -390,7 +501,7 @@ public class BydRepository {
                     if (!ok) {
                         return WatchProtocol.error(cmd.id, cmd.action, "ERROR", detailedActionError("Failed to flash lights"));
                     }
-                    return WatchProtocol.ok(cmd.id, cmd.action, "Lights flashed", enrichedStatus(cachedStatus.get()));
+                    return WatchProtocol.ok(cmd.id, cmd.action, "Lights flashed", enrichedStatus(prevFor(vin)));
                 }
                 case WatchProtocol.ACTION_HORN: {
                     gateway.verifyControlPassword(vin);
@@ -398,7 +509,7 @@ public class BydRepository {
                     if (!ok) {
                         return WatchProtocol.error(cmd.id, cmd.action, "ERROR", detailedActionError("Failed to sound horn"));
                     }
-                    return WatchProtocol.ok(cmd.id, cmd.action, "Horn sounded", enrichedStatus(cachedStatus.get()));
+                    return WatchProtocol.ok(cmd.id, cmd.action, "Horn sounded", enrichedStatus(prevFor(vin)));
                 }
                 case WatchProtocol.ACTION_VENT_WINDOWS: {
                     gateway.verifyControlPassword(vin);
@@ -424,9 +535,9 @@ public class BydRepository {
                     if (!ok) {
                         return WatchProtocol.error(cmd.id, cmd.action, "ERROR", detailedActionError("Failed to start battery heat"));
                     }
-                    VehicleStatus prev = cachedStatus.get();
+                    VehicleStatus prev = prevFor(vin);
                     if (prev != null) {
-                        setCachedStatus(prev.toBuilder().batteryHeatOn(true).build());
+                        storeStatusFor(vin, prev.toBuilder().batteryHeatOn(true).build());
                     }
                     VehicleStatus fresh = autoRefresh(vin);
                     return WatchProtocol.ok(cmd.id, cmd.action, "Battery heat on", enrichedStatus(fresh));
@@ -437,9 +548,9 @@ public class BydRepository {
                     if (!ok) {
                         return WatchProtocol.error(cmd.id, cmd.action, "ERROR", detailedActionError("Failed to stop battery heat"));
                     }
-                    VehicleStatus prev = cachedStatus.get();
+                    VehicleStatus prev = prevFor(vin);
                     if (prev != null) {
-                        setCachedStatus(prev.toBuilder().batteryHeatOn(false).build());
+                        storeStatusFor(vin, prev.toBuilder().batteryHeatOn(false).build());
                     }
                     VehicleStatus fresh = autoRefresh(vin);
                     return WatchProtocol.ok(cmd.id, cmd.action, "Battery heat off", enrichedStatus(fresh));
@@ -448,17 +559,17 @@ public class BydRepository {
                     gateway.verifyControlPassword(vin);
                     int nextLevel = cmd.level >= 0 && cmd.level <= 2
                             ? cmd.level
-                            : nextSeatHeatLevel(cachedStatus.get());
+                            : nextSeatHeatLevel(prevFor(vin));
                     boolean ok = gateway.setDriverSeatHeat(vin, nextLevel);
                     if (!ok) {
                         return WatchProtocol.error(cmd.id, cmd.action, "ERROR", detailedActionError("Failed to update seat climate"));
                     }
-                    VehicleStatus prev = cachedStatus.get();
+                    VehicleStatus prev = prevFor(vin);
                     if (prev != null) {
-                        setCachedStatus(prev.toBuilder().driverSeatLevel(nextLevel).build());
+                        storeStatusFor(vin, prev.toBuilder().driverSeatLevel(nextLevel).build());
                     }
                     String msg = nextLevel == 0 ? "Seat off" : (nextLevel == 2 ? "Seat high" : "Seat low");
-                    return WatchProtocol.ok(cmd.id, cmd.action, msg, enrichedStatus(cachedStatus.get()));
+                    return WatchProtocol.ok(cmd.id, cmd.action, msg, enrichedStatus(prevFor(vin)));
                 }
                 case WatchProtocol.ACTION_SWITCH_CAR: {
                     String targetVin = cmd.vin;
@@ -472,7 +583,6 @@ public class BydRepository {
                     if (!targetVin.equals(vin)) {
                         configStore.setDetectedManualAc(false);
                     }
-                    configStore.setVin(targetVin);
                     String resolvedName = configStore.getVehicleName();
                     if (list != null) {
                         for (VehicleSummary v : list) {
@@ -483,6 +593,24 @@ public class BydRepository {
                             }
                         }
                     }
+                    if (demoProvider != null && isDemoSampleVin(targetVin)) {
+                        // Demo build: there is no cloud account, so reshape the synthetic sample
+                        // instead of fetching. Header, switcher and widgets all follow the choice.
+                        VehicleStatus sample = demoSampleFor(targetVin);
+                        if (sample == null) {
+                            return WatchProtocol.error(cmd.id, cmd.action, "ERROR", "Demo sample unavailable");
+                        }
+                        configStore.setVin(targetVin);
+                        VehicleStatus switched = sample.toBuilder()
+                                .vin(targetVin)
+                                .modelName(resolvedName)
+                                .ts(System.currentTimeMillis() / 1000L)
+                                .vehicles(list)
+                                .build();
+                        setCachedStatus(switched);
+                        return WatchProtocol.ok(cmd.id, cmd.action, "Switched to " + resolvedName, switched);
+                    }
+                    configStore.setVin(targetVin);
                     VehicleStatus fresh = gateway.fetchVehicleRealtime(targetVin);
                     if (fresh != null) {
                         fresh = enrichedStatus(fresh.toBuilder().vin(targetVin).modelName(resolvedName).build());
@@ -495,7 +623,7 @@ public class BydRepository {
                     if (loc == null || !VehicleStatus.isValidCoordinates(loc.latitude, loc.longitude)) {
                         return WatchProtocol.error(cmd.id, cmd.action, "UNAVAILABLE", "Car GPS location unavailable");
                     }
-                    VehicleStatus prev = cachedStatus.get();
+                    VehicleStatus prev = prevFor(vin);
                     VehicleStatus base = prev != null
                             ? prev
                             : new VehicleStatus.Builder(0, 0, false, false, null,
@@ -525,7 +653,7 @@ public class BydRepository {
         Double lat = base.latitude;
         Double lng = base.longitude;
         Long gpsTs = base.gpsTs;
-        VehicleStatus prev = cachedStatus.get();
+        VehicleStatus prev = prevFor(activeVin);
         if (!base.hasLocation() && prev != null && prev.hasLocation()
                 && (activeVin == null || activeVin.isEmpty() || prev.vin == null || prev.vin.isEmpty()
                         || activeVin.equals(prev.vin))) {
@@ -607,16 +735,22 @@ public class BydRepository {
     }
 
     private VehicleStatus autoRefresh(String vin) {
+        boolean active = vin != null && vin.equals(configStore.getVin());
         try {
             VehicleStatus fresh = gateway.fetchVehicleRealtime(vin);
             if (fresh != null) {
-                setCachedStatus(fresh);
+                if (active) {
+                    setCachedStatus(fresh);
+                } else if (fresh.vin != null && !fresh.vin.isEmpty()) {
+                    // Another car: keep the app on its active car.
+                    statusByVin.put(fresh.vin, fresh);
+                }
                 return fresh;
             }
         } catch (Exception e) {
             // Keep previous cached status on refresh error
         }
-        return cachedStatus.get();
+        return active ? cachedStatus.get() : getStatusForVin(vin);
     }
 
     private void triggerBackgroundEnrichment(String vin, VehicleStatus baseStatus) {

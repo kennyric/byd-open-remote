@@ -80,6 +80,24 @@ public interface ConfigStore {
 
     default String getCustomVehicleName() { return ""; }
     default void setCustomVehicleName(String customVehicleName) {}
+    /** Vehicle a widget instance is pinned to; empty means "follow the active car". */
+    default String getWidgetVehicle(int appWidgetId) { return ""; }
+    default void setWidgetVehicle(int appWidgetId, String vin) {}
+
+    /** Per-vehicle display-name override, keyed by VIN (empty means auto-detected). */
+    default String getVehicleCustomName(String vin) { return ""; }
+    default void setVehicleCustomName(String vin, String customName) {}
+
+    /**
+     * Name to show for a car: its own override first, then the legacy global override written by
+     * older versions, then empty so the caller can fall back to the detected model.
+     */
+    default String resolveVehicleCustomName(String vin) {
+        String perVin = getVehicleCustomName(vin);
+        if (perVin != null && !perVin.trim().isEmpty()) return perVin.trim();
+        String legacy = getCustomVehicleName();
+        return legacy != null ? legacy.trim() : "";
+    }
 
     /** Package that receives the vehicle-status nudge; the patched Maps, renamed or not. */
     default String getVehicleStatusTargetPackage() { return VehicleStatusBroadcaster.DEFAULT_TARGET_PACKAGE; }
@@ -91,6 +109,9 @@ public interface ConfigStore {
 
     default List<VehicleSummary> getVehicles() { return Collections.emptyList(); }
     default void setVehicles(List<VehicleSummary> vehicles) {}
+    /** Epoch millis of the last successful vehicle-list fetch (0 when never fetched). */
+    default long getVehiclesFetchedAt() { return 0L; }
+    default void setVehiclesFetchedAt(long epochMillis) {}
 
     default String getDistanceUnit() { return UnitPreferences.DIST_KM; }
     default void setDistanceUnit(String unit) {}
