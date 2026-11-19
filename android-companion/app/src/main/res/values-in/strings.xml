@@ -401,4 +401,11 @@
     <string name="lab_copied">Disalin</string>
     <string name="lab_share_title">Bagikan log Lab</string>
     <string name="lab_read_failed">Gagal membaca</string>
+    <string name="lab_set_limit">Setel batas</string>
+    <string name="lab_confirm_write_title">Kirim batas arus AC?</string>
+    <string name="lab_confirm_write_message">Ini POST ke cloud BYD: /control/smartCharge/limitCurrentControl</string>
+    <string name="lab_send_confirm">Kirim</string>
+    <string name="lab_cancel">Batal</string>
+    <string name="lab_reread">Baca ulang setelah setel</string>
+    <string name="lab_verdict_idle">Belum ada penulisan</string>
 </resources>

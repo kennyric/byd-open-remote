@@ -484,4 +484,11 @@
     <string name="lab_copied">Copied</string>
     <string name="lab_share_title">Share Lab log</string>
     <string name="lab_read_failed">Read failed</string>
+    <string name="lab_set_limit">Set limit</string>
+    <string name="lab_confirm_write_title">Send AC current limit?</string>
+    <string name="lab_confirm_write_message">This POSTs to the BYD cloud: /control/smartCharge/limitCurrentControl</string>
+    <string name="lab_send_confirm">Send</string>
+    <string name="lab_cancel">Cancel</string>
+    <string name="lab_reread">Re-read after set</string>
+    <string name="lab_verdict_idle">No write yet</string>
 </resources>

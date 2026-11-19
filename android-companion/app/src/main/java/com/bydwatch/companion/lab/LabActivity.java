@@ -15,6 +15,8 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.VisibleForTesting;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.bydwatch.companion.BuildConfig;
@@ -27,7 +29,9 @@ import com.bydwatch.companion.data.ConfigStore;
 import com.bydwatch.companion.model.VehicleStatus;
 import com.bydwatch.companion.model.VehicleSummary;
 import com.overdrive.app.byd.cloud.BydCloudClient;
+import com.overdrive.app.byd.cloud.ChargeLimitValues;
 import com.overdrive.app.byd.cloud.CloudCallTrace;
+import com.google.android.material.switchmaterial.SwitchMaterial;
 
 import java.util.List;
 
@@ -57,6 +61,10 @@ public class LabActivity extends AppCompatActivity {
     private AutoCompleteTextView acLabLimitValue;
     private TextView tvLabConsole;
     private ScrollView svLabConsole;
+    private TextView tvLabVerdict;
+    private SwitchMaterial switchLabReRead;
+    private String lastKnownLimit;
+    private LabRetryPolicy retryPolicy = LabRetryPolicy.defaults();
     private final LabConsole console = new LabConsole(200);
 
     @Override
@@ -103,9 +111,13 @@ public class LabActivity extends AppCompatActivity {
         acLabLimitValue = findViewById(R.id.acLabLimitValue);
         tvLabConsole = findViewById(R.id.tvLabConsole);
         svLabConsole = findViewById(R.id.svLabConsole);
+        tvLabVerdict = findViewById(R.id.tvLabVerdict);
+        switchLabReRead = findViewById(R.id.switchLabReRead);
 
         View readLimit = findViewById(R.id.btnLabReadLimit);
         if (readLimit != null) readLimit.setOnClickListener(v -> readLimit());
+        View setLimit = findViewById(R.id.btnLabSetLimit);
+        if (setLimit != null) setLimit.setOnClickListener(v -> confirmWrite());
         View copyAll = findViewById(R.id.btnLabCopyAll);
         if (copyAll != null) copyAll.setOnClickListener(v -> copyConsole());
         View share = findViewById(R.id.btnLabShare);
@@ -193,6 +205,7 @@ public class LabActivity extends AppCompatActivity {
         if (result == null || result.trace == null) return;
         CloudCallTrace trace = result.trace;
         if (result.limit != null) {
+            lastKnownLimit = result.limit.active;
             String active = result.limit.active != null ? result.limit.active : "—";
             if (tvLabActiveLimit != null) tvLabActiveLimit.setText(active);
             if (tvLabOptions != null) {
@@ -240,6 +253,97 @@ public class LabActivity extends AppCompatActivity {
     private void clearConsole() {
         console.clear();
         renderConsole();
+    }
+
+    @VisibleForTesting
+    void setRetryPolicyForTesting(LabRetryPolicy policy) {
+        if (policy != null) retryPolicy = policy;
+    }
+
+    private void confirmWrite() {
+        if (client == null || acLabLimitValue == null) return;
+        final String value = acLabLimitValue.getText().toString().trim();
+        if (value.isEmpty()) {
+            Toast.makeText(this, R.string.lab_limit_value, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        String maskedVin = activeVin.length() > 4
+                ? "***" + activeVin.substring(activeVin.length() - 4) : activeVin;
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.lab_confirm_write_title)
+                .setMessage(getString(R.string.lab_confirm_write_message)
+                        + "\n\n{\"vin\":\"" + maskedVin + "\",\"limitCurrentValue\":\"" + value + "\"}")
+                .setNegativeButton(R.string.lab_cancel, null)
+                .setPositiveButton(R.string.lab_send_confirm, (dialog, which) -> performWrite(value))
+                .show();
+    }
+
+    private void performWrite(String value) {
+        final String vin = activeVin;
+        final String energyType = etLabEnergy != null
+                && !etLabEnergy.getText().toString().trim().isEmpty()
+                ? etLabEnergy.getText().toString().trim() : "0";
+        final boolean reRead = switchLabReRead == null || switchLabReRead.isChecked();
+        final String knownBefore = lastKnownLimit;
+        repository.getExecutor().execute(() -> {
+            String before = knownBefore;
+            if (reRead && before == null) {
+                BydCloudClient.AcCurrentLimitResult beforeRead =
+                        client.readAcCurrentLimit(vin, energyType);
+                if (beforeRead.limit != null) before = beforeRead.limit.active;
+                console.add(beforeRead.trace);
+            }
+
+            BydCloudClient.AcCurrentLimitResult write =
+                    client.writeAcCurrentLimit(vin, value);
+            String after = null;
+            boolean reReadCompleted = false;
+
+            if (write.trace.isSuccess() && reRead) {
+                sleep(retryPolicy.delayMs);
+                for (int attempt = 0; attempt < retryPolicy.attempts; attempt++) {
+                    BydCloudClient.AcCurrentLimitResult read =
+                            client.readAcCurrentLimit(vin, energyType);
+                    console.add(read.trace);
+                    if (read.limit != null) {
+                        after = read.limit.active;
+                        reReadCompleted = true;
+                        if (ChargeLimitValues.same(after, value)) break;
+                    }
+                    if (attempt < retryPolicy.attempts - 1) sleep(retryPolicy.delayMs);
+                }
+            }
+
+            final String beforeFinal = before;
+            final String afterFinal = after;
+            final boolean readFinal = reReadCompleted;
+            final LabVerdict verdict = LabVerdict.classify(
+                    beforeFinal, value, afterFinal,
+                    write.trace.code, write.trace.error, readFinal);
+            console.add(write.trace);
+            runOnUiThread(() -> {
+                if (tvLabVerdict != null) {
+                    tvLabVerdict.setText(verdict.name()
+                            + " · " + displayLimit(beforeFinal)
+                            + " → " + displayLimit(afterFinal)
+                            + " · " + write.trace.durationMs + " ms");
+                }
+                renderConsole();
+            });
+        });
+    }
+
+    private static void sleep(long delayMs) {
+        if (delayMs <= 0) return;
+        try {
+            Thread.sleep(delayMs);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    private static String displayLimit(String value) {
+        return value == null || value.isEmpty() ? "—" : value;
     }
 
     private void refreshContext() {

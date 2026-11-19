@@ -303,6 +303,33 @@
                     android:singleLine="true"
                     android:textColor="?attr/colorOnSurface"
                     android:textSize="14sp" />
+
+                <com.google.android.material.switchmaterial.SwitchMaterial
+                    android:id="@+id/switchLabReRead"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:checked="true"
+                    android:text="@string/lab_reread"
+                    android:textColor="?attr/colorOnSurface" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnLabSetLimit"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="@string/lab_set_limit"
+                    android:textAllCaps="false" />
+
+                <TextView
+                    android:id="@+id/tvLabVerdict"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/lab_verdict_idle"
+                    android:textColor="?attr/colorOnSurface"
+                    android:textIsSelectable="true"
+                    android:textSize="13sp" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
