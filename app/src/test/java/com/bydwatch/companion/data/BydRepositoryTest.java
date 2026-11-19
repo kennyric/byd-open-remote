@@ -346,6 +346,9 @@ public class BydRepositoryTest {
         private String customVehicleName = "";
         private final java.util.Map<String, String> vehicleCustomNames = new java.util.HashMap<>();
         private final java.util.Map<Integer, String> widgetVehicles = new java.util.HashMap<>();
+        private final java.util.Map<String, String> iconEmoji = new java.util.HashMap<>();
+        private final java.util.Map<String, String> iconPhoto = new java.util.HashMap<>();
+        private boolean swipeHintDismissed = false;
         private List<VehicleSummary> vehicles = java.util.Collections.emptyList();
         private long vehiclesFetchedAt = 0L;
         private String distanceUnit = com.bydwatch.companion.model.UnitPreferences.DIST_KM;
@@ -396,6 +399,27 @@ public class BydRepositoryTest {
 
         @Override public String getCustomVehicleName() { return customVehicleName != null ? customVehicleName : ""; }
         @Override public void setCustomVehicleName(String customVehicleName) { this.customVehicleName = customVehicleName != null ? customVehicleName.trim() : ""; }
+        @Override public String getVehicleIconEmoji(String vin) {
+            String v = iconEmoji.get(vin);
+            return v != null ? v : "";
+        }
+        @Override public void setVehicleIconEmoji(String vin, String emoji) {
+            if (vin == null) return;
+            if (emoji == null || emoji.trim().isEmpty()) iconEmoji.remove(vin);
+            else iconEmoji.put(vin, emoji);
+        }
+        @Override public String getVehicleIconPhoto(String vin) {
+            String v = iconPhoto.get(vin);
+            return v != null ? v : "";
+        }
+        @Override public void setVehicleIconPhoto(String vin, String path) {
+            if (vin == null) return;
+            if (path == null || path.trim().isEmpty()) iconPhoto.remove(vin);
+            else iconPhoto.put(vin, path);
+        }
+        @Override public boolean isVehicleSwipeHintDismissed() { return swipeHintDismissed; }
+        @Override public void setVehicleSwipeHintDismissed(boolean dismissed) { swipeHintDismissed = dismissed; }
+
         @Override public String getWidgetVehicle(int appWidgetId) {
             String vin = widgetVehicles.get(appWidgetId);
             return vin != null ? vin : "";

@@ -91,31 +91,32 @@ public class GarageUiTest {
     }
 
     private void openGarageSheet() {
-        View switcher = activity.findViewById(R.id.layoutHeaderVehicle);
-        assertNotNull(switcher);
-        assertTrue(switcher.isClickable());
-        switcher.performClick();
+        activity.showGarageSheet();
         ShadowLooper.idleMainLooper();
     }
 
     @Test
-    public void headerSwitcherHiddenWithOneCar() {
+    public void carouselIsQuietAndFullWidthWithOneCar() {
         launch();
-        View chevron = activity.findViewById(R.id.tvHeaderChevron);
-        View switcher = activity.findViewById(R.id.layoutHeaderVehicle);
-        assertNotNull(chevron);
-        assertEquals(View.GONE, chevron.getVisibility());
-        assertFalse(switcher.isClickable());
+        android.widget.HorizontalScrollView scroller =
+                activity.findViewById(R.id.scrollVehicle);
+        assertNotNull(scroller);
+        assertFalse("single car must not swipe", scroller.isEnabled());
+        assertEquals(View.GONE, activity.findViewById(R.id.layoutVehicleDots).getVisibility());
+        assertEquals(View.GONE, activity.findViewById(R.id.tvVehicleSwipeHint).getVisibility());
     }
 
     @Test
-    public void headerSwitcherAppearsWhenAccountHasTwoCars() {
+    public void carouselShowsPeekDotsAndHintWithTwoCars() {
         seedTwoCars();
         launch();
-        View chevron = activity.findViewById(R.id.tvHeaderChevron);
-        View switcher = activity.findViewById(R.id.layoutHeaderVehicle);
-        assertEquals(View.VISIBLE, chevron.getVisibility());
-        assertTrue(switcher.isClickable());
+        android.widget.HorizontalScrollView scroller =
+                activity.findViewById(R.id.scrollVehicle);
+        assertTrue(scroller.isEnabled());
+        android.widget.LinearLayout dots = activity.findViewById(R.id.layoutVehicleDots);
+        assertEquals(View.VISIBLE, dots.getVisibility());
+        assertEquals(2, dots.getChildCount());
+        assertEquals(View.VISIBLE, activity.findViewById(R.id.tvVehicleSwipeHint).getVisibility());
     }
 
     @Test
@@ -184,20 +185,19 @@ public class GarageUiTest {
         renameSeal.performClick();
         ShadowLooper.idleMainLooper();
 
-        androidx.appcompat.app.AlertDialog dialog =
-                (androidx.appcompat.app.AlertDialog) ShadowDialog.getLatestDialog();
+        Dialog dialog = ShadowDialog.getLatestDialog();
         assertNotNull(dialog);
         android.widget.EditText input = dialog.findViewById(R.id.etGarageRename);
         assertNotNull(input);
         input.setText("My Seal");
-        dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE).performClick();
+        dialog.findViewById(R.id.btnSaveVehicle).performClick();
         ShadowLooper.idleMainLooper();
 
         assertEquals("My Seal", configStore.getVehicleCustomName(VIN_SEAL));
         assertEquals("", configStore.getVehicleCustomName(VIN_ATTO));
 
         TextView header = activity.findViewById(R.id.tvHeaderTitle);
-        assertFalse("renaming the inactive car must not change the header",
+        assertFalse("renaming the inactive car must not change the app bar",
                 header.getText().toString().contains("My Seal"));
     }
 
@@ -207,8 +207,41 @@ public class GarageUiTest {
         configStore.setVin(VIN_SEAL);
         seedTwoCars();
         launch();
-        TextView header = activity.findViewById(R.id.tvHeaderTitle);
-        assertEquals("My Seal", header.getText().toString());
+        TextView drawerName = activity.findViewById(R.id.tvDrawerCarModel);
+        assertNotNull(drawerName);
+        assertEquals("My Seal", drawerName.getText().toString());
+    }
+
+    @Test
+    public void pickingAnEmojiStoresItPerVin() {
+        seedTwoCars();
+        launch();
+        activity.showPage(R.id.nav_account);
+        ShadowLooper.idleMainLooper();
+
+        android.widget.LinearLayout rows = activity.findViewById(R.id.layoutGarageRows);
+        rows.getChildAt(0).findViewById(R.id.btnGarageRowRename).performClick();
+        ShadowLooper.idleMainLooper();
+
+        Dialog dialog = ShadowDialog.getLatestDialog();
+        assertNotNull(dialog);
+        android.widget.GridLayout grid = dialog.findViewById(R.id.gridEditEmoji);
+        assertNotNull(grid);
+        View sealEmoji = null;
+        for (int i = 0; i < grid.getChildCount(); i++) {
+            View child = grid.getChildAt(i);
+            if (child instanceof TextView && "🚙".equals(((TextView) child).getText().toString())) {
+                sealEmoji = child;
+                break;
+            }
+        }
+        assertNotNull(sealEmoji);
+        sealEmoji.performClick();
+        dialog.findViewById(R.id.btnSaveVehicle).performClick();
+        ShadowLooper.idleMainLooper();
+
+        assertEquals("🚙", configStore.getVehicleIconEmoji(VIN_ATTO));
+        assertEquals("", configStore.getVehicleIconEmoji(VIN_SEAL));
     }
 
     @Test
@@ -223,21 +256,22 @@ public class GarageUiTest {
         rows.getChildAt(0).findViewById(R.id.btnGarageRowRename).performClick();
         ShadowLooper.idleMainLooper();
 
-        androidx.appcompat.app.AlertDialog dialog =
-                (androidx.appcompat.app.AlertDialog) ShadowDialog.getLatestDialog();
-        dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_NEUTRAL).performClick();
+        Dialog dialog = ShadowDialog.getLatestDialog();
+        assertNotNull(dialog);
+        dialog.findViewById(R.id.btnResetVehicle).performClick();
         ShadowLooper.idleMainLooper();
 
         assertEquals("", configStore.getVehicleCustomName(VIN_ATTO));
     }
 
     @Test
-    public void headerTapTargetIncludesTheCarIcon() {
+    public void carouselIsVisibleOnTheControlsPage() {
         seedTwoCars();
         launch();
-        android.view.ViewGroup header = activity.findViewById(R.id.layoutHeaderVehicle);
-        assertNotNull(header.findViewById(R.id.ivBrandLogo));
-        assertTrue(header.isClickable());
+        assertEquals(View.VISIBLE, activity.findViewById(R.id.layoutVehicleCarousel).getVisibility());
+        activity.showPage(R.id.nav_account);
+        ShadowLooper.idleMainLooper();
+        assertEquals(View.GONE, activity.findViewById(R.id.layoutVehicleCarousel).getVisibility());
     }
 
     @Test

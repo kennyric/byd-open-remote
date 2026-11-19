@@ -35,6 +35,9 @@ public class SecureConfigStore implements ConfigStore {
     private static final String PREF_VEHICLES_FETCHED_AT = "byd_vehicles_fetched_at";
     private static final String PREF_VEHICLE_CUSTOM_NAMES = "byd_vehicle_custom_names";
     private static final String PREF_WIDGET_VEHICLES = "byd_widget_vehicles";
+    private static final String PREF_VEHICLE_ICONS_EMOJI = "byd_vehicle_icons_emoji";
+    private static final String PREF_VEHICLE_ICONS_PHOTO = "byd_vehicle_icons_photo";
+    private static final String PREF_VEHICLE_SWIPE_HINT = "byd_vehicle_swipe_hint_dismissed";
     private static final String PREF_DEFAULT_TEMP_C = "byd_default_temp_c";
     private static final String PREF_DEFAULT_TEMP_GEAR = "byd_default_temp_gear";
     private static final String PREF_DEFAULT_FAN_LEVEL = "byd_default_fan_level";
@@ -346,6 +349,62 @@ public class SecureConfigStore implements ConfigStore {
             return;
         }
         prefs.edit().putString(PREF_WIDGET_VEHICLES, map.toString()).apply();
+    }
+
+    @Override
+    public String getVehicleIconEmoji(String vin) {
+        return readVinMap(PREF_VEHICLE_ICONS_EMOJI).optString(keyFor(vin), "");
+    }
+
+    @Override
+    public void setVehicleIconEmoji(String vin, String emoji) {
+        writeVinMap(PREF_VEHICLE_ICONS_EMOJI, vin, emoji);
+    }
+
+    @Override
+    public String getVehicleIconPhoto(String vin) {
+        return readVinMap(PREF_VEHICLE_ICONS_PHOTO).optString(keyFor(vin), "");
+    }
+
+    @Override
+    public void setVehicleIconPhoto(String vin, String path) {
+        writeVinMap(PREF_VEHICLE_ICONS_PHOTO, vin, path);
+    }
+
+    @Override
+    public boolean isVehicleSwipeHintDismissed() {
+        return prefs.getBoolean(PREF_VEHICLE_SWIPE_HINT, false);
+    }
+
+    @Override
+    public void setVehicleSwipeHintDismissed(boolean dismissed) {
+        prefs.edit().putBoolean(PREF_VEHICLE_SWIPE_HINT, dismissed).apply();
+    }
+
+    private static String keyFor(String vin) {
+        return vin != null ? vin.trim() : "";
+    }
+
+    private JSONObject readVinMap(String prefKey) {
+        String raw = prefs.getString(prefKey, "{}");
+        try {
+            return new JSONObject(raw != null ? raw : "{}");
+        } catch (JSONException e) {
+            return new JSONObject();
+        }
+    }
+
+    private void writeVinMap(String prefKey, String vin, String value) {
+        String key = keyFor(vin);
+        if (key.isEmpty()) return;
+        JSONObject map = readVinMap(prefKey);
+        try {
+            if (value == null || value.trim().isEmpty()) map.remove(key);
+            else map.put(key, value.trim());
+        } catch (JSONException ignored) {
+            return;
+        }
+        prefs.edit().putString(prefKey, map.toString()).apply();
     }
 
     private JSONObject readWidgetVehicles() {

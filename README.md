@@ -160,6 +160,17 @@ Configuring a dedicated secondary account in the official **BYD App** takes ~2 m
 
 ## Building & Testing
 
+### APK signing (mandatory)
+
+All distributable APKs are signed with one fixed key. Using a different key makes Android
+reject updates with “App not installed”, even at a higher versionCode.
+
+- SHA-256 `D1:67:0D:07:3C:1A:85:42:B7:80:80:2A:DF:CC:41:DE:58:87:5B:C5:98:AD:CC:76:44:D8:CC:8F:15:5C:B8:99`
+- Key: `~/.android/byd-open-remote.jks` (fallback `~/.android/debug.keystore`), alias
+  `androiddebugkey`, password `android`
+- `app/build.gradle` enforces this for every build type/flavor and fails the build if the
+  key is missing or wrong. Details and release steps: [`docs/RELEASING.md`](docs/RELEASING.md).
+
 ### Requirements
 - Android SDK Platform `34` (`compileSdk 34`, `minSdk 26`, `targetSdk 34`)
 - Java `17`
@@ -230,8 +241,9 @@ The demo code is gated on `BuildConfig.DEMO_BUILD`, a compile-time constant, so 
 ```text
 .
 ├── app/              # Android app (com.bydopenremote.app), Material You widgets, BYD cloud client & Robolectric tests
-├── docs/screenshots/ # Emulator screenshots used in documentation
-└── gradle/           # Gradle wrapper
+├── docs/screenshots/    # Emulator screenshots used in documentation
+├── watch-gt4/           # Legacy HarmonyOS / Huawei Watch GT 4 app (currently not working)
+└── watch-gt4-store/     # Legacy Huawei AppGallery watch package variant
 ```
 
 ---

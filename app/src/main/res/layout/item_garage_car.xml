@@ -14,13 +14,28 @@
     android:paddingHorizontal="10dp"
     android:paddingVertical="7dp">
 
-    <ImageView
-        android:id="@+id/ivGarageRowIcon"
-        android:layout_width="28dp"
-        android:layout_height="28dp"
-        android:contentDescription="@string/garage_title"
-        android:src="@drawable/ic_ev_watch_logo"
-        app:tint="?attr/colorPrimary" />
+    <FrameLayout
+        android:layout_width="30dp"
+        android:layout_height="30dp"
+        android:background="@drawable/bg_panel_inner"
+        android:backgroundTint="?attr/colorPrimaryContainer">
+
+        <ImageView
+            android:id="@+id/ivGarageRowIcon"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:contentDescription="@string/garage_icon_desc"
+            android:scaleType="centerCrop"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/tvGarageRowEmoji"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:text="🚗"
+            android:textSize="14sp" />
+    </FrameLayout>
 
     <LinearLayout
         android:layout_width="0dp"

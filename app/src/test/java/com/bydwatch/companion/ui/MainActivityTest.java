@@ -947,8 +947,8 @@ public class MainActivityTest {
         TextView tvChargingBadge = activity.findViewById(R.id.tvChargingBadge);
         Button btnRefresh = activity.findViewById(R.id.btnRefresh);
 
-        assertEquals("BYD EV", tvHeaderTitle.getText().toString());
-        assertEquals("BYD EV Controls", tvControlsTitle.getText().toString());
+        assertEquals("BYD Open Remote", tvHeaderTitle.getText().toString());
+        assertEquals("Controls", tvControlsTitle.getText().toString());
 
         fakeGateway.currentStatus = new VehicleStatus.Builder(68, 280, true, false, 24, 17, 1700000200L)
                 .vin("LC0TESTVIN1234567")
@@ -960,8 +960,8 @@ public class MainActivityTest {
         btnRefresh.performClick();
         awaitAsyncWork();
 
-        assertEquals("BYD Atto 3", tvHeaderTitle.getText().toString());
-        assertEquals("BYD Atto 3 Controls", tvControlsTitle.getText().toString());
+        assertEquals("BYD Open Remote", tvHeaderTitle.getText().toString());
+        assertEquals("Controls", tvControlsTitle.getText().toString());
         assertEquals("⚡ Charging · 7.2 kW · 0h 45m left", tvChargingBadge.getText().toString());
 
         fakeGateway.currentStatus = new VehicleStatus.Builder(80, 320, true, false, 24, 17, 1700000300L)
@@ -974,8 +974,8 @@ public class MainActivityTest {
         btnRefresh.performClick();
         awaitAsyncWork();
 
-        assertEquals("BYD Seal", tvHeaderTitle.getText().toString());
-        assertEquals("BYD Seal Controls", tvControlsTitle.getText().toString());
+        assertEquals("BYD Open Remote", tvHeaderTitle.getText().toString());
+        assertEquals("Controls", tvControlsTitle.getText().toString());
         assertEquals("⚡ Charging · 60.5 kW · 2h 0m left", tvChargingBadge.getText().toString());
 
         fakeGateway.currentStatus = new VehicleStatus.Builder(75, 227, true, false, 24, 17, 1700000400L)
@@ -985,8 +985,8 @@ public class MainActivityTest {
         btnRefresh.performClick();
         awaitAsyncWork();
 
-        assertEquals("SEAGULL/BYD AT", tvHeaderTitle.getText().toString());
-        assertEquals("SEAGULL/BYD AT Controls", tvControlsTitle.getText().toString());
+        assertEquals("BYD Open Remote", tvHeaderTitle.getText().toString());
+        assertEquals("Controls", tvControlsTitle.getText().toString());
 
     }
 
@@ -1866,7 +1866,6 @@ public class MainActivityTest {
         Button btnCloseWindows = activity.findViewById(R.id.btnCloseWindows);
         Button btnBatHeat = activity.findViewById(R.id.btnBatHeat);
         Button btnSeatHeat = activity.findViewById(R.id.btnSeatHeat);
-        View layoutHeaderVehicle = activity.findViewById(R.id.layoutHeaderVehicle);
         Button btnRefreshLocation = activity.findViewById(R.id.btnRefreshLocation);
         View cardLocation = activity.findViewById(R.id.cardLocation);
         SwipeRefreshLayout swipeRefresh = activity.findViewById(R.id.swipeRefresh);
@@ -1895,7 +1894,6 @@ public class MainActivityTest {
         assertFalse(btnCloseWindows.isEnabled());
         assertFalse(btnBatHeat.isEnabled());
         assertFalse(btnSeatHeat.isEnabled());
-        assertFalse(layoutHeaderVehicle.isEnabled());
         assertFalse(btnRefreshLocation.isEnabled());
         assertFalse(cardLocation.isEnabled());
         assertFalse(swipeRefresh.isEnabled());
@@ -1924,7 +1922,6 @@ public class MainActivityTest {
         assertTrue(btnHorn.isEnabled());
         assertTrue(btnVentWindows.isEnabled());
         assertTrue(btnCloseWindows.isEnabled());
-        assertTrue(layoutHeaderVehicle.isEnabled());
         assertTrue(btnRefreshLocation.isEnabled());
         assertTrue(cardLocation.isEnabled());
         assertTrue(swipeRefresh.isEnabled());

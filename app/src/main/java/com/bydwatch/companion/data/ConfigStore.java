@@ -80,6 +80,16 @@ public interface ConfigStore {
 
     default String getCustomVehicleName() { return ""; }
     default void setCustomVehicleName(String customVehicleName) {}
+    /** Per-vehicle icon override: either an emoji or a saved photo path (empty = default). */
+    default String getVehicleIconEmoji(String vin) { return ""; }
+    default void setVehicleIconEmoji(String vin, String emoji) {}
+    default String getVehicleIconPhoto(String vin) { return ""; }
+    default void setVehicleIconPhoto(String vin, String path) {}
+
+    /** True once the user has swiped the Controls carousel at least once. */
+    default boolean isVehicleSwipeHintDismissed() { return false; }
+    default void setVehicleSwipeHintDismissed(boolean dismissed) {}
+
     /** Vehicle a widget instance is pinned to; empty means "follow the active car". */
     default String getWidgetVehicle(int appWidgetId) { return ""; }
     default void setWidgetVehicle(int appWidgetId, String vin) {}

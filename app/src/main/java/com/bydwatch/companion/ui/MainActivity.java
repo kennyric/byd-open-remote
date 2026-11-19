@@ -8,6 +8,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.ColorStateList;
+import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.net.Uri;
@@ -20,8 +21,10 @@ import android.os.PowerManager;
 import android.provider.Settings;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.util.LruCache;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
+import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
@@ -30,6 +33,7 @@ import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.FrameLayout;
+import android.widget.GridLayout;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -49,6 +53,7 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.view.GravityCompat;
 import androidx.core.widget.NestedScrollView;
+import android.widget.HorizontalScrollView;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
@@ -72,6 +77,7 @@ import com.bydwatch.companion.wear.WearBridgeService;
 import com.bydwatch.companion.wear.WearEngineBridge;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.button.MaterialButton;
+import com.google.android.material.button.MaterialButtonToggleGroup;
 import com.google.android.material.button.MaterialButtonToggleGroup;
 import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.color.MaterialColors;
@@ -214,8 +220,27 @@ public class MainActivity extends AppCompatActivity {
     private Button btnCloseWindows;
     private Button btnBatHeat;
     private Button btnSeatHeat;
-    private View layoutHeaderVehicle;
-    private TextView tvHeaderChevron;
+    private View layoutVehicleCarousel;
+    private HorizontalScrollView scrollVehicle;
+    private LinearLayout layoutVehicleCards;
+    private LinearLayout layoutVehicleDots;
+    private TextView tvVehicleSwipeHint;
+    private boolean vehicleCarouselHasCars;
+    private int vehicleCardWidthPx;
+    private String vehicleCarouselKey;
+    private float vehicleDownX;
+    private float vehicleDownY;
+    private int vehicleDragStartIndex;
+    private long lastVehicleSwipeAt;
+    private android.view.VelocityTracker vehicleVelocityTracker;
+    private final LruCache<String, Bitmap> vehicleIconCache = new LruCache<>(12);
+    private BottomSheetDialog editVehicleDialog;
+    private String editVehicleVin;
+    private String editVehicleEmoji;
+    private String editVehiclePhoto;
+    private boolean editVehicleUsePhoto;
+    private View editVehicleSheet;
+    private ActivityResultLauncher<String[]> vehiclePhotoPicker;
     private View cardGarage;
     private TextView tvGarageCount;
     private TextView tvGarageMeta;
@@ -332,6 +357,23 @@ public class MainActivity extends AppCompatActivity {
         bridge = app.getWearEngineBridge();
 
         bindViews();
+        vehiclePhotoPicker = registerForActivityResult(
+                new ActivityResultContracts.OpenDocument(), uri -> {
+                    if (uri == null || editVehicleVin == null) return;
+                    String path = VehicleIconStore.savePhoto(this, editVehicleVin, uri);
+                    if (path.isEmpty()) {
+                        showToast(getString(R.string.edit_icon_photo_hint), false);
+                        return;
+                    }
+                    editVehiclePhoto = path;
+                    editVehicleUsePhoto = true;
+                    editVehicleEmoji = "";
+                    bindEditVehiclePreview();
+                    if (editVehicleSheet != null) {
+                        MaterialButtonToggleGroup group = editVehicleSheet.findViewById(R.id.toggleEditIconMode);
+                        if (group != null) group.check(R.id.btnEditIconPhoto);
+                    }
+                });
         initValues();
         migrateLegacyVehicleName();
         setupListeners();
@@ -493,8 +535,11 @@ public class MainActivity extends AppCompatActivity {
         btnCloseWindows = findViewById(R.id.btnCloseWindows);
         btnBatHeat = findViewById(R.id.btnBatHeat);
         btnSeatHeat = findViewById(R.id.btnSeatHeat);
-        layoutHeaderVehicle = findViewById(R.id.layoutHeaderVehicle);
-        tvHeaderChevron = findViewById(R.id.tvHeaderChevron);
+        layoutVehicleCarousel = findViewById(R.id.layoutVehicleCarousel);
+        scrollVehicle = findViewById(R.id.scrollVehicle);
+        layoutVehicleCards = findViewById(R.id.layoutVehicleCards);
+        layoutVehicleDots = findViewById(R.id.layoutVehicleDots);
+        tvVehicleSwipeHint = findViewById(R.id.tvVehicleSwipeHint);
         cardGarage = findViewById(R.id.cardGarage);
         tvGarageCount = findViewById(R.id.tvGarageCount);
         tvGarageMeta = findViewById(R.id.tvGarageMeta);
@@ -1049,6 +1094,10 @@ public class MainActivity extends AppCompatActivity {
         if (cardControls != null) {
             cardControls.setVisibility(navItemId == R.id.nav_controls ? View.VISIBLE : View.GONE);
         }
+        if (layoutVehicleCarousel != null) {
+            layoutVehicleCarousel.setVisibility(navItemId == R.id.nav_controls && vehicleCarouselHasCars
+                    ? View.VISIBLE : View.GONE);
+        }
         if (cardAccount != null) {
             cardAccount.setVisibility(navItemId == R.id.nav_account ? View.VISIBLE : View.GONE);
         }
@@ -1084,8 +1133,6 @@ public class MainActivity extends AppCompatActivity {
 
     private void updateHeaderSubtitleForPage(int navItemId) {
         if (tvHeaderSubtitle == null) return;
-        String regionCode = configStore != null ? configStore.getRegion() : SecureConfigStore.DEFAULT_REGION;
-        RegionOption opt = RegionOption.findByCode(regionCode);
         if (navItemId == R.id.nav_account) {
             tvHeaderSubtitle.setText(getString(R.string.card_account_title));
         } else if (navItemId == R.id.nav_preferences) {
@@ -1093,7 +1140,7 @@ public class MainActivity extends AppCompatActivity {
         } else if (navItemId == R.id.nav_watch_bridge) {
             tvHeaderSubtitle.setText(getString(R.string.nav_watch_bridge));
         } else {
-            tvHeaderSubtitle.setText(opt.formatLabel());
+            tvHeaderSubtitle.setText(getString(R.string.nav_controls));
         }
     }
 
@@ -2049,7 +2096,6 @@ public class MainActivity extends AppCompatActivity {
                     btnHorn,
                     btnVentWindows,
                     btnCloseWindows,
-                    layoutHeaderVehicle,
                     btnRefreshLocation,
                     cardLocation
             };
@@ -2948,26 +2994,175 @@ public class MainActivity extends AppCompatActivity {
     /** Rename dialog for one garage car; the override is stored per VIN. */
     private void showRenameVehicleDialog(VehicleSummary car) {
         if (configStore == null || car == null || car.vin == null) return;
-        View content = LayoutInflater.from(this).inflate(R.layout.dialog_rename_vehicle, null);
+
+        editVehicleVin = car.vin;
+        editVehicleEmoji = configStore.getVehicleIconEmoji(car.vin);
+        editVehiclePhoto = configStore.getVehicleIconPhoto(car.vin);
+        editVehicleUsePhoto = editVehiclePhoto != null && !editVehiclePhoto.isEmpty();
+
+        View content = LayoutInflater.from(this).inflate(R.layout.sheet_edit_vehicle, null);
+        editVehicleSheet = content;
+        TextView title = content.findViewById(R.id.tvEditVehicleTitle);
         EditText input = content.findViewById(R.id.etGarageRename);
         String saved = configStore.getVehicleCustomName(car.vin);
         input.setText(saved);
         input.setHint(VehicleSummary.formatDisplayModel(car.watchShortLabel()));
-        String titleName = saved != null && !saved.trim().isEmpty() ? saved.trim() : car.watchShortLabel();
         input.setSelection(input.getText() != null ? input.getText().length() : 0);
+        if (title != null) {
+            String display = saved != null && !saved.trim().isEmpty() ? saved.trim() : car.watchShortLabel();
+            title.setText(getString(R.string.edit_vehicle_title_fmt, display));
+        }
 
-        new AlertDialog.Builder(this)
-                .setTitle(getString(R.string.garage_rename_title_fmt, titleName))
-                .setView(content)
-                .setPositiveButton(R.string.btn_save, (d, w) -> {
-                    String name = input.getText() != null
-                            ? input.getText().toString().trim().replaceAll("\s+", " ")
-                            : "";
-                    applyVehicleRename(car.vin, name);
-                })
-                .setNeutralButton(R.string.garage_rename_reset, (d, w) -> applyVehicleRename(car.vin, ""))
-                .setNegativeButton(android.R.string.cancel, null)
-                .show();
+        GridLayout grid = content.findViewById(R.id.gridEditEmoji);
+        buildEmojiGrid(grid);
+        bindEditVehiclePreview();
+        updateEditIconModeUi();
+
+        MaterialButtonToggleGroup toggle = content.findViewById(R.id.toggleEditIconMode);
+        if (toggle != null) {
+            toggle.check(editVehicleUsePhoto ? R.id.btnEditIconPhoto : R.id.btnEditIconEmoji);
+            toggle.addOnButtonCheckedListener((group, checkedId, isChecked) -> {
+                if (!isChecked) return;
+                editVehicleUsePhoto = checkedId == R.id.btnEditIconPhoto;
+                updateEditIconModeUi();
+            });
+        }
+
+        com.google.android.material.button.MaterialButton pick =
+                content.findViewById(R.id.btnEditPickPhoto);
+        if (pick != null) {
+            pick.setOnClickListener(v -> {
+                if (vehiclePhotoPicker != null) vehiclePhotoPicker.launch(new String[]{"image/*"});
+            });
+        }
+
+        com.google.android.material.button.MaterialButton reset =
+                content.findViewById(R.id.btnResetVehicle);
+        if (reset != null) {
+            reset.setOnClickListener(v -> {
+                if (configStore == null || editVehicleVin == null) return;
+                configStore.setVehicleIconEmoji(editVehicleVin, "");
+                configStore.setVehicleIconPhoto(editVehicleVin, "");
+                VehicleIconStore.deletePhoto(this, editVehicleVin);
+                vehicleIconCache.evictAll();
+                dismissEditVehicleSheet();
+                applyVehicleRename(editVehicleVin, "");
+                showToast(getString(R.string.garage_rename_cleared), false);
+            });
+        }
+
+        com.google.android.material.button.MaterialButton cancel =
+                content.findViewById(R.id.btnCancelVehicle);
+        if (cancel != null) cancel.setOnClickListener(v -> dismissEditVehicleSheet());
+
+        com.google.android.material.button.MaterialButton save =
+                content.findViewById(R.id.btnSaveVehicle);
+        if (save != null) {
+            save.setOnClickListener(v -> {
+                if (configStore == null || editVehicleVin == null) return;
+                String name = input.getText() != null
+                        ? input.getText().toString().trim().replaceAll("\\s+", " ")
+                        : "";
+                if (editVehicleUsePhoto && editVehiclePhoto != null && !editVehiclePhoto.isEmpty()) {
+                    configStore.setVehicleIconPhoto(editVehicleVin, editVehiclePhoto);
+                    configStore.setVehicleIconEmoji(editVehicleVin, "");
+                } else {
+                    configStore.setVehicleIconPhoto(editVehicleVin, "");
+                    VehicleIconStore.deletePhoto(this, editVehicleVin);
+                    String emoji = editVehicleEmoji != null && !editVehicleEmoji.isEmpty()
+                            ? editVehicleEmoji
+                            : VehicleIconStore.DEFAULT_EMOJI;
+                    configStore.setVehicleIconEmoji(editVehicleVin, emoji);
+                }
+                vehicleIconCache.evictAll();
+                dismissEditVehicleSheet();
+                applyVehicleRename(editVehicleVin, name);
+            });
+        }
+
+        editVehicleDialog = new BottomSheetDialog(this);
+        editVehicleDialog.setContentView(content);
+        editVehicleDialog.setOnDismissListener(d -> {
+            editVehicleDialog = null;
+            editVehicleSheet = null;
+            editVehicleVin = null;
+        });
+        editVehicleDialog.show();
+    }
+
+    private void dismissEditVehicleSheet() {
+        if (editVehicleDialog != null) {
+            editVehicleDialog.dismiss();
+        }
+    }
+
+    private void buildEmojiGrid(GridLayout grid) {
+        if (grid == null) return;
+        grid.removeAllViews();
+        float density = getResources().getDisplayMetrics().density;
+        int size = Math.round(42 * density);
+        String selected = VehicleIconStore.emojiOrDefault(editVehicleEmoji);
+        for (String emoji : VehicleIconStore.EMOJIS) {
+            TextView cell = new TextView(this);
+            GridLayout.LayoutParams lp = new GridLayout.LayoutParams();
+            lp.width = 0;
+            lp.height = size;
+            lp.columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
+            lp.setMargins(Math.round(2 * density), Math.round(2 * density),
+                    Math.round(2 * density), Math.round(2 * density));
+            cell.setLayoutParams(lp);
+            cell.setGravity(Gravity.CENTER);
+            cell.setText(emoji);
+            cell.setTextSize(20);
+            cell.setBackgroundResource(R.drawable.bg_panel_inner);
+            boolean on = emoji.equals(selected) && !editVehicleUsePhoto;
+            cell.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(this,
+                    on ? R.color.accent_emerald_dark : R.color.surface_inner)));
+            cell.setOnClickListener(v -> {
+                editVehicleEmoji = emoji;
+                editVehicleUsePhoto = false;
+                if (editVehicleSheet != null) {
+                    MaterialButtonToggleGroup group = editVehicleSheet.findViewById(R.id.toggleEditIconMode);
+                    if (group != null) group.check(R.id.btnEditIconEmoji);
+                }
+                buildEmojiGrid(grid);
+                bindEditVehiclePreview();
+                updateEditIconModeUi();
+            });
+            grid.addView(cell);
+        }
+    }
+
+    private void updateEditIconModeUi() {
+        if (editVehicleSheet == null) return;
+        View grid = editVehicleSheet.findViewById(R.id.gridEditEmoji);
+        View photo = editVehicleSheet.findViewById(R.id.layoutEditPhoto);
+        if (grid != null) grid.setVisibility(editVehicleUsePhoto ? View.GONE : View.VISIBLE);
+        if (photo != null) photo.setVisibility(editVehicleUsePhoto ? View.VISIBLE : View.GONE);
+    }
+
+    private void bindEditVehiclePreview() {
+        if (editVehicleSheet == null) return;
+        ImageView preview = editVehicleSheet.findViewById(R.id.ivEditIconPreview);
+        TextView emojiView = editVehicleSheet.findViewById(R.id.tvEditIconEmoji);
+        if (preview == null || emojiView == null) return;
+        Bitmap bitmap = null;
+        if (editVehicleUsePhoto && editVehiclePhoto != null && !editVehiclePhoto.isEmpty()) {
+            bitmap = vehicleIconCache.get(editVehiclePhoto);
+            if (bitmap == null) {
+                bitmap = VehicleIconStore.loadPhoto(editVehiclePhoto);
+                if (bitmap != null) vehicleIconCache.put(editVehiclePhoto, bitmap);
+            }
+        }
+        if (bitmap != null) {
+            preview.setImageBitmap(bitmap);
+            preview.setVisibility(View.VISIBLE);
+            emojiView.setVisibility(View.GONE);
+        } else {
+            preview.setVisibility(View.GONE);
+            emojiView.setText(VehicleIconStore.emojiOrDefault(editVehicleEmoji));
+            emojiView.setVisibility(View.VISIBLE);
+        }
     }
 
     private void applyVehicleRename(String vin, String name) {
@@ -3007,17 +3202,18 @@ public class MainActivity extends AppCompatActivity {
         String displayModel = (customModel != null && !customModel.trim().isEmpty())
                 ? customModel.trim()
                 : VehicleSummary.formatDisplayModel(resolveDisplayModelName(status));
+
         if (tvHeaderTitle != null) {
-            tvHeaderTitle.setText(displayModel);
+            tvHeaderTitle.setText(R.string.app_name);
         }
         updateHeaderSubtitleForPage(currentPageId);
         if (tvDrawerCarModel != null) {
             tvDrawerCarModel.setText(displayModel);
         }
         if (tvControlsTitle != null) {
-            tvControlsTitle.setText(getString(R.string.controls_title_format, displayModel));
+            tvControlsTitle.setText(R.string.controls_section_title);
         }
-        updateHeaderSwitcher(status);
+        renderVehicleCarousel(status);
     }
 
     private String resolveDisplayModelName(VehicleStatus status) {
@@ -3052,19 +3248,277 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /** Chevron + tap target on the header car name, only when there is another car to switch to. */
-    private void updateHeaderSwitcher(VehicleStatus status) {
-        List<VehicleSummary> cars = garageVehicles(status);
-        boolean multi = cars != null && cars.size() > 1;
-        if (tvHeaderChevron != null) {
-            tvHeaderChevron.setVisibility(multi ? View.VISIBLE : View.GONE);
-        }
-        if (layoutHeaderVehicle != null) {
-            if (multi) {
-                layoutHeaderVehicle.setOnClickListener(v -> showGarageSheet());
-            } else {
-                layoutHeaderVehicle.setOnClickListener(null);
-                layoutHeaderVehicle.setClickable(false);
+    private String vehicleCarouselKey(List<VehicleSummary> cars) {
+        StringBuilder sb = new StringBuilder(currentActiveVin());
+        if (cars != null) {
+            for (VehicleSummary car : cars) {
+                if (car == null) continue;
+                sb.append('|').append(car.vin)
+                        .append(',').append(garageDisplayName(car))
+                        .append(',').append(configStore != null ? configStore.getVehicleIconEmoji(car.vin) : "")
+                        .append(',').append(configStore != null ? configStore.getVehicleIconPhoto(car.vin) : "");
             }
+        }
+        return sb.toString();
+    }
+
+    private void renderVehicleCarousel(VehicleStatus status) {
+        if (scrollVehicle == null || layoutVehicleCards == null) return;
+        List<VehicleSummary> cars = garageVehicles(status);
+        boolean hasCars = cars != null && !cars.isEmpty();
+        boolean multi = cars != null && cars.size() > 1;
+        vehicleCarouselHasCars = hasCars;
+
+        // Cards only show identity (name, icon, VIN), so telemetry refreshes must not rebuild
+        // them or reset the carousel scroll.
+        String key = vehicleCarouselKey(cars);
+        boolean unchanged = key.equals(vehicleCarouselKey);
+        vehicleCarouselKey = key;
+
+        float density = getResources().getDisplayMetrics().density;
+        int available = getResources().getDisplayMetrics().widthPixels - Math.round(32 * density);
+        int peek = Math.round(26 * density);
+        vehicleCardWidthPx = Math.max(Math.round(200 * density), available - peek * 2);
+
+        if (unchanged && hasCars) {
+            updateVehicleDotsVisibility();
+            if (layoutVehicleCarousel != null) {
+                layoutVehicleCarousel.setVisibility(
+                        currentPageId == R.id.nav_controls ? View.VISIBLE : View.GONE);
+            }
+            return;
+        }
+
+        layoutVehicleCards.removeAllViews();
+        if (cars != null) {
+            for (VehicleSummary car : cars) {
+                if (car == null) continue;
+                View card = buildVehicleCard(car, multi);
+                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                        multi ? vehicleCardWidthPx : android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                        android.view.ViewGroup.LayoutParams.WRAP_CONTENT);
+                lp.setMarginEnd(multi ? Math.round(8 * density) : 0);
+                card.setLayoutParams(lp);
+                layoutVehicleCards.addView(card);
+            }
+        }
+
+        scrollVehicle.setEnabled(multi);
+        scrollVehicle.setHorizontalScrollBarEnabled(false);
+        if (scrollVehicle.getParent() instanceof android.view.ViewGroup) {
+            ((android.view.ViewGroup) scrollVehicle.getParent()).setClipChildren(false);
+        }
+
+        int index = Math.max(0, indexOfVehicle(cars, currentActiveVin()));
+        rebuildVehicleDots(cars != null ? cars.size() : 0, index);
+        updateVehicleDotsVisibility();
+        final int target = index;
+        final int step = multi ? vehicleCardWidthPx + Math.round(8 * density) : 0;
+        scrollVehicle.scrollTo(target * step, 0);
+        scrollVehicle.post(() -> {
+            if (scrollVehicle != null) scrollVehicle.scrollTo(target * step, 0);
+        });
+
+        if (layoutVehicleCarousel != null) {
+            layoutVehicleCarousel.setVisibility(
+                    hasCars && currentPageId == R.id.nav_controls ? View.VISIBLE : View.GONE);
+        }
+    }
+
+    private View buildVehicleCard(VehicleSummary car, boolean multi) {
+        View card = LayoutInflater.from(this).inflate(R.layout.item_vehicle_card, layoutVehicleCards, false);
+        ImageView icon = card.findViewById(R.id.ivCarouselIcon);
+        TextView iconEmoji = card.findViewById(R.id.tvCarouselIconEmoji);
+        TextView name = card.findViewById(R.id.tvCarouselName);
+        TextView meta = card.findViewById(R.id.tvCarouselMeta);
+        Button switchButton = card.findViewById(R.id.btnCarouselSwitch);
+
+        name.setText(garageDisplayName(car));
+        String region = configStore != null
+                ? RegionOption.findByCode(configStore.getRegion()).formatLabel()
+                : "";
+        String model = VehicleSummary.formatDisplayModel(car.watchShortLabel());
+        boolean hasCustomName = configStore != null
+                && !configStore.getVehicleCustomName(car.vin).trim().isEmpty();
+        meta.setText(hasCustomName
+                ? getString(R.string.vehicle_card_meta_fmt, model, region, maskVin(car.vin))
+                : getString(R.string.vehicle_card_meta_short_fmt, region, maskVin(car.vin)));
+        bindVehicleIcon(icon, iconEmoji, car.vin);
+
+        switchButton.setVisibility(multi ? View.VISIBLE : View.GONE);
+        switchButton.setOnClickListener(v -> showGarageSheet());
+        card.setOnClickListener(v -> {
+            if (multi) showGarageSheet();
+        });
+
+        setupVehicleSwipeHandler(multi);
+        return card;
+    }
+
+    private void setupVehicleSwipeHandler(boolean multi) {
+        if (scrollVehicle == null) return;
+        if (!multi) {
+            scrollVehicle.setOnTouchListener(null);
+            scrollVehicle.setOnScrollChangeListener(null);
+            return;
+        }
+        scrollVehicle.setOnTouchListener((v, event) -> {
+            float density = getResources().getDisplayMetrics().density;
+            int width = vehicleCardWidthPx + Math.round(8 * density);
+            switch (event.getActionMasked()) {
+                case MotionEvent.ACTION_DOWN:
+                    vehicleDownX = event.getX();
+                    vehicleDownY = event.getY();
+                    vehicleDragStartIndex = width > 0
+                            ? Math.max(0, Math.round(scrollVehicle.getScrollX() / (float) width))
+                            : 0;
+                    if (vehicleVelocityTracker == null) {
+                        vehicleVelocityTracker = android.view.VelocityTracker.obtain();
+                    } else {
+                        vehicleVelocityTracker.clear();
+                    }
+                    vehicleVelocityTracker.addMovement(event);
+                    break;
+                case MotionEvent.ACTION_MOVE:
+                    if (vehicleVelocityTracker != null) vehicleVelocityTracker.addMovement(event);
+                    break;
+                case MotionEvent.ACTION_UP:
+                case MotionEvent.ACTION_CANCEL:
+                    float dx = event.getX() - vehicleDownX;
+                    float dy = event.getY() - vehicleDownY;
+                    float vx = 0f;
+                    if (vehicleVelocityTracker != null) {
+                        vehicleVelocityTracker.computeCurrentVelocity(1000);
+                        vx = vehicleVelocityTracker.getXVelocity();
+                    }
+                    if (vehicleVelocityTracker != null) {
+                        vehicleVelocityTracker.recycle();
+                        vehicleVelocityTracker = null;
+                    }
+                    final float fdx = dx;
+                    final float fdy = dy;
+                    final float fvx = vx;
+                    v.post(() -> finishVehicleSwipe(fdx, fdy, fvx));
+                    // Consume UP so the ScrollView cannot start a fling that overrides the snap.
+                    return true;
+                default:
+                    break;
+            }
+            return false;
+        });
+
+    }
+
+    /**
+     * Forgiving swipe: a modest drag or a quick fling advances one card, instead of requiring
+     * the card to travel half-way. Wraps around at the ends.
+     */
+    private void finishVehicleSwipe(float dx, float dy, float velocityX) {
+        if (layoutVehicleCards == null) return;
+        long now = System.currentTimeMillis();
+        if (now - lastVehicleSwipeAt < 350L) return;
+        lastVehicleSwipeAt = now;
+        int count = layoutVehicleCards.getChildCount();
+        if (count < 2) return;
+
+        float density = getResources().getDisplayMetrics().density;
+        int width = vehicleCardWidthPx + Math.round(8 * density);
+        if (width <= 0) return;
+
+        boolean horizontal = Math.abs(dx) > Math.abs(dy) * 1.2f;
+        float distanceThreshold = 28 * density;
+        float flingThreshold = 450 * density;
+
+        int target = vehicleDragStartIndex;
+        if (horizontal) {
+            if (dx < -distanceThreshold || velocityX < -flingThreshold) {
+                target = (vehicleDragStartIndex + 1) % count;
+            } else if (dx > distanceThreshold || velocityX > flingThreshold) {
+                target = (vehicleDragStartIndex - 1 + count) % count;
+            }
+        }
+
+        scrollVehicle.smoothScrollTo(target * width, 0);
+        rebuildVehicleDots(count, target);
+
+        List<VehicleSummary> cars = garageVehicles(lastStatus);
+        if (cars == null || target >= cars.size()) return;
+        VehicleSummary car = cars.get(target);
+        if (car == null || car.vin == null) return;
+        if (car.vin.equals(currentActiveVin())) return;
+        if (actionInFlight) {
+            scrollVehicle.smoothScrollTo(Math.max(0, vehicleDragStartIndex) * width, 0);
+            return;
+        }
+        if (configStore != null) configStore.setVehicleSwipeHintDismissed(true);
+        updateVehicleDotsVisibility();
+        executeWatchAction(WatchProtocol.ACTION_SWITCH_CAR, -1, car.vin, -1);
+    }
+
+    private void updateVehicleDotsVisibility() {
+        boolean multi = vehicleCarouselHasCars && layoutVehicleCards != null
+                && layoutVehicleCards.getChildCount() > 1;
+        if (layoutVehicleDots != null) {
+            layoutVehicleDots.setVisibility(multi ? View.VISIBLE : View.GONE);
+        }
+        if (tvVehicleSwipeHint != null) {
+            boolean dismissed = configStore != null && configStore.isVehicleSwipeHintDismissed();
+            tvVehicleSwipeHint.setVisibility(multi && !dismissed ? View.VISIBLE : View.GONE);
+        }
+    }
+
+    private void rebuildVehicleDots(int count, int selected) {
+        if (layoutVehicleDots == null) return;
+        layoutVehicleDots.removeAllViews();
+        if (count <= 1) {
+            layoutVehicleDots.setVisibility(View.GONE);
+            return;
+        }
+        float density = getResources().getDisplayMetrics().density;
+        int size = Math.round(5 * density);
+        int gap = Math.round(5 * density);
+        for (int i = 0; i < count; i++) {
+            View dot = new View(this);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                    i == selected ? size * 2 : size, size);
+            lp.setMarginEnd(gap);
+            dot.setLayoutParams(lp);
+            dot.setBackgroundResource(R.drawable.bg_console);
+            dot.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(this,
+                    i == selected ? R.color.accent_emerald : R.color.text_muted)));
+            layoutVehicleDots.addView(dot);
+        }
+        layoutVehicleDots.setVisibility(View.VISIBLE);
+    }
+
+    private static int indexOfVehicle(List<VehicleSummary> cars, String vin) {
+        if (cars == null || vin == null) return 0;
+        for (int i = 0; i < cars.size(); i++) {
+            VehicleSummary car = cars.get(i);
+            if (car != null && vin.equals(car.vin)) return i;
+        }
+        return 0;
+    }
+
+    private void bindVehicleIcon(ImageView photo, TextView emoji, String vin) {
+        String path = configStore != null ? configStore.getVehicleIconPhoto(vin) : "";
+        Bitmap bitmap = null;
+        if (path != null && !path.isEmpty()) {
+            bitmap = vehicleIconCache.get(path);
+            if (bitmap == null) {
+                bitmap = VehicleIconStore.loadPhoto(path);
+                if (bitmap != null) vehicleIconCache.put(path, bitmap);
+            }
+        }
+        if (bitmap != null) {
+            photo.setImageBitmap(bitmap);
+            photo.setVisibility(View.VISIBLE);
+            emoji.setVisibility(View.GONE);
+        } else {
+            photo.setVisibility(View.GONE);
+            String stored = configStore != null ? configStore.getVehicleIconEmoji(vin) : "";
+            emoji.setText(VehicleIconStore.emojiOrDefault(stored));
+            emoji.setVisibility(View.VISIBLE);
         }
     }
 
@@ -3140,8 +3594,13 @@ public class MainActivity extends AppCompatActivity {
         TextView name = row.findViewById(R.id.tvGarageRowName);
         TextView meta = row.findViewById(R.id.tvGarageRowMeta);
         android.widget.RadioButton radio = row.findViewById(R.id.rbGarageRow);
+        ImageView icon = row.findViewById(R.id.ivGarageRowIcon);
+        TextView iconEmoji = row.findViewById(R.id.tvGarageRowEmoji);
         boolean active = car.vin != null && car.vin.equals(activeVin);
 
+        if (icon != null && iconEmoji != null) {
+            bindVehicleIcon(icon, iconEmoji, car.vin);
+        }
         name.setText(garageDisplayName(car));
         meta.setText(buildGarageMeta(car, active));
         if (radio != null) {
@@ -3182,7 +3641,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /** Header switcher: a bottom sheet listing every car with its telemetry, ACTIVE marked. */
-    private void showGarageSheet() {
+    void showGarageSheet() {
         List<VehicleSummary> cars = garageVehicles(lastStatus);
         if (cars == null || cars.size() < 2) return;
 

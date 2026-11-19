@@ -11,16 +11,65 @@ if (agcFile.exists()) {
     if (agcJson?.client?.cp_id) agcCpId = agcJson.client.cp_id.toString()
 }
 
+// ---------------------------------------------------------------------------
+// APK signing (MANDATORY)
+//
+// Every distributed APK must be signed with the project's canonical key, or
+// installed users cannot update in place ("App not installed"). The canonical
+// certificate is:
+//   SHA-256 D1:67:0D:07:3C:1A:85:42:B7:80:80:2A:DF:CC:41:DE:58:87:5B:C5:98:AD:CC:76:44:D8:CC:8F:15:5C:B8:99
+//
+// Resolution order (first existing file wins):
+//   1. BYD_KEYSTORE env var
+//   2. byd.keystore in local.properties
+//   3. ~/.android/byd-open-remote.jks   (preferred permanent home)
+//   4. ~/.android/debug.keystore        (current canonical file)
+// Never fall back to the machine's default debug keystore: that is how the
+// v1.0.5 -> v1.1.0 signature break happened.
+// ---------------------------------------------------------------------------
+def localProps = new Properties()
+def localPropsFile = rootProject.file('local.properties')
+if (localPropsFile.exists()) {
+    localPropsFile.withInputStream { localProps.load(it) }
+}
+
+def canonicalCertSha256 = 'D1670D073C1A8542B780802ADFCC41DE58875BC598ADCC7644D8CC8F155CB899'
+def homeDir = System.getProperty('user.home')
+def keystoreCandidates = [
+        System.getenv('BYD_KEYSTORE'),
+        localProps.getProperty('byd.keystore'),
+        homeDir + '/.android/byd-open-remote.jks',
+        homeDir + '/.android/debug.keystore'
+]
+def canonicalKeystorePath = keystoreCandidates.find { it != null && !it.trim().isEmpty() && file(it).exists() }
+def canonicalKeystorePassword = System.getenv('BYD_KEYSTORE_PASSWORD')
+        ?: localProps.getProperty('byd.keystore.password') ?: 'android'
+def canonicalKeyAlias = System.getenv('BYD_KEY_ALIAS')
+        ?: localProps.getProperty('byd.key.alias') ?: 'androiddebugkey'
+def canonicalKeyPassword = System.getenv('BYD_KEY_PASSWORD')
+        ?: localProps.getProperty('byd.key.password') ?: canonicalKeystorePassword
+
 android {
     namespace 'com.bydwatch.companion'
     compileSdk 34
+
+    signingConfigs {
+        canonical {
+            if (canonicalKeystorePath != null) {
+                storeFile file(canonicalKeystorePath)
+                storePassword canonicalKeystorePassword
+                keyAlias canonicalKeyAlias
+                keyPassword canonicalKeyPassword
+            }
+        }
+    }
 
     defaultConfig {
         applicationId 'com.bydopenremote.app'
         minSdk 26
         targetSdk 34
-        versionCode 8
-        versionName '1.2.0'
+        versionCode 9
+        versionName '1.2.1'
 
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
 
@@ -40,7 +89,11 @@ android {
     }
 
     buildTypes {
+        debug {
+            signingConfig signingConfigs.canonical
+        }
         release {
+            signingConfig signingConfigs.canonical
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
@@ -68,8 +121,8 @@ android {
             // the Quick Settings tile resolve at runtime.
             applicationId 'com.bydopenremote.demo'
             // Distinct version so an in-place update is unambiguous ("1.1.0-demo2" in Settings).
-            versionCode 13
-            versionNameSuffix '-demo7'
+            versionCode 16
+            versionNameSuffix '-demo10'
             buildConfigField "boolean", "DEMO_BUILD", "true"
             manifestPlaceholders.putAll(demoManifestPlaceholders + [
                 DEMO_SETUP_TILE   : 'true',
@@ -108,6 +161,7 @@ android {
 dependencies {
     implementation 'androidx.appcompat:appcompat:1.7.0'
     implementation 'com.google.android.material:material:1.12.0'
+    implementation 'androidx.viewpager2:viewpager2:1.1.0'
     implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0'
     implementation 'androidx.biometric:biometric:1.1.0'
     implementation 'androidx.security:security-crypto:1.1.0-alpha06'
@@ -117,4 +171,34 @@ dependencies {
     testImplementation 'org.robolectric:robolectric:4.13'
     testImplementation 'org.json:json:20240303'
     implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+}
+
+// Refuse to assemble an APK unless the canonical signing key is present and correct.
+tasks.register('checkSigningKey') {
+    doLast {
+        if (canonicalKeystorePath == null) {
+            throw new GradleException(
+                    "No APK signing keystore found. Put the project key at ~/.android/byd-open-remote.jks " +
+                    "or set BYD_KEYSTORE. Expected certificate SHA-256: " + canonicalCertSha256)
+        }
+        def keytool = new File(System.getProperty('java.home'), 'bin/keytool' + (System.getProperty('os.name').toLowerCase().contains('win') ? '.exe' : ''))
+        def output = new StringBuilder()
+        def proc = [keytool.absolutePath, '-list', '-v', '-keystore', canonicalKeystorePath,
+                    '-storepass', canonicalKeystorePassword].execute()
+        proc.consumeProcessOutput(output, output)
+        proc.waitForOrKill(30000)
+        def normalized = output.toString().replaceAll(':', '').toUpperCase()
+        if (!normalized.contains(canonicalCertSha256)) {
+            throw new GradleException(
+                    "Wrong signing key at " + canonicalKeystorePath + ".\n" +
+                    "Expected SHA-256 " + canonicalCertSha256 + " but the keystore does not contain it.\n" +
+                    "Do NOT ship this APK: users would get \"App not installed\". See docs/RELEASING.md.")
+        }
+    }
+}
+
+tasks.configureEach { task ->
+    if (task.name ==~ /^(assemble|bundle).*/) {
+        task.dependsOn('checkSigningKey')
+    }
 }

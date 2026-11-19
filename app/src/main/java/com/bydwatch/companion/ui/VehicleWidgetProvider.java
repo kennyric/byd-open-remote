@@ -1300,7 +1300,7 @@ public class VehicleWidgetProvider extends AppWidgetProvider {
             if (carLabel != null && !carLabel.isEmpty()) {
                 int dp4 = Math.round(6 * resCtx.getResources().getDisplayMetrics().density);
                 int dp2 = Math.round(2 * resCtx.getResources().getDisplayMetrics().density);
-                views.setTextViewText(R.id.tvWidgetCarModel, carLabel + "  \u25BE");
+                views.setTextViewText(R.id.tvWidgetCarModel, widgetIconPrefix(cfg, context, appWidgetId, st) + carLabel + "  \u25BE");
                 views.setInt(R.id.tvWidgetCarModel, "setBackgroundResource", R.drawable.bg_widget_car_pill);
                 views.setTextColor(R.id.tvWidgetCarModel,
                         ContextCompat.getColor(resCtx, R.color.accent_emerald));
@@ -1333,6 +1333,17 @@ public class VehicleWidgetProvider extends AppWidgetProvider {
             }
         }
         return null;
+    }
+
+
+    /** Emoji for the car a widget shows; photos stay app-only. */
+    private static String widgetIconPrefix(@Nullable ConfigStore cfg, Context context,
+                                           int appWidgetId, @Nullable VehicleStatus st) {
+        if (cfg == null) return "";
+        String vin = !boundVinFor(context, appWidgetId).isEmpty()
+                ? boundVinFor(context, appWidgetId)
+                : (st != null && st.vin != null && !st.vin.isEmpty() ? st.vin : cfg.getVin());
+        return VehicleIconStore.emojiOrDefault(cfg.getVehicleIconEmoji(vin)) + " ";
     }
 
     private static void bindWidgetSlots(
