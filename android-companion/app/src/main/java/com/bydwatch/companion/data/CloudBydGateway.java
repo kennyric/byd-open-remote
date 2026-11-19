@@ -2,11 +2,18 @@ package com.bydwatch.companion.data;
 
 import android.content.Context;
 
+import com.bydwatch.companion.model.UnitPreferences;
 import com.bydwatch.companion.model.VehicleStatus;
+import com.bydwatch.companion.model.VehicleSummary;
 import com.overdrive.app.byd.cloud.BydCloudClient;
 import com.overdrive.app.byd.cloud.BydCloudConfig;
+import com.overdrive.app.byd.cloud.CloudCapabilities;
+import com.overdrive.app.byd.cloud.crypto.BangcleTablesFile;
 import com.overdrive.app.byd.cloud.crypto.BydCryptoUtils;
+import com.overdrive.app.byd.cloud.crypto.EnvelopeCodecFactory;
+import com.overdrive.app.byd.cloud.crypto.WbskTablesFile;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.ByteArrayInputStream;
@@ -14,10 +21,17 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.SocketTimeoutException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
+import java.util.TreeSet;
 
 /**
  * Implementation of BydGateway wrapping the ported BydCloudClient.
+ * Supports all 17 BYD regions including China mainland (WBSK) and overseas (Bangcle).
  */
 public class CloudBydGateway implements BydGateway {
 
@@ -25,51 +39,93 @@ public class CloudBydGateway implements BydGateway {
         BydCloudClient createClient(BydCloudConfig config) throws Exception;
     }
 
+    private final Context appContext;
     private final ConfigStore configStore;
     private final ClientFactory clientFactory;
-    private final byte[] tablesBytes;
+    private final byte[] bangcleTablesBytes;
+    private final byte[] wbskTablesBytes;
 
     private BydCloudClient client;
     private BydCloudConfig config;
+    private final java.util.Map<String, Boolean> electricAcByVin = new java.util.HashMap<>();
 
     private String lastUsername;
     private String lastPassword;
     private String lastPin;
     private String lastRegion;
+    private String lastCountryCode;
 
     public CloudBydGateway(Context context, ConfigStore configStore) throws IOException {
+        this.appContext = context != null ? context.getApplicationContext() : null;
         this.configStore = configStore;
         this.clientFactory = null;
-        try (InputStream in = context.getAssets().open("byd/bangcle_tables.bin")) {
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            byte[] buf = new byte[8192];
-            int n;
-            while ((n = in.read(buf)) != -1) {
-                baos.write(buf, 0, n);
-            }
-            this.tablesBytes = baos.toByteArray();
+        this.bangcleTablesBytes = readAssetOptional(context, BangcleTablesFile.ASSET_PATH);
+        this.wbskTablesBytes = readAssetOptional(context, WbskTablesFile.ASSET_PATH);
+        if (this.bangcleTablesBytes == null && this.wbskTablesBytes == null) {
+            throw new IOException("Missing BYD crypto tables in assets/byd/");
         }
         syncConfigToClient();
     }
 
     public CloudBydGateway(ConfigStore configStore, ClientFactory clientFactory) {
+        this.appContext = null;
         this.configStore = configStore;
         this.clientFactory = clientFactory;
-        this.tablesBytes = null;
+        this.bangcleTablesBytes = null;
+        this.wbskTablesBytes = null;
         syncConfigToClient();
     }
 
     public CloudBydGateway(BydCloudClient client, BydCloudConfig config, ConfigStore configStore) {
+        this.appContext = null;
         this.client = client;
         this.config = config;
         this.configStore = configStore;
         this.clientFactory = null;
-        this.tablesBytes = null;
+        this.bangcleTablesBytes = null;
+        this.wbskTablesBytes = null;
         snapshotCredentials();
     }
 
     public CloudBydGateway(BydCloudClient client, ConfigStore configStore) {
         this(client, null, configStore);
+    }
+
+    private static byte[] readAssetOptional(Context ctx, String path) {
+        if (ctx != null && ctx.getAssets() != null) {
+            try (InputStream in = ctx.getAssets().open(path)) {
+                return readAllBytes(in);
+            } catch (IOException ignored) {}
+        }
+        try (InputStream res = CloudBydGateway.class.getClassLoader().getResourceAsStream(path)) {
+            if (res != null) {
+                return readAllBytes(res);
+            }
+        } catch (IOException ignored) {}
+        return null;
+    }
+
+    private static byte[] readAllBytes(InputStream in) throws IOException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        byte[] buf = new byte[8192];
+        int n;
+        while ((n = in.read(buf)) != -1) {
+            baos.write(buf, 0, n);
+        }
+        return baos.toByteArray();
+    }
+
+    private InputStream openTablesForConfig(BydCloudConfig cfg) throws IOException {
+        boolean isCn = cfg != null && cfg.isChinaRegion();
+        byte[] cached = isCn ? wbskTablesBytes : bangcleTablesBytes;
+        if (cached != null) {
+            return new ByteArrayInputStream(cached);
+        }
+        InputStream stream = EnvelopeCodecFactory.openTablesStream(isCn, appContext);
+        if (stream != null) {
+            return stream;
+        }
+        throw new IOException("Crypto tables unavailable for region: " + (isCn ? "cn" : "overseas"));
     }
 
     public synchronized BydCloudClient getClient() {
@@ -97,7 +153,14 @@ public class CloudBydGateway implements BydGateway {
     }
 
     @Override
-    public synchronized VehicleStatus fetchVehicleRealtime(String vin) throws Exception {
+    public String getLastCommandError() {
+        if (client == null) return "";
+        String err = client.getLastCommandError();
+        return err != null ? err : "";
+    }
+
+    @Override
+    public synchronized VehicleStatus fetchVehicleRealtimeFast(String vin) throws Exception {
         syncConfigToClient();
         if (client == null) {
             throw new IOException("BYD client not initialized");
@@ -116,7 +179,200 @@ public class CloudBydGateway implements BydGateway {
             throw new SocketTimeoutException("Vehicle realtime telemetry unavailable");
         }
 
-        return parseVehicleStatus(vi);
+        CloudCapabilities caps = null;
+        try {
+            caps = client.getCachedCloudCapabilities(vin);
+            if (caps == null) {
+                caps = client.fetchCloudCapabilities(vin);
+            }
+        } catch (Exception ignored) {
+        }
+
+        ensureVehicleMetadataIfNeeded(vin);
+
+        return parseVehicleStatus(vi, vin, caps, null, null);
+    }
+
+    @Override
+    public synchronized VehicleStatus fetchVehicleRealtime(String vin) throws Exception {
+        syncConfigToClient();
+        if (client == null) {
+            throw new IOException("BYD client not initialized");
+        }
+
+        java.util.concurrent.CompletableFuture<VehicleLocation> gpsFuture =
+                java.util.concurrent.CompletableFuture.supplyAsync(() -> {
+                    try {
+                        return parseGpsPayload(client.fetchGpsInfoFast(vin));
+                    } catch (Exception ignored) {
+                        return null;
+                    }
+                });
+        java.util.concurrent.CompletableFuture<JSONObject> hvacFuture =
+                java.util.concurrent.CompletableFuture.supplyAsync(() -> {
+                    try {
+                        return client.fetchHvacStatusFast(vin);
+                    } catch (Exception ignored) {
+                        return null;
+                    }
+                });
+
+        JSONObject vi = client.fetchVehicleRealtime(vin);
+        if (vi == null) {
+            throw new IOException("CAR_OFFLINE: Failed to fetch vehicle realtime data");
+        }
+
+        if (vi.optInt("onlineState", -1) == 2) {
+            throw new IOException("CAR_OFFLINE: Vehicle T-Box is offline");
+        }
+
+        if (!hasTelemetry(vi)) {
+            throw new SocketTimeoutException("Vehicle realtime telemetry unavailable");
+        }
+
+        CloudCapabilities caps = null;
+        try {
+            caps = client.getCachedCloudCapabilities(vin);
+            if (caps == null) {
+                caps = client.fetchCloudCapabilities(vin);
+            }
+        } catch (Exception ignored) {
+            // Capability query is best-effort so telemetry never fails if getLatestConfig flakes
+        }
+
+        VehicleLocation location = null;
+        try {
+            location = gpsFuture.get(6, java.util.concurrent.TimeUnit.SECONDS);
+        } catch (Exception ignored) {}
+
+        JSONObject hvac = null;
+        try {
+            hvac = hvacFuture.get(5, java.util.concurrent.TimeUnit.SECONDS);
+        } catch (Exception ignored) {}
+
+        ensureVehicleMetadataIfNeeded(vin);
+
+        return parseVehicleStatus(vi, vin, caps, location, hvac);
+    }
+
+    @Override
+    public VehicleStatus enrichStatusAsync(String vin, VehicleStatus baseStatus) {
+        if (baseStatus == null || client == null) {
+            return null;
+        }
+        java.util.concurrent.CompletableFuture<VehicleLocation> gpsFuture =
+                java.util.concurrent.CompletableFuture.supplyAsync(() -> {
+                    try {
+                        return parseGpsPayload(client.fetchGpsInfoFast(vin));
+                    } catch (Exception ignored) {
+                        return null;
+                    }
+                });
+        java.util.concurrent.CompletableFuture<JSONObject> hvacFuture =
+                java.util.concurrent.CompletableFuture.supplyAsync(() -> {
+                    try {
+                        return client.fetchHvacStatusFast(vin);
+                    } catch (Exception ignored) {
+                        return null;
+                    }
+                });
+
+        VehicleLocation location = null;
+        try {
+            location = gpsFuture.get(6, java.util.concurrent.TimeUnit.SECONDS);
+        } catch (Exception ignored) {}
+
+        JSONObject hvac = null;
+        try {
+            hvac = hvacFuture.get(5, java.util.concurrent.TimeUnit.SECONDS);
+        } catch (Exception ignored) {}
+
+        if (location == null && hvac == null) {
+            return null;
+        }
+
+        VehicleStatus.Builder builder = baseStatus.toBuilder();
+        if (location != null) {
+            builder.location(location.latitude, location.longitude, location.timestampSec);
+        }
+        if (hvac != null) {
+            boolean acOn = extractAcOn(new JSONObject(), hvac);
+            builder.acOn(baseStatus.acOn || acOn);
+            Integer cabinTempC = extractTempFromSources(
+                    new JSONObject[]{hvac, hvac.optJSONObject("statusNow")},
+                    "tempInCar", -40.0, 80.0);
+            if (cabinTempC != null) {
+                builder.cabinTempC(cabinTempC);
+            }
+            Integer outsideTempC = extractTempFromSources(
+                    new JSONObject[]{hvac, hvac.optJSONObject("statusNow")},
+                    "tempOutCar", -40.0, 80.0);
+            if (outsideTempC != null) {
+                builder.outsideTempC(outsideTempC);
+            }
+        }
+        return builder.build();
+    }
+
+    private void ensureVehicleMetadataIfNeeded(String activeVin) {
+        if (configStore == null || client == null) return;
+        boolean needsName = VehicleSummary.isGenericModelName(configStore.getVehicleName());
+        List<VehicleSummary> existing = configStore.getVehicles();
+        boolean needsList = existing == null || existing.isEmpty();
+        if (!needsName && !needsList) return;
+
+        try {
+            JSONArray list = client.fetchVehicleList();
+            if (list == null || list.length() == 0) return;
+            List<VehicleSummary> discovered = new ArrayList<>();
+            for (int i = 0; i < list.length(); i++) {
+                VehicleSummary summary = VehicleSummary.fromBydVehicleJson(list.optJSONObject(i));
+                if (summary != null && !summary.vin.isEmpty()) {
+                    discovered.add(summary);
+                }
+            }
+            if (discovered.isEmpty()) return;
+
+            if (needsList) {
+                configStore.setVehicles(Collections.unmodifiableList(discovered));
+            }
+            if (needsName) {
+                VehicleSummary match = null;
+                if (activeVin != null && !activeVin.trim().isEmpty()) {
+                    for (VehicleSummary v : discovered) {
+                        if (activeVin.trim().equals(v.vin)) {
+                            match = v;
+                            break;
+                        }
+                    }
+                }
+                if (match == null && discovered.size() == 1) {
+                    match = discovered.get(0);
+                }
+                if (match != null && !VehicleSummary.isGenericModelName(match.modelName)) {
+                    configStore.setVehicleName(match.modelName);
+                }
+            }
+        } catch (Exception ignored) {
+            // Best-effort metadata lookup must never break status refresh
+        }
+    }
+
+    @Override
+    public synchronized VehicleLocation fetchGpsInfo(String vin) throws Exception {
+        syncConfigToClient();
+        if (client == null) {
+            throw new IOException("BYD client not initialized");
+        }
+        return parseGpsPayload(client.fetchGpsInfo(vin));
+    }
+
+    static VehicleLocation parseGpsPayload(JSONObject gpsJson) {
+        double[] coords = BydCloudClient.extractGpsCoordinates(gpsJson);
+        if (coords == null) {
+            return null;
+        }
+        return new VehicleLocation(coords[0], coords[1], (long) coords[2]);
     }
 
     @Override
@@ -133,8 +389,67 @@ public class CloudBydGateway implements BydGateway {
 
     @Override
     public synchronized boolean startClimate(String vin, double tempCelsius) throws Exception {
+        int duration = configStore != null
+                ? configStore.getDefaultAcDurationMinutes()
+                : ConfigStore.DEFAULT_AC_DURATION_MINUTES;
+        return startClimate(vin, tempCelsius, duration);
+    }
+
+    @Override
+    public synchronized boolean startClimate(String vin, double tempCelsius, int durationMinutes) throws Exception {
         syncConfigToClient();
-        return client != null && client.startClimate(vin, tempCelsius);
+        if (client == null) return false;
+        int duration = ConfigStore.normalizeAcDurationMinutes(durationMinutes);
+        if (isElectricAcVin(vin)) {
+            int gear = configStore != null
+                    ? configStore.getDefaultTempGear()
+                    : ConfigStore.DEFAULT_TEMP_GEAR;
+            int fan = configStore != null
+                    ? configStore.getDefaultFanLevel()
+                    : ConfigStore.DEFAULT_FAN_LEVEL;
+            int windMode = configStore != null
+                    ? configStore.getDefaultWindMode()
+                    : ConfigStore.DEFAULT_WIND_MODE;
+            return client.startElectricClimate(vin, gear, fan, windMode, duration);
+        }
+        return client.startClimate(vin, tempCelsius, duration);
+    }
+
+    @Override
+    public synchronized boolean startElectricClimate(String vin, int tempGear, int windLevel) throws Exception {
+        int windMode = configStore != null ? configStore.getDefaultWindMode() : ConfigStore.DEFAULT_WIND_MODE;
+        return startElectricClimate(vin, tempGear, windLevel, windMode);
+    }
+
+    @Override
+    public synchronized boolean startElectricClimate(String vin, int tempGear, int windLevel, int windMode) throws Exception {
+        int duration = configStore != null
+                ? configStore.getDefaultAcDurationMinutes()
+                : ConfigStore.DEFAULT_AC_DURATION_MINUTES;
+        return startElectricClimate(vin, tempGear, windLevel, windMode, duration);
+    }
+
+    @Override
+    public synchronized boolean startElectricClimate(
+            String vin, int tempGear, int windLevel, int windMode, int durationMinutes) throws Exception {
+        syncConfigToClient();
+        int duration = ConfigStore.normalizeAcDurationMinutes(durationMinutes);
+        return client != null && client.startElectricClimate(vin, tempGear, windLevel, windMode, duration);
+    }
+
+    private boolean isElectricAcVin(String vin) {
+        if (vin != null && !vin.isEmpty()) {
+            Boolean remembered = electricAcByVin.get(vin);
+            if (remembered != null) {
+                return remembered.booleanValue();
+            }
+        }
+        CloudCapabilities caps = (client != null && vin != null && !vin.isEmpty())
+                ? client.getCachedCloudCapabilities(vin) : null;
+        if (caps != null && caps.isElectricAc()) {
+            return true;
+        }
+        return configStore != null && configStore.isManualAcMode();
     }
 
     @Override
@@ -155,6 +470,65 @@ public class CloudBydGateway implements BydGateway {
         return client != null && client.findCar(vin);
     }
 
+    @Override
+    public synchronized boolean ventAllWindows(String vin) throws Exception {
+        syncConfigToClient();
+        return client != null && client.ventAllWindows(vin);
+    }
+
+    @Override
+    public synchronized boolean closeAllWindows(String vin) throws Exception {
+        syncConfigToClient();
+        return client != null && client.closeAllWindows(vin);
+    }
+
+    @Override
+    public synchronized boolean setBatteryHeat(String vin, boolean on) throws Exception {
+        syncConfigToClient();
+        return client != null && client.setBatteryHeat(vin, on);
+    }
+
+    @Override
+    public synchronized boolean setDriverSeatHeat(String vin, int levelUi) throws Exception {
+        syncConfigToClient();
+        if (client == null) return false;
+        return client.setSeatClimate(vin, "1", levelUi, 0, 0, 0);
+    }
+
+    @Override
+    public synchronized CloudCapabilities fetchCapabilities(String vin) throws Exception {
+        syncConfigToClient();
+        if (client == null || vin == null || vin.trim().isEmpty()) {
+            return null;
+        }
+        return client.fetchCloudCapabilities(vin);
+    }
+
+    @Override
+    public synchronized List<VehicleSummary> fetchVehicles() throws Exception {
+        syncConfigToClient();
+        if (client == null) {
+            throw new IOException("BYD client not initialized");
+        }
+        JSONArray list = client.fetchVehicleList();
+        List<VehicleSummary> out = new ArrayList<>();
+        if (list != null) {
+            for (int i = 0; i < list.length(); i++) {
+                VehicleSummary summary = VehicleSummary.fromBydVehicleJson(list.optJSONObject(i));
+                if (summary != null && !summary.vin.isEmpty()) {
+                    out.add(summary);
+                }
+            }
+        }
+        if (out.isEmpty()) {
+            String fallbackVin = client.fetchFirstVin();
+            if (fallbackVin != null && !fallbackVin.trim().isEmpty()) {
+                out.add(new VehicleSummary(fallbackVin.trim(), VehicleSummary.DEFAULT_MODEL_NAME, "", ""));
+            }
+        }
+        return Collections.unmodifiableList(out);
+    }
+
     public synchronized void syncConfigToClient() {
         if (configStore == null) return;
 
@@ -162,31 +536,36 @@ public class CloudBydGateway implements BydGateway {
         String currentPassword = configStore.getPassword();
         String currentPin = configStore.getPin();
         String currentRegion = configStore.getRegion();
+        String currentCountryCode = configStore.getCountryCode();
         String currentVin = configStore.getVin();
 
         boolean credsChanged = !Objects.equals(lastUsername, currentUsername)
                 || !Objects.equals(lastPassword, currentPassword)
                 || !Objects.equals(lastPin, currentPin)
-                || !Objects.equals(lastRegion, currentRegion);
+                || !Objects.equals(lastRegion, currentRegion)
+                || !Objects.equals(lastCountryCode, currentCountryCode);
 
         if (credsChanged || client == null) {
             BydCloudConfig newConfig = new BydCloudConfig();
-            applyConfig(newConfig, currentUsername, currentPassword, currentPin, currentRegion, currentVin);
+            applyConfig(newConfig, currentUsername, currentPassword, currentPin,
+                    currentRegion, currentCountryCode, currentVin);
 
             try {
                 if (clientFactory != null) {
                     this.client = clientFactory.createClient(newConfig);
                     this.config = newConfig;
-                } else if (tablesBytes != null) {
+                } else if (bangcleTablesBytes != null || wbskTablesBytes != null || appContext != null) {
                     BydCloudClient newClient = new BydCloudClient(newConfig);
-                    newClient.init(new ByteArrayInputStream(tablesBytes));
+                    try (InputStream tableStream = openTablesForConfig(newConfig)) {
+                        newClient.init(tableStream);
+                    }
                     this.client = newClient;
                     this.config = newConfig;
                 } else if (client != null && config != null) {
-                    applyConfig(config, currentUsername, currentPassword, currentPin, currentRegion, currentVin);
+                    applyConfig(config, currentUsername, currentPassword, currentPin,
+                            currentRegion, currentCountryCode, currentVin);
                 }
             } catch (Exception e) {
-                // If recreation fails, keep what we had or propagate as unchecked
                 throw new RuntimeException("Failed to instantiate fresh BydCloudClient on config update", e);
             }
 
@@ -204,6 +583,7 @@ public class CloudBydGateway implements BydGateway {
         this.lastPassword = configStore.getPassword();
         this.lastPin = configStore.getPin();
         this.lastRegion = configStore.getRegion();
+        this.lastCountryCode = configStore.getCountryCode();
     }
 
     private static void applyConfig(
@@ -212,6 +592,7 @@ public class CloudBydGateway implements BydGateway {
             String password,
             String pin,
             String region,
+            String countryCode,
             String vin) {
         if (username != null && !username.trim().isEmpty()) {
             cfg.setUsername(username.trim());
@@ -225,7 +606,10 @@ public class CloudBydGateway implements BydGateway {
             cfg.setCommandPwd(BydCryptoUtils.md5Hex(pin.trim()));
         }
         if (region != null && !region.trim().isEmpty()) {
-            cfg.setRegion(region.trim());
+            cfg.setRegion(region.trim(), true);
+        }
+        if (countryCode != null && !countryCode.trim().isEmpty()) {
+            cfg.setCountryCode(countryCode.trim());
         }
         if (vin != null && !vin.trim().isEmpty()) {
             cfg.setVin(vin.trim());
@@ -234,16 +618,32 @@ public class CloudBydGateway implements BydGateway {
 
     public static boolean hasTelemetry(JSONObject vi) {
         if (vi == null) return false;
-        return vi.has("elecPercent")
-                || vi.has("soc")
-                || vi.has("enduranceMileage")
-                || vi.has("enduranceMileageV2")
-                || vi.has("leftFrontDoorLock")
-                || vi.has("tempInCar")
-                || vi.has("time");
+        return vi.optLong("time", 0L) > 0L
+                || vi.optInt("leftFrontDoorLock", 0) > 0
+                || vi.optInt("rightFrontDoorLock", 0) > 0
+                || vi.optDouble("elecPercent", 0.0) > 0.0
+                || vi.optInt("soc", 0) > 0
+                || vi.optInt("enduranceMileage", 0) > 0
+                || vi.optInt("enduranceMileageV2", 0) > 0
+                || vi.optDouble("leftFrontTirepressure", 0.0) > 0.0;
     }
 
     public VehicleStatus parseVehicleStatus(JSONObject vi) {
+        String activeVin = configStore != null ? configStore.getVin() : "";
+        return parseVehicleStatus(vi, activeVin, null);
+    }
+
+    public VehicleStatus parseVehicleStatus(JSONObject vi, String activeVin, CloudCapabilities caps) {
+        return parseVehicleStatus(vi, activeVin, caps, null);
+    }
+
+    public VehicleStatus parseVehicleStatus(JSONObject vi, String activeVin, CloudCapabilities caps,
+                                            VehicleLocation location) {
+        return parseVehicleStatus(vi, activeVin, caps, location, null);
+    }
+
+    public VehicleStatus parseVehicleStatus(JSONObject vi, String activeVin, CloudCapabilities caps,
+                                            VehicleLocation location, JSONObject hvac) {
         int soc = vi.optInt("soc", (int) Math.round(vi.optDouble("elecPercent", 0.0)));
         int rangeV2 = vi.optInt("enduranceMileageV2", -1);
         int rangeKm = vi.optInt("rangeKm", rangeV2 != -1 ? rangeV2 : vi.optInt("enduranceMileage", 0));
@@ -256,31 +656,579 @@ public class CloudBydGateway implements BydGateway {
             int rf = vi.optInt("rightFrontDoorLock", -1);
             int lr = vi.optInt("leftRearDoorLock", -1);
             int rr = vi.optInt("rightRearDoorLock", -1);
-            locked = (lf == 2 && rf == 2 && lr == 2 && rr == 2);
+            if (lf == 1 || rf == 1 || lr == 1 || rr == 1) {
+                locked = false;
+            } else if (lf == 2 && rf == 2 && lr == 2 && rr == 2) {
+                locked = true;
+            } else if (lf == 0 && rf == 0 && lr == 0 && rr == 0) {
+                // On some models (e.g. Atto 1 / Seagull), locked reports 0 for all door lock
+                // flags and vehicleState=2 / vs=2 (while unlocked reports 1 and vehicleState=0).
+                locked = vi.optInt("vehicleState", 0) == 2 || vi.optInt("vs", 0) == 2;
+            } else {
+                locked = false;
+            }
         }
 
-        boolean acOn = vi.optBoolean("acOn",
-                vi.optInt("airConditionStatus", 0) == 1
-                        || vi.optInt("airConditioner", 0) == 1
-                        || vi.optInt("airConditionerStatus", 0) == 1
-                        || vi.optInt("autoAirConditioning", 0) == 1
-                        || vi.optInt("eleAirACSwitch", 0) == 1
-                        || vi.optInt("airState", 0) == 1);
+        boolean acOn = extractAcOn(vi, hvac);
 
         Integer cabinTempC = null;
         if (vi.has("cabinTempC") && !vi.isNull("cabinTempC")) {
             cabinTempC = vi.optInt("cabinTempC");
-        } else if (vi.has("tempInCar") && !vi.isNull("tempInCar")) {
-            double tempInCar = vi.optDouble("tempInCar", -129.0);
-            if (tempInCar >= -40.0 && tempInCar <= 80.0) {
-                cabinTempC = (int) Math.round(tempInCar);
+        } else {
+            cabinTempC = extractTempFromSources(
+                    new JSONObject[]{
+                            vi,
+                            vi.optJSONObject("statusNow"),
+                            hvac,
+                            hvac != null ? hvac.optJSONObject("statusNow") : null
+                    },
+                    "tempInCar", -40.0, 80.0);
+        }
+
+        Integer outsideTempC = extractTempFromSources(
+                new JSONObject[]{
+                        vi,
+                        vi.optJSONObject("statusNow"),
+                        hvac,
+                        hvac != null ? hvac.optJSONObject("statusNow") : null
+                },
+                "tempOutCar", -50.0, 75.0);
+
+        JSONObject[] hvacFirstSources = new JSONObject[]{
+                hvac != null ? hvac.optJSONObject("statusNow") : null,
+                hvac,
+                vi != null ? vi.optJSONObject("statusNow") : null,
+                vi
+        };
+        boolean manualAc = (caps != null && caps.isElectricAc()) || extractManualAc(vi, hvac);
+        int defaultTempC = configStore != null ? configStore.getDefaultTempC() : 17;
+        Integer liveAutoTempC = manualAc ? null : extractAutoTargetTempC(hvacFirstSources);
+        int targetTempC = liveAutoTempC != null ? liveAutoTempC : vi.optInt("targetTempC", defaultTempC);
+        Integer liveTempGear = (acOn && manualAc)
+                ? extractBoundedIntFromSources(hvacFirstSources, 1, 9,
+                "tempGear", "mainSettingTemp", "mainSettingTempNew")
+                : null;
+        Integer liveFanLevel = (acOn && manualAc)
+                ? extractBoundedIntFromSources(hvacFirstSources, 1, 7,
+                "windLevel", "windGear", "fanLevel", "wind", "airWindLevel")
+                : null;
+        Integer liveWindMode = (acOn && manualAc)
+                ? extractBoundedIntFromSources(hvacFirstSources, 1, 3,
+                "windMode", "airWindMode")
+                : null;
+        long ts = vi.optLong("ts", vi.optLong("time", System.currentTimeMillis() / 1000L));
+
+        int powerGear = vi.optInt("powerGear", -1);
+        double speed = vi.optDouble("speed", Double.NaN);
+        boolean vehicleOn = vi.optBoolean("carOn", false)
+                || powerGear == 3
+                || (!Double.isNaN(speed) && !Double.isInfinite(speed) && speed > 0.5);
+
+        int rawCs = vi.has("chargeState") && !vi.isNull("chargeState")
+                ? vi.optInt("chargeState", -1)
+                : -1;
+        int rawChargingState = vi.has("chargingState") && !vi.isNull("chargingState")
+                ? vi.optInt("chargingState", -1)
+                : -1;
+        int chargingState;
+        if (rawCs >= 0) {
+            chargingState = rawCs;
+        } else if (rawChargingState >= 0) {
+            chargingState = rawChargingState;
+        } else {
+            chargingState = VehicleStatus.CHARGING_UNKNOWN;
+        }
+        // Per Overdrive (VehicleCloudSnapshot.getChargingStateAsSdk) & pyBYD:
+        // BYD leaves chargeState=15 even when unplugged or driving, so do not map 15 to "Plugged In".
+        if (chargingState == VehicleStatus.CHARGING_CONNECTED
+                || (vehicleOn && chargingState != VehicleStatus.CHARGING_ACTIVE)) {
+            chargingState = VehicleStatus.CHARGING_NONE;
+        }
+        Integer chgMin = null;
+        if (chargingState == VehicleStatus.CHARGING_ACTIVE) {
+            int remH = vi.has("remainingHours") && !vi.isNull("remainingHours")
+                    ? vi.optInt("remainingHours", -1)
+                    : vi.optInt("fullHour", -1);
+            int remM = vi.has("remainingMinutes") && !vi.isNull("remainingMinutes")
+                    ? vi.optInt("remainingMinutes", -1)
+                    : vi.optInt("fullMinute", -1);
+            if ((remH >= 0 && remH < 200) || (remM >= 0 && remM < 60)) {
+                int safeH = (remH >= 0 && remH < 200) ? remH : 0;
+                int safeM = (remM >= 0 && remM < 60) ? remM : 0;
+                chgMin = Math.max(0, safeH * 60 + safeM);
+            }
+        }
+        Double chgPowerKw = extractChargePowerKw(vi, chargingState);
+
+        int doorsOpen = countEquals(1,
+                vi.optInt("leftFrontDoor", -1),
+                vi.optInt("rightFrontDoor", -1),
+                vi.optInt("leftRearDoor", -1),
+                vi.optInt("rightRearDoor", -1));
+        boolean trunkOpen = vi.optInt("trunkLid", -1) == 1;
+        int winsOpen = countEquals(2,
+                vi.optInt("leftFrontWindow", -1),
+                vi.optInt("rightFrontWindow", -1),
+                vi.optInt("leftRearWindow", -1),
+                vi.optInt("rightRearWindow", -1),
+                vi.optInt("skylight", -1));
+
+        int mileV2 = vi.optInt("totalMileageV2", 0);
+        int odo = mileV2 > 0 ? mileV2 : vi.optInt("totalMileage", 0);
+        Integer totalMileageKm = odo > 0 ? odo : null;
+
+        double oilPct = vi.optDouble("oilPercent", -1);
+        Integer fuelPct = oilPct >= 0 && oilPct <= 100 ? (int) Math.round(oilPct) : null;
+        int oilEnd = vi.optInt("oilEndurance", -1);
+        Integer fuelKm = oilEnd >= 0 ? oilEnd : null;
+
+        Integer lfKpa = normalizeTpms(vi, "leftFrontTirepressure", "leftFrontTirePressure");
+        Integer rfKpa = normalizeTpms(vi, "rightFrontTirepressure", "rightFrontTirePressure");
+        Integer lrKpa = normalizeTpms(vi, "leftRearTirepressure", "leftRearTirePressure");
+        Integer rrKpa = normalizeTpms(vi, "rightRearTirepressure", "rightRearTirePressure");
+
+        int batHeatRaw = vi.optInt("batteryHeatState", -1);
+        Boolean batHeatOn = batHeatRaw >= 0 ? (batHeatRaw > 0) : null;
+
+        int seatHeatRaw = vi.optInt("mainSeatHeatState", -1);
+        int driverSeatLevel = (seatHeatRaw >= 1 && seatHeatRaw <= 3) ? (seatHeatRaw - 1) : 0;
+
+        boolean canWin = caps == null
+                || caps.supports(CloudCapabilities.Feature.WINDOWS_CLOSE)
+                || caps.supports(CloudCapabilities.Feature.WINDOWS_OPEN_VENT);
+        boolean canBat = caps != null && caps.supports(CloudCapabilities.Feature.BATTERY_HEAT);
+        boolean canSeat = caps != null && caps.supports(CloudCapabilities.Feature.SEAT_DRIVER);
+
+        String resolvedModel = configStore != null ? configStore.getVehicleName() : VehicleSummary.DEFAULT_MODEL_NAME;
+        List<VehicleSummary> cars = configStore != null ? configStore.getVehicles() : Collections.emptyList();
+        if (activeVin != null && !activeVin.isEmpty() && cars != null) {
+            for (VehicleSummary v : cars) {
+                if (activeVin.equals(v.vin) && !VehicleSummary.isGenericModelName(v.modelName)) {
+                    resolvedModel = v.modelName;
+                    break;
+                }
+            }
+        }
+        if (VehicleSummary.isGenericModelName(resolvedModel)) {
+            String inlineModel = VehicleSummary.extractModelFromJson(vi);
+            if (!VehicleSummary.isGenericModelName(inlineModel)) {
+                resolvedModel = VehicleSummary.normalizeModelName(inlineModel);
+            } else {
+                resolvedModel = VehicleSummary.DEFAULT_MODEL_NAME;
             }
         }
 
-        int targetTempC = vi.optInt("targetTempC", configStore != null ? configStore.getDefaultTempC() : 17);
-        long ts = vi.optLong("ts", vi.optLong("time", System.currentTimeMillis() / 1000L));
+        String uDist = configStore != null ? configStore.getDistanceUnit() : UnitPreferences.DIST_KM;
+        String uTemp = configStore != null ? configStore.getTempUnit() : UnitPreferences.TEMP_C;
+        String uPres = configStore != null ? configStore.getPressureUnit() : UnitPreferences.PRES_KPA;
 
-        return new VehicleStatus(soc, rangeKm, locked, acOn, cabinTempC, targetTempC, ts);
+        Double lat = null;
+        Double lng = null;
+        Long gpsTs = null;
+        if (location != null && VehicleStatus.isValidCoordinates(location.latitude, location.longitude)) {
+            lat = location.latitude;
+            lng = location.longitude;
+            gpsTs = location.timestampSec > 0 ? location.timestampSec : null;
+        } else {
+            double[] inlineCoords = BydCloudClient.extractGpsCoordinates(vi);
+            if (inlineCoords != null) {
+                lat = inlineCoords[0];
+                lng = inlineCoords[1];
+                gpsTs = (long) inlineCoords[2];
+            }
+        }
+
+        boolean verboseLogs = configStore != null && configStore.isVerboseLogsEnabled();
+        if (activeVin != null && !activeVin.isEmpty()) {
+            electricAcByVin.put(activeVin, manualAc);
+        }
+        if (configStore != null) {
+            if (manualAc) {
+                configStore.setDetectedManualAc(true);
+            } else if ((caps != null && !caps.isElectricAc()) || extractAutoAc(vi, hvac)) {
+                configStore.setDetectedManualAc(false);
+            }
+        }
+
+        return new VehicleStatus.Builder(soc, rangeKm, locked, acOn, cabinTempC, targetTempC, ts)
+                .vin(activeVin)
+                .modelName(resolvedModel)
+                .chargingState(chargingState)
+                .vehicleOn(vehicleOn)
+                .chargeRemainingMinutes(chgMin)
+                .chargePowerKw(chgPowerKw)
+                .diagSummary(buildTelemetryDiag(vi, hvac, verboseLogs))
+                .doorsOpenCount(doorsOpen)
+                .windowsOpenCount(winsOpen)
+                .trunkOpen(trunkOpen)
+                .totalMileageKm(totalMileageKm)
+                .outsideTempC(outsideTempC)
+                .fuelPercent(fuelPct)
+                .fuelRangeKm(fuelKm)
+                .tirePressuresKpa(lfKpa, rfKpa, lrKpa, rrKpa)
+                .batteryHeatOn(batHeatOn)
+                .driverSeatLevel(driverSeatLevel)
+                .capabilities(canWin, canBat, canSeat)
+                .manualAc(manualAc)
+                .acPreset(liveTempGear, liveFanLevel, liveWindMode)
+                .units(uDist, uTemp, uPres)
+                .location(lat, lng, gpsTs)
+                .recentKwhPer100Km(extractRecentKwhPer100Km(vi))
+                .vehicles(cars)
+                .build();
+    }
+
+    private static double extractRecentKwhPer100Km(JSONObject vi) {
+        if (vi == null) return -1d;
+        double nearest = vi.optDouble("nearestEnergyConsumption", -1d);
+        if (Double.isFinite(nearest) && nearest > 0d) return nearest;
+        double energy = vi.optDouble("energyConsumption", -1d);
+        if (Double.isFinite(energy) && energy > 0d) return energy;
+        String recent50 = vi.optString("recent50kmEnergy", "");
+        if (!recent50.isEmpty()) {
+            java.util.regex.Matcher m = java.util.regex.Pattern.compile("([0-9]+(?:\\.[0-9]+)?)").matcher(recent50);
+            if (m.find()) {
+                try {
+                    double parsed = Double.parseDouble(m.group(1));
+                    if (Double.isFinite(parsed) && parsed > 0d) return parsed;
+                } catch (NumberFormatException ignored) {}
+            }
+        }
+        return -1d;
+    }
+
+    private static Integer extractTempFromSources(JSONObject[] sources, String key, double minValid, double maxValid) {
+        if (sources == null) return null;
+        for (JSONObject src : sources) {
+            if (src != null && src.has(key) && !src.isNull(key)) {
+                double val = src.optDouble(key, -129.0);
+                if (!Double.isNaN(val) && !Double.isInfinite(val) && val >= minValid && val <= maxValid) {
+                    return (int) Math.round(val);
+                }
+            }
+        }
+        return null;
+    }
+
+    private static Integer extractBoundedIntFromSources(JSONObject[] sources, int minVal, int maxVal, String... keys) {
+        if (sources == null || keys == null) return null;
+        for (JSONObject src : sources) {
+            if (src == null) continue;
+            for (String key : keys) {
+                if (src.has(key) && !src.isNull(key)) {
+                    double val = src.optDouble(key, Double.NaN);
+                    if (!Double.isNaN(val) && !Double.isInfinite(val)) {
+                        int rounded = (int) Math.round(val);
+                        if (rounded >= minVal && rounded <= maxVal) {
+                            return rounded;
+                        }
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    private static Integer extractAutoTargetTempC(JSONObject[] sources) {
+        if (sources == null) return null;
+        Integer explicit = extractTempFromSources(sources, "targetTempC", 15.0, 31.0);
+        if (explicit != null) return explicit;
+        Integer newTemp = extractTempFromSources(sources, "mainSettingTempNew", 15.0, 32.0);
+        if (newTemp != null) return Math.max(15, Math.min(31, newTemp));
+        for (JSONObject src : sources) {
+            if (src != null && src.has("mainSettingTemp") && !src.isNull("mainSettingTemp")) {
+                double val = src.optDouble("mainSettingTemp", Double.NaN);
+                if (!Double.isNaN(val) && !Double.isInfinite(val)) {
+                    int rounded = (int) Math.round(val);
+                    if (rounded >= 1 && rounded <= 17) {
+                        return rounded + 14; // BYD raw HVAC scale: 1=15C .. 17=31C
+                    }
+                    if (rounded >= 18 && rounded <= 31) {
+                        return rounded;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    private static boolean extractAcOn(JSONObject vi, JSONObject hvac) {
+        if (vi != null && vi.has("acOn") && !vi.isNull("acOn")) {
+            return vi.optBoolean("acOn", false);
+        }
+        // Per pyBYD (HvacStatus.is_ac_on / HvacOverallStatus): getStatusNow status (1=ON, 2=OFF)
+        // is authoritative; acSwitch/airConditioningMode/airRunState remain set when HVAC is off.
+        JSONObject[] hvacStatusSources = new JSONObject[]{
+                hvac != null ? hvac.optJSONObject("statusNow") : null,
+                hvac,
+                vi != null ? vi.optJSONObject("statusNow") : null
+        };
+        for (JSONObject src : hvacStatusSources) {
+            if (src != null && src.has("status") && !src.isNull("status")) {
+                int st = src.optInt("status", -1);
+                if (st == 1) return true;
+                if (st == 2 || st == 0) return false;
+            }
+        }
+        String[] intOneKeys = {
+                "airConditionStatus",
+                "airConditioner",
+                "airConditionerStatus",
+                "autoAirConditioning",
+                "eleAirACSwitch",
+                "airState",
+                "airCondition",
+                "acState",
+                "airConditioning"
+        };
+        JSONObject[] sources = new JSONObject[]{
+                vi,
+                vi != null ? vi.optJSONObject("statusNow") : null,
+                hvac,
+                hvac != null ? hvac.optJSONObject("statusNow") : null
+        };
+        for (JSONObject src : sources) {
+            if (src == null) continue;
+            for (String key : intOneKeys) {
+                if (src.has(key) && !src.isNull(key) && src.optInt(key, -1) == 1) {
+                    return true;
+                }
+            }
+            if (src.has("isAirConditioning") && !src.isNull("isAirConditioning")) {
+                if (src.optBoolean("isAirConditioning", false) || src.optInt("isAirConditioning", -1) == 1) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static boolean extractManualAc(JSONObject vi, JSONObject hvac) {
+        if (vi != null && vi.optBoolean("manAc", false)) {
+            return true;
+        }
+        JSONObject[] sources = new JSONObject[]{
+                vi,
+                vi != null ? vi.optJSONObject("statusNow") : null,
+                hvac,
+                hvac != null ? hvac.optJSONObject("statusNow") : null
+        };
+        boolean sawEleSwitch = false;
+        boolean sawAutoAc = false;
+        boolean sawTempInCar = false;
+        for (JSONObject src : sources) {
+            if (src == null) continue;
+            if (src.has("airType") && !src.isNull("airType") && src.optInt("airType", -1) == 1) {
+                return true;
+            }
+            if (src.has("airConditioningMode") && !src.isNull("airConditioningMode")
+                    && src.optInt("airConditioningMode", -1) == 2) {
+                return true;
+            }
+            if (src.has("eleAirACSwitch") && !src.isNull("eleAirACSwitch")
+                    && src.optInt("eleAirACSwitch", -1) >= 0) {
+                sawEleSwitch = true;
+            }
+            if (src.has("autoAirConditioning") && !src.isNull("autoAirConditioning")
+                    && src.optInt("autoAirConditioning", -1) > 0) {
+                sawAutoAc = true;
+            }
+            if (src.has("tempInCar") && !src.isNull("tempInCar")) {
+                double t = src.optDouble("tempInCar", Double.NaN);
+                if (!Double.isNaN(t) && t >= -40.0 && t <= 80.0 && Math.abs(t + 129.0) > 0.1) {
+                    sawTempInCar = true;
+                }
+            }
+        }
+        return sawEleSwitch && !sawAutoAc && !sawTempInCar;
+    }
+
+    private static boolean extractAutoAc(JSONObject vi, JSONObject hvac) {
+        if (vi != null && vi.has("manAc") && !vi.isNull("manAc") && !vi.optBoolean("manAc", false)) {
+            return true;
+        }
+        JSONObject[] sources = new JSONObject[]{
+                vi,
+                vi != null ? vi.optJSONObject("statusNow") : null,
+                hvac,
+                hvac != null ? hvac.optJSONObject("statusNow") : null
+        };
+        for (JSONObject src : sources) {
+            if (src == null) continue;
+            if (src.has("airType") && !src.isNull("airType") && src.optInt("airType", -1) == 0) {
+                return true;
+            }
+            if (src.has("autoAirConditioning") && !src.isNull("autoAirConditioning")
+                    && src.optInt("autoAirConditioning", -1) > 0) {
+                return true;
+            }
+            if (src.has("tempInCar") && !src.isNull("tempInCar")) {
+                double t = src.optDouble("tempInCar", Double.NaN);
+                if (!Double.isNaN(t) && t >= -40.0 && t <= 80.0 && Math.abs(t + 129.0) > 0.1) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static String buildTelemetryDiag(JSONObject vi, JSONObject hvac, boolean verbose) {
+        if (vi == null) return "";
+        StringBuilder sb = new StringBuilder();
+        appendIntDiag(sb, vi, "chargeState", "cs");
+        appendIntDiag(sb, vi, "connectState", "conn");
+        appendIntDiag(sb, vi, "powerGear", "gear");
+        appendIntDiag(sb, vi, "vehicleState", "vs");
+        if (vi.has("speed") && !vi.isNull("speed")) {
+            sb.append(sb.length() > 0 ? " " : "").append("spd=").append(vi.optString("speed", ""));
+        }
+        String[] acKeys = {
+                "airConditionStatus", "acSwitch", "airConditioningMode", "airRunState",
+                "airConditioner", "airConditionerStatus", "autoAirConditioning",
+                "eleAirACSwitch", "airState", "airCondition", "acState", "isAirConditioning"
+        };
+        JSONObject[] sources = new JSONObject[]{
+                vi,
+                vi.optJSONObject("statusNow"),
+                hvac,
+                hvac != null ? hvac.optJSONObject("statusNow") : null
+        };
+        String[] prefixes = {"", "sn.", "hv.", "hv.sn."};
+        if (verbose) {
+            for (int i = 0; i < sources.length; i++) {
+                JSONObject src = sources[i];
+                if (src == null) {
+                    if (i == 2) {
+                        sb.append(sb.length() > 0 ? " " : "").append("hv=null");
+                    }
+                    continue;
+                }
+                appendVerboseFields(sb, src, prefixes[i]);
+            }
+            return sb.toString();
+        }
+        for (int i = 0; i < sources.length; i++) {
+            JSONObject src = sources[i];
+            if (src == null) continue;
+            for (String k : acKeys) {
+                if (src.has(k) && !src.isNull(k)) {
+                    sb.append(sb.length() > 0 ? " " : "")
+                            .append(prefixes[i]).append(k).append("=").append(src.optString(k, ""));
+                }
+            }
+        }
+        return sb.toString();
+    }
+
+    private static void appendVerboseFields(StringBuilder sb, JSONObject src, String prefix) {
+        TreeSet<String> keys = new TreeSet<>();
+        Iterator<String> it = src.keys();
+        while (it.hasNext()) {
+            String k = it.next();
+            if (!isSensitiveDiagKey(k)) {
+                keys.add(k);
+            }
+        }
+        for (String k : keys) {
+            if (src.isNull(k)) continue;
+            Object val = src.opt(k);
+            if (val == null || val instanceof JSONObject || val instanceof JSONArray) {
+                continue;
+            }
+            sb.append(sb.length() > 0 ? " " : "")
+                    .append(prefix).append(k).append("=").append(val);
+        }
+    }
+
+    private static boolean isSensitiveDiagKey(String key) {
+        if (key == null) return true;
+        String k = key.toLowerCase(Locale.US);
+        return k.contains("vin")
+                || k.contains("plate")
+                || k.contains("gps")
+                || k.contains("latitude")
+                || k.contains("longitude")
+                || k.equals("lat")
+                || k.equals("lng")
+                || k.equals("lon")
+                || k.contains("coord")
+                || k.contains("user")
+                || k.contains("owner")
+                || k.contains("account")
+                || k.contains("nickname")
+                || k.contains("token")
+                || k.contains("cookie")
+                || k.contains("serial")
+                || k.contains("imei")
+                || k.contains("identifier")
+                || k.contains("mobile")
+                || k.contains("phone")
+                || k.contains("email")
+                || k.contains("pwd")
+                || k.contains("pass")
+                || k.equals("pin")
+                || k.contains("pincode")
+                || k.contains("address")
+                || k.contains("secret")
+                || k.contains("city")
+                || k.contains("province");
+    }
+
+    private static void appendIntDiag(StringBuilder sb, JSONObject src, String key, String label) {
+        if (src.has(key) && !src.isNull(key)) {
+            sb.append(sb.length() > 0 ? " " : "").append(label).append("=").append(src.optInt(key, -1));
+        }
+    }
+
+    private static int countEquals(int target, int... values) {
+        int count = 0;
+        for (int v : values) {
+            if (v == target) count++;
+        }
+        return count;
+    }
+
+    private static Integer normalizeTpms(JSONObject vi, String k1, String k2) {
+        if (vi.has(k1) && !vi.isNull(k1)) {
+            return UnitPreferences.normalizeRawTpmsToKpa(vi.optDouble(k1, -1.0));
+        }
+        if (vi.has(k2) && !vi.isNull(k2)) {
+            return UnitPreferences.normalizeRawTpmsToKpa(vi.optDouble(k2, -1.0));
+        }
+        return null;
+    }
+
+    /**
+     * Extract instantaneous charging power in kW when the car is actively charging.
+     * Supports BYD's signed "gl" battery power telemetry (e.g. -7.2 kW while charging),
+     * explicit chargingPower/chargePower keys, and non-zero totalPower fallback.
+     */
+    private static Double extractChargePowerKw(JSONObject vi, int chargingState) {
+        if (vi == null) return null;
+        String[] serializedKeys = {"chargePowerKw", "chgKw"};
+        for (String key : serializedKeys) {
+            if (vi.has(key) && !vi.isNull(key)) {
+                double val = vi.optDouble(key, Double.NaN);
+                if (!Double.isNaN(val) && !Double.isInfinite(val) && val > 0.05 && val < 500.0) {
+                    return Math.round(val * 10.0) / 10.0;
+                }
+            }
+        }
+        if (chargingState != VehicleStatus.CHARGING_ACTIVE) {
+            return null;
+        }
+        String[] powerKeys = {"chargingPower", "chargePower", "realTimePower", "batteryPower", "gl", "totalPower"};
+        for (String key : powerKeys) {
+            if (vi.has(key) && !vi.isNull(key)) {
+                double raw = vi.optDouble(key, Double.NaN);
+                if (Double.isNaN(raw) || Double.isInfinite(raw)) continue;
+                double mag = "totalPower".equals(key) ? raw : Math.abs(raw);
+                if (mag > 0.05 && mag < 500.0) {
+                    return Math.round(mag * 10.0) / 10.0;
+                }
+            }
+        }
+        return null;
     }
 
     @Override

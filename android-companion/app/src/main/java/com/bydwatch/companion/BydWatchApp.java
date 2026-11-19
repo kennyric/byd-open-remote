@@ -9,11 +9,14 @@ import com.bydwatch.companion.data.BydRepository;
 import com.bydwatch.companion.data.CloudBydGateway;
 import com.bydwatch.companion.data.ConfigStore;
 import com.bydwatch.companion.data.SecureConfigStore;
+import com.bydwatch.companion.ui.VehicleLocationHelper;
+import com.bydwatch.companion.update.AppUpdateChecker;
 import com.bydwatch.companion.wear.HuaweiWearP2pTransport;
 import com.bydwatch.companion.wear.PeerTransport;
 import com.bydwatch.companion.wear.WearEngineBridge;
 import com.bydwatch.companion.wear.WearEngineConfig;
 
+import com.google.android.material.color.DynamicColors;
 import java.io.IOException;
 
 /**
@@ -29,6 +32,7 @@ public class BydWatchApp extends Application {
     private static WearEngineConfig testWearEngineConfig;
     private static PeerTransport testPeerTransport;
     private static WearEngineBridge testWearEngineBridge;
+    private static AppUpdateChecker testAppUpdateChecker;
 
     private ConfigStore configStore;
     private BydGateway gateway;
@@ -36,6 +40,7 @@ public class BydWatchApp extends Application {
     private WearEngineConfig wearEngineConfig;
     private PeerTransport peerTransport;
     private WearEngineBridge wearEngineBridge;
+    private AppUpdateChecker appUpdateChecker;
 
     public static BydWatchApp getInstance() {
         return instance;
@@ -45,6 +50,7 @@ public class BydWatchApp extends Application {
     public void onCreate() {
         super.onCreate();
         instance = this;
+        DynamicColors.applyToActivitiesIfAvailable(this);
         // NOTE: Hardware keystore-backed SecureConfigStore and network gateway are
         // initialized lazily upon first getter access so JVM tests without hardware
         // KeyStore do not crash Application.onCreate().
@@ -89,9 +95,28 @@ public class BydWatchApp extends Application {
             return testWearEngineConfig;
         }
         if (wearEngineConfig == null) {
-            wearEngineConfig = new WearEngineConfig();
+            wearEngineConfig = WearEngineConfig.forTarget(getConfigStore().getWatchTarget());
         }
         return wearEngineConfig;
+    }
+
+    public synchronized void refreshWatchTarget() {
+        if (testWearEngineConfig != null) {
+            return;
+        }
+        wearEngineConfig = WearEngineConfig.forTarget(getConfigStore().getWatchTarget());
+        if (peerTransport != null) {
+            try {
+                peerTransport.stopListening();
+            } catch (Exception ignored) {}
+            peerTransport = null;
+        }
+        if (wearEngineBridge != null) {
+            try {
+                wearEngineBridge.stop();
+            } catch (Exception ignored) {}
+            wearEngineBridge = null;
+        }
     }
 
     public synchronized PeerTransport getPeerTransport() {
@@ -114,6 +139,26 @@ public class BydWatchApp extends Application {
         return wearEngineBridge;
     }
 
+    public synchronized AppUpdateChecker getAppUpdateChecker() {
+        if (testAppUpdateChecker != null) {
+            return testAppUpdateChecker;
+        }
+        if (appUpdateChecker == null) {
+            appUpdateChecker = new AppUpdateChecker();
+        }
+        return appUpdateChecker;
+    }
+
+    public static synchronized boolean hasTestAppUpdateChecker() {
+        return testAppUpdateChecker != null;
+    }
+
+    @VisibleForTesting
+    public static synchronized void setTestAppUpdateChecker(AppUpdateChecker checker) {
+        if (!BuildConfig.DEBUG) return;
+        testAppUpdateChecker = checker;
+    }
+
     @VisibleForTesting
     public static synchronized void setTestDependencies(ConfigStore configStore, BydRepository repository) {
         setTestDependencies(configStore, repository != null ? repository.getGateway() : null, repository);
@@ -121,6 +166,7 @@ public class BydWatchApp extends Application {
 
     @VisibleForTesting
     public static synchronized void setTestDependencies(ConfigStore configStore, BydGateway gateway, BydRepository repository) {
+        if (!BuildConfig.DEBUG) return;
         testConfigStore = configStore;
         testGateway = gateway;
         testRepository = repository;
@@ -128,6 +174,7 @@ public class BydWatchApp extends Application {
 
     @VisibleForTesting
     public static synchronized void setTestWearDependencies(WearEngineConfig config, PeerTransport transport, WearEngineBridge bridge) {
+        if (!BuildConfig.DEBUG) return;
         testWearEngineConfig = config;
         testPeerTransport = transport;
         testWearEngineBridge = bridge;
@@ -135,11 +182,14 @@ public class BydWatchApp extends Application {
 
     @VisibleForTesting
     public static synchronized void resetForTesting() {
+        if (!BuildConfig.DEBUG) return;
         testConfigStore = null;
         testGateway = null;
         testRepository = null;
         testWearEngineConfig = null;
         testPeerTransport = null;
         testWearEngineBridge = null;
+        testAppUpdateChecker = null;
+        VehicleLocationHelper.clearCacheForTesting();
     }
 }

@@ -13,3 +13,5 @@ watch-gt4/**/build/
 *.p7b
 *.keystore
 *.tmp
+*.xlsx
+agconnect-services.json

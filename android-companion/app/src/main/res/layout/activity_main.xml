@@ -1,458 +1,2815 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:padding="16dp"
-    android:fillViewport="true">
+    android:background="?attr/colorSurface">
 
-    <LinearLayout
+<androidx.drawerlayout.widget.DrawerLayout
+    android:id="@+id/drawerLayout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="?attr/colorSurface"
+    android:fitsSystemWindows="true">
+
+    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+        android:id="@+id/swipeRefresh"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical">
+        android:layout_height="match_parent">
 
-        <!-- Card 1: BYD Account (Indonesia - id) -->
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/cardAccount"
+    <androidx.core.widget.NestedScrollView
+        android:id="@+id/rootScroll"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="?attr/colorSurface"
+        android:clipToPadding="false"
+        android:fillViewport="true">
+
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            app:cardCornerRadius="12dp"
-            app:cardElevation="2dp"
-            app:contentPadding="16dp">
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <!-- App bar: page identity only; the car lives in the vehicle carousel below -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="14dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <ImageButton
+                    android:id="@+id/btnHamburger"
+                    android:layout_width="42dp"
+                    android:layout_height="42dp"
+                    android:layout_marginEnd="10dp"
+                    android:background="@drawable/bg_pill_dark"
+                    android:backgroundTint="?attr/colorSurfaceContainerHigh"
+                    android:contentDescription="@string/nav_menu_desc"
+                    android:padding="9dp"
+                    android:scaleType="centerInside"
+                    android:src="@drawable/ic_menu"
+                    app:tint="?attr/colorOnSurface" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/tvHeaderTitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:text="@string/app_name"
+                        android:textColor="?attr/colorOnSurface"
+                        android:textSize="20sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvHeaderSubtitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/nav_controls"
+                        android:textColor="?attr/colorOnSurfaceVariant"
+                        android:textSize="12sp" />
+                </LinearLayout>
+            </LinearLayout>
+
+        <!-- Non-intrusive In-App Update Banner -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/bannerAppUpdate"
+            style="@style/Widget.Material3.CardView.Filled"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:visibility="gone"
+            app:cardBackgroundColor="?attr/colorPrimaryContainer"
+            app:cardCornerRadius="16dp"
+            app:strokeWidth="0dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical">
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="14dp"
+                android:paddingVertical="10dp">
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/card_account_title"
-                    android:textSize="18sp"
-                    android:textStyle="bold"
-                    android:layout_marginBottom="8dp" />
-
-                <TextView
-                    android:id="@+id/tvAuthNotice"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="@string/auth_notice"
-                    android:textSize="13sp"
-                    android:textColor="#C0392B"
-                    android:layout_marginBottom="12dp" />
-
-                <EditText
-                    android:id="@+id/etUsername"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:hint="@string/hint_username"
-                    android:inputType="textEmailAddress"
-                    android:layout_marginBottom="8dp" />
-
-                <EditText
-                    android:id="@+id/etPassword"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:hint="@string/hint_password"
-                    android:inputType="textPassword"
-                    android:layout_marginBottom="8dp" />
-
-                <EditText
-                    android:id="@+id/etPin"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:hint="@string/hint_pin"
-                    android:inputType="numberPassword"
-                    android:maxLength="6"
-                    android:layout_marginBottom="8dp" />
-
-                <EditText
-                    android:id="@+id/etVin"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:hint="@string/hint_vin"
-                    android:inputType="textCapCharacters"
-                    android:layout_marginBottom="12dp" />
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:contentDescription="@string/update_dialog_title"
+                    android:src="@drawable/ic_slot_sync"
+                    app:tint="?attr/colorOnPrimaryContainer" />
 
                 <LinearLayout
-                    android:layout_width="match_parent"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal">
+                    android:layout_marginStart="10dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
 
-                    <Button
-                        android:id="@+id/btnSaveCredentials"
-                        android:layout_width="0dp"
+                    <TextView
+                        android:id="@+id/tvUpdateBannerTitle"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="@string/btn_save_credentials"
-                        android:layout_marginEnd="8dp" />
+                        android:textColor="?attr/colorOnPrimaryContainer"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
 
-                    <Button
-                        android:id="@+id/btnFetchVin"
-                        android:layout_width="0dp"
+                    <TextView
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="@string/btn_fetch_vin" />
+                        android:text="@string/update_banner_subtitle"
+                        android:textColor="?attr/colorOnPrimaryContainer"
+                        android:textSize="11sp" />
                 </LinearLayout>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnUpdateBannerAction"
+                    style="@style/Widget.Material3.Button.TonalButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="32dp"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    android:minWidth="0dp"
+                    android:paddingHorizontal="12dp"
+                    android:text="@string/update_banner_action"
+                    android:textAllCaps="false"
+                    android:textSize="11sp"
+                    app:cornerRadius="999dp" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- Card 2: BYD Atto 1 Status & Test Controls -->
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/cardControls"
+        <!-- Swipeable vehicle card: one page per car, peek + dots for multi-car -->
+        <LinearLayout
+            android:id="@+id/layoutVehicleCarousel"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            app:cardCornerRadius="12dp"
-            app:cardElevation="2dp"
-            app:contentPadding="16dp">
+            android:layout_marginBottom="12dp"
+            android:orientation="vertical">
+
+            <HorizontalScrollView
+                android:id="@+id/scrollVehicle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fillViewport="true"
+                android:overScrollMode="never"
+                android:scrollbars="none">
+
+                <LinearLayout
+                    android:id="@+id/layoutVehicleCards"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal" />
+            </HorizontalScrollView>
+
+            <LinearLayout
+                android:id="@+id/layoutVehicleDots"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:gravity="center"
+                android:orientation="horizontal"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/tvVehicleSwipeHint"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:gravity="center"
+                android:text="@string/vehicle_swipe_hint"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textSize="10sp"
+                android:visibility="gone" />
+        </LinearLayout>
+
+        <!-- Card 1: Vehicle Status & Remote Controls -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardControls"
+            style="@style/Widget.BydWatch.Card"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical">
+                android:orientation="vertical"
+                android:padding="16dp">
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/card_controls_title"
-                    android:textSize="18sp"
-                    android:textStyle="bold"
-                    android:layout_marginBottom="12dp" />
-
-                <!-- Telemetry Grid -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:layout_marginBottom="8dp">
+                    android:layout_marginBottom="12dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
 
-                    <LinearLayout
+                    <TextView
+                        android:id="@+id/tvControlsTitle"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:orientation="vertical">
+                        android:text="@string/card_controls_title"
+                        android:textColor="?attr/colorOnSurface"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
 
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/label_soc"
-                            android:textSize="12sp"
-                            android:textColor="#7F8C8D" />
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnEditHomeLayout"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="28dp"
+                        android:layout_marginEnd="6dp"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        android:minWidth="0dp"
+                        android:minHeight="0dp"
+                        android:paddingHorizontal="10dp"
+                        android:text="@string/btn_edit_home_layout"
+                        android:textAllCaps="false"
+                        android:textColor="?attr/colorOnSurfaceVariant"
+                        android:textSize="11sp"
+                        app:cornerRadius="999dp"
+                        app:icon="@drawable/ic_nav_tune"
+                        app:iconGravity="textStart"
+                        app:iconPadding="4dp"
+                        app:iconSize="13dp"
+                        app:iconTint="?attr/colorOnSurfaceVariant"
+                        app:strokeColor="?attr/colorOutlineVariant" />
 
-                        <TextView
-                            android:id="@+id/tvSoc"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/default_soc"
-                            android:textSize="20sp"
-                            android:textStyle="bold" />
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:layout_width="0dp"
+                    <TextView
+                        android:id="@+id/tvLastUpdated"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/label_range"
-                            android:textSize="12sp"
-                            android:textColor="#7F8C8D" />
-
-                        <TextView
-                            android:id="@+id/tvRange"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/default_range"
-                            android:textSize="20sp"
-                            android:textStyle="bold" />
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/label_doors"
-                            android:textSize="12sp"
-                            android:textColor="#7F8C8D" />
-
-                        <TextView
-                            android:id="@+id/tvLockState"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/default_doors"
-                            android:textSize="18sp"
-                            android:textStyle="bold" />
-                    </LinearLayout>
+                        android:background="@drawable/bg_pill_dark"
+                        android:backgroundTint="?attr/colorSurfaceContainerHighest"
+                        android:paddingHorizontal="10dp"
+                        android:paddingVertical="4dp"
+                        android:text="@string/default_last_updated"
+                        android:textColor="?attr/colorOnSurfaceVariant"
+                        android:textSize="11sp" />
                 </LinearLayout>
 
+                <!-- SoC Expressive Material You Container -->
+                <com.google.android.material.card.MaterialCardView
+                    style="@style/Widget.Material3.CardView.Filled"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp"
+                    app:cardBackgroundColor="?attr/colorSurfaceContainerHigh"
+                    app:cardCornerRadius="20dp"
+                    app:strokeWidth="0dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="14dp">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="bottom"
+                            android:orientation="horizontal">
+
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:orientation="vertical">
+
+                                <TextView
+                                    android:id="@+id/tvSoc"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="@string/default_soc"
+                                    android:textColor="?attr/colorPrimary"
+                                    android:textSize="36sp"
+                                    android:textStyle="bold" />
+                            </LinearLayout>
+
+                            <LinearLayout
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:gravity="end"
+                                android:orientation="vertical">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="@string/label_range"
+                                    android:textColor="?attr/colorOnSurfaceVariant"
+                                    android:textSize="11sp" />
+
+                                <TextView
+                                    android:id="@+id/tvRange"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="@string/default_range"
+                                    android:textColor="?attr/colorOnSurface"
+                                    android:textSize="22sp"
+                                    android:textStyle="bold" />
+                            </LinearLayout>
+                        </LinearLayout>
+
+                        <ProgressBar
+                            android:id="@+id/pbBatterySoc"
+                            style="?android:attr/progressBarStyleHorizontal"
+                            android:layout_width="match_parent"
+                            android:layout_height="10dp"
+                            android:layout_marginTop="10dp"
+                            android:max="100"
+                            android:progress="0"
+                            android:progressBackgroundTint="?attr/colorSurfaceContainerHighest"
+                            android:progressDrawable="@drawable/progress_soc"
+                            android:progressTint="?attr/colorPrimary" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                android:id="@+id/tvChargingBadge"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginEnd="8dp"
+                                android:background="@drawable/bg_pill_dark"
+                                android:backgroundTint="?attr/colorSurfaceContainerHighest"
+                                android:paddingHorizontal="10dp"
+                                android:paddingVertical="3dp"
+                                android:text="Charging"
+                                android:textColor="@color/accent_emerald"
+                                android:textSize="11sp"
+                                android:textStyle="bold"
+                                android:visibility="gone" />
+
+                            <TextView
+                                android:id="@+id/tvOpeningBadge"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:background="@drawable/bg_pill_dark"
+                                android:backgroundTint="?attr/colorSurfaceContainerHighest"
+                                android:paddingHorizontal="10dp"
+                                android:paddingVertical="3dp"
+                                android:text="Opening Detected"
+                                android:textColor="@color/accent_emerald"
+                                android:textSize="11sp"
+                                android:textStyle="bold"
+                                android:visibility="gone" />
+                        </LinearLayout>
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- Telemetry Secondary Row -->
+                <com.google.android.material.card.MaterialCardView
+                    style="@style/Widget.Material3.CardView.Filled"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="14dp"
+                    app:cardBackgroundColor="?attr/colorSurfaceContainerHigh"
+                    app:cardCornerRadius="18dp"
+                    app:strokeWidth="0dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:padding="12dp">
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/label_doors"
+                                android:textColor="?attr/colorOnSurfaceVariant"
+                                android:textSize="11sp" />
+
+                            <TextView
+                                android:id="@+id/tvLockState"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:text="@string/default_doors"
+                                android:textColor="?attr/colorOnSurface"
+                                android:textSize="15sp"
+                                android:textStyle="bold" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:id="@+id/layoutCabinTemp"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical"
+                            android:visibility="gone">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/label_cabin_temp"
+                                android:textColor="?attr/colorOnSurfaceVariant"
+                                android:textSize="11sp" />
+
+                            <TextView
+                                android:id="@+id/tvCabinTemp"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:text="@string/default_cabin_temp"
+                                android:textColor="?attr/colorOnSurface"
+                                android:textSize="15sp"
+                                android:textStyle="bold" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/label_ac_state"
+                                android:textColor="?attr/colorOnSurfaceVariant"
+                                android:textSize="11sp" />
+
+                            <TextView
+                                android:id="@+id/tvAcState"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:text="@string/default_ac_state"
+                                android:textColor="?attr/colorPrimary"
+                                android:textSize="15sp"
+                                android:textStyle="bold" />
+                        </LinearLayout>
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- Primary Actions: Refresh / Lock / Unlock -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:layout_marginBottom="12dp">
+                    android:layout_marginBottom="10dp"
+                    android:orientation="horizontal">
 
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/label_cabin_temp"
-                            android:textSize="12sp"
-                            android:textColor="#7F8C8D" />
-
-                        <TextView
-                            android:id="@+id/tvCabinTemp"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/default_cabin_temp"
-                            android:textSize="16sp" />
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/label_ac_state"
-                            android:textSize="12sp"
-                            android:textColor="#7F8C8D" />
-
-                        <TextView
-                            android:id="@+id/tvAcState"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/default_ac_state"
-                            android:textSize="16sp" />
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/label_last_updated"
-                            android:textSize="12sp"
-                            android:textColor="#7F8C8D" />
-
-                        <TextView
-                            android:id="@+id/tvLastUpdated"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/default_last_updated"
-                            android:textSize="14sp" />
-                    </LinearLayout>
-                </LinearLayout>
-
-                <!-- Action Buttons: Refresh, Lock, Unlock -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:layout_marginBottom="10dp">
-
-                    <Button
+                    <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnRefresh"
+                        style="@style/Widget.Material3.Button.TonalButton"
                         android:layout_width="0dp"
-                        android:layout_height="wrap_content"
+                        android:layout_height="48dp"
+                        android:layout_marginEnd="6dp"
                         android:layout_weight="1"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        android:paddingHorizontal="6dp"
                         android:text="@string/btn_refresh"
-                        android:layout_marginEnd="4dp" />
+                        android:textAllCaps="false"
+                        android:textSize="13sp"
+                        app:cornerRadius="16dp"
+                        app:icon="@drawable/ic_byd_refresh"
+                        app:iconGravity="textStart"
+                        app:iconPadding="6dp"
+                        app:iconSize="16dp" />
 
-                    <Button
+                    <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnLock"
+                        style="@style/Widget.Material3.Button"
                         android:layout_width="0dp"
-                        android:layout_height="wrap_content"
+                        android:layout_height="48dp"
+                        android:layout_marginEnd="6dp"
                         android:layout_weight="1"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        android:paddingHorizontal="6dp"
                         android:text="@string/btn_lock"
-                        android:layout_marginEnd="4dp" />
+                        android:textAllCaps="false"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        app:cornerRadius="16dp"
+                        app:icon="@drawable/ic_byd_lock"
+                        app:iconGravity="textStart"
+                        app:iconPadding="6dp"
+                        app:iconSize="16dp" />
 
-                    <Button
+                    <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnUnlock"
+                        style="@style/Widget.Material3.Button.TonalButton"
                         android:layout_width="0dp"
-                        android:layout_height="wrap_content"
+                        android:layout_height="48dp"
                         android:layout_weight="1"
-                        android:text="@string/btn_unlock" />
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        android:paddingHorizontal="6dp"
+                        android:text="@string/btn_unlock"
+                        android:textAllCaps="false"
+                        android:textColor="?attr/colorOnTertiaryContainer"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        app:backgroundTint="?attr/colorTertiaryContainer"
+                        app:cornerRadius="16dp"
+                        app:icon="@drawable/ic_byd_unlock"
+                        app:iconGravity="textStart"
+                        app:iconPadding="6dp"
+                        app:iconSize="16dp"
+                        app:iconTint="?attr/colorOnTertiaryContainer" />
                 </LinearLayout>
 
-                <!-- Climate Controls: - Temp + & AC On / AC Off -->
+                <!-- Climate Control Bar (Compact AC On/Off Toggle + Adjust Popup Button) -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cardClimateControl"
+                    style="@style/Widget.Material3.CardView.Filled"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="10dp"
+                    app:cardBackgroundColor="?attr/colorSurfaceContainerHigh"
+                    app:cardCornerRadius="18dp"
+                    app:strokeWidth="0dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:padding="10dp">
+
+                        <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/btnAcToggle"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:foreground="?attr/selectableItemBackground"
+                            app:cardBackgroundColor="?attr/colorSurfaceContainer"
+                            app:cardCornerRadius="14dp"
+                            app:cardElevation="0dp"
+                            app:strokeColor="?attr/colorOutlineVariant"
+                            app:strokeWidth="1dp">
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:gravity="center_vertical"
+                                android:minHeight="52dp"
+                                android:orientation="horizontal"
+                                android:paddingHorizontal="12dp"
+                                android:paddingVertical="8dp">
+
+                                <ImageView
+                                    android:id="@+id/ivAcToggleIcon"
+                                    android:layout_width="20dp"
+                                    android:layout_height="20dp"
+                                    android:layout_marginEnd="10dp"
+                                    android:contentDescription="@string/btn_ac_on"
+                                    android:src="@drawable/ic_byd_temp_snow"
+                                    app:tint="?attr/colorPrimary" />
+
+                                <LinearLayout
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:orientation="vertical">
+
+                                    <TextView
+                                        android:id="@+id/tvAcToggleTitle"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:text="@string/card_ac_off"
+                                        android:textColor="?attr/colorOnSurface"
+                                        android:textSize="14sp"
+                                        android:textStyle="bold" />
+
+                                    <TextView
+                                        android:id="@+id/tvAcTogglePreset"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:text="@string/default_target_temp"
+                                        android:textColor="?attr/colorOnSurfaceVariant"
+                                        android:textSize="11sp" />
+                                </LinearLayout>
+                            </LinearLayout>
+                        </com.google.android.material.card.MaterialCardView>
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnAcAdjust"
+                            style="@style/Widget.Material3.Button.OutlinedButton"
+                            android:layout_width="wrap_content"
+                            android:layout_height="52dp"
+                            android:layout_marginStart="8dp"
+                            android:insetTop="0dp"
+                            android:insetBottom="0dp"
+                            android:minWidth="0dp"
+                            android:paddingHorizontal="14dp"
+                            android:text="@string/btn_ac_adjust"
+                            android:textAllCaps="false"
+                            android:textColor="?attr/colorOnSurface"
+                            android:textSize="13sp"
+                            android:textStyle="bold"
+                            app:cornerRadius="14dp"
+                            app:icon="@drawable/ic_nav_tune"
+                            app:iconGravity="textStart"
+                            app:iconPadding="6dp"
+                            app:iconSize="16dp"
+                            app:iconTint="?attr/colorOnSurfaceVariant"
+                            app:strokeColor="?attr/colorOutlineVariant" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- Alert Controls: Flash Lights & Horn -->
+                <LinearLayout
+                    android:id="@+id/layoutAlertControls"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:orientation="horizontal">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnLights"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="0dp"
+                        android:layout_height="44dp"
+                        android:layout_marginEnd="6dp"
+                        android:layout_weight="1"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        android:text="@string/btn_lights"
+                        android:textAllCaps="false"
+                        android:textColor="?attr/colorOnSurface"
+                        android:textSize="13sp"
+                        app:cornerRadius="16dp"
+                        app:icon="@drawable/ic_byd_lights"
+                        app:iconGravity="textStart"
+                        app:iconPadding="6dp"
+                        app:iconSize="16dp"
+                        app:iconTint="?attr/colorPrimary"
+                        app:strokeColor="?attr/colorOutlineVariant" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnHorn"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="0dp"
+                        android:layout_height="44dp"
+                        android:layout_weight="1"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        android:text="@string/btn_horn"
+                        android:textAllCaps="false"
+                        android:textColor="?attr/colorOnSurface"
+                        android:textSize="13sp"
+                        app:cornerRadius="16dp"
+                        app:icon="@drawable/ic_byd_horn"
+                        app:iconGravity="textStart"
+                        app:iconPadding="6dp"
+                        app:iconSize="16dp"
+                        app:iconTint="?attr/colorError"
+                        app:strokeColor="?attr/colorOutlineVariant" />
+                </LinearLayout>
+
+                <!-- Comfort Controls Row 1: Windows Vent & Close -->
+                <LinearLayout
+                    android:id="@+id/layoutComfortRow1"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:orientation="horizontal">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnVentWindows"
+                        style="@style/Widget.Material3.Button.TonalButton"
+                        android:layout_width="0dp"
+                        android:layout_height="40dp"
+                        android:layout_marginEnd="6dp"
+                        android:layout_weight="1"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        android:text="@string/btn_vent_windows"
+                        android:textAllCaps="false"
+                        android:textSize="12sp"
+                        app:cornerRadius="14dp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnCloseWindows"
+                        style="@style/Widget.Material3.Button.TonalButton"
+                        android:layout_width="0dp"
+                        android:layout_height="40dp"
+                        android:layout_weight="1"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        android:text="@string/btn_close_windows"
+                        android:textAllCaps="false"
+                        android:textSize="12sp"
+                        app:cornerRadius="14dp" />
+                </LinearLayout>
+
+                <!-- Comfort Controls Row 2: Battery Heat & Driver Seat Heat -->
+                <LinearLayout
+                    android:id="@+id/layoutComfortRow2"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="10dp"
+                    android:orientation="horizontal">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnBatHeat"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="0dp"
+                        android:layout_height="40dp"
+                        android:layout_marginEnd="6dp"
+                        android:layout_weight="1"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        android:text="@string/btn_bat_heat"
+                        android:textAllCaps="false"
+                        android:textColor="?attr/colorOnSurface"
+                        android:textSize="12sp"
+                        app:cornerRadius="14dp"
+                        app:strokeColor="?attr/colorOutlineVariant" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnSeatHeat"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="0dp"
+                        android:layout_height="40dp"
+                        android:layout_weight="1"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        android:text="@string/btn_seat_heat"
+                        android:textAllCaps="false"
+                        android:textColor="?attr/colorOnSurface"
+                        android:textSize="12sp"
+                        app:cornerRadius="14dp"
+                        app:strokeColor="?attr/colorOutlineVariant" />
+                </LinearLayout>
+
+                <!-- User Custom Homepage Buttons (Added via Edit Homepage Layout) -->
+                <LinearLayout
+                    android:id="@+id/layoutHomeCustomSection"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="10dp"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="6dp"
+                        android:text="@string/label_home_custom_buttons"
+                        android:textColor="?attr/colorOnSurfaceVariant"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+
+                    <LinearLayout
+                        android:id="@+id/layoutHomeCustomGrid"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical" />
+                </LinearLayout>
+
+                <!-- Compact Car Location Widget (clickable -> asks to redirect to navigation apps) -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cardLocation"
+                    style="@style/Widget.Material3.CardView.Filled"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="10dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    app:cardBackgroundColor="?attr/colorSurfaceContainerHigh"
+                    app:cardCornerRadius="18dp"
+                    app:strokeWidth="0dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="12dp"
+                        android:paddingVertical="8dp">
+
+                        <ImageView
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:layout_marginEnd="10dp"
+                            android:contentDescription="@string/label_car_location"
+                            android:src="@drawable/ic_byd_location" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:id="@+id/tvCarLocation"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:ellipsize="end"
+                                android:maxLines="1"
+                                android:text="@string/label_location_unset"
+                                android:textColor="?attr/colorOnSurface"
+                                android:textSize="13sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:id="@+id/tvCarLocationHint"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:ellipsize="end"
+                                android:maxLines="1"
+                                android:text="@string/label_location_tap_sync"
+                                android:textColor="?attr/colorOnSurfaceVariant"
+                                android:textSize="11sp" />
+                        </LinearLayout>
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnRefreshLocation"
+                            style="@style/Widget.Material3.Button.TonalButton"
+                            android:layout_width="wrap_content"
+                            android:layout_height="32dp"
+                            android:layout_marginStart="8dp"
+                            android:insetTop="0dp"
+                            android:insetBottom="0dp"
+                            android:minWidth="0dp"
+                            android:paddingHorizontal="10dp"
+                            android:text="GPS"
+                            android:textAllCaps="false"
+                            android:textSize="11sp"
+                            android:textStyle="bold"
+                            app:cornerRadius="999dp" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- Vehicle Health, TPMS & Units Strip -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/layoutHealthPanel"
+                    style="@style/Widget.Material3.CardView.Filled"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:cardBackgroundColor="?attr/colorSurfaceContainerHigh"
+                    app:cardCornerRadius="18dp"
+                    app:strokeWidth="0dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="12dp">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="6dp"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="@string/label_vehicle_health"
+                                android:textColor="?attr/colorOnSurfaceVariant"
+                                android:textSize="11sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:id="@+id/tvHealthMeta"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/state_all_closed"
+                                android:textColor="?attr/colorOnSurfaceVariant"
+                                android:textSize="11sp" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="8dp"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                android:id="@+id/tvTpmsLf"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="FL --"
+                                android:textColor="?attr/colorOnSurface"
+                                android:textSize="11sp" />
+
+                            <TextView
+                                android:id="@+id/tvTpmsRf"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="FR --"
+                                android:textColor="?attr/colorOnSurface"
+                                android:textSize="11sp" />
+
+                            <TextView
+                                android:id="@+id/tvTpmsLr"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="RL --"
+                                android:textColor="?attr/colorOnSurface"
+                                android:textSize="11sp" />
+
+                            <TextView
+                                android:id="@+id/tvTpmsRr"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="RR --"
+                                android:textColor="?attr/colorOnSurface"
+                                android:textSize="11sp" />
+                        </LinearLayout>
+
+                        <!-- Unit Toggles: Distance | Temp | Tire Pressure -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginEnd="6dp"
+                                android:text="@string/label_units"
+                                android:textColor="?attr/colorOnSurfaceVariant"
+                                android:textSize="11sp" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnUnitDist"
+                                style="@style/Widget.Material3.Button.OutlinedButton"
+                                android:layout_width="0dp"
+                                android:layout_height="32dp"
+                                android:layout_marginEnd="4dp"
+                                android:layout_weight="1"
+                                android:insetTop="0dp"
+                                android:insetBottom="0dp"
+                                android:paddingHorizontal="4dp"
+                                android:text="km"
+                                android:textAllCaps="false"
+                                android:textColor="?attr/colorPrimary"
+                                android:textSize="11sp"
+                                app:cornerRadius="999dp"
+                                app:strokeColor="?attr/colorOutlineVariant" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnUnitTemp"
+                                style="@style/Widget.Material3.Button.OutlinedButton"
+                                android:layout_width="0dp"
+                                android:layout_height="32dp"
+                                android:layout_marginHorizontal="4dp"
+                                android:layout_weight="1"
+                                android:insetTop="0dp"
+                                android:insetBottom="0dp"
+                                android:paddingHorizontal="4dp"
+                                android:text="°C"
+                                android:textAllCaps="false"
+                                android:textColor="?attr/colorPrimary"
+                                android:textSize="11sp"
+                                app:cornerRadius="999dp"
+                                app:strokeColor="?attr/colorOutlineVariant" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnUnitPres"
+                                style="@style/Widget.Material3.Button.OutlinedButton"
+                                android:layout_width="0dp"
+                                android:layout_height="32dp"
+                                android:layout_marginStart="4dp"
+                                android:layout_weight="1"
+                                android:insetTop="0dp"
+                                android:insetBottom="0dp"
+                                android:paddingHorizontal="4dp"
+                                android:text="kPa"
+                                android:textAllCaps="false"
+                                android:textColor="?attr/colorPrimary"
+                                android:textSize="11sp"
+                                app:cornerRadius="999dp"
+                                app:strokeColor="?attr/colorOutlineVariant" />
+                        </LinearLayout>
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Card 2: BYD Account Configuration (Page 2 via Drawer) -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardAccount"
+            style="@style/Widget.BydWatch.Card"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:layout_marginBottom="10dp">
-
-                    <Button
-                        android:id="@+id/btnTempMinus"
-                        android:layout_width="48dp"
-                        android:layout_height="wrap_content"
-                        android:text="@string/btn_temp_minus"
-                        android:textSize="18sp" />
-
-                    <TextView
-                        android:id="@+id/tvTargetTemp"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:paddingStart="12dp"
-                        android:paddingEnd="12dp"
-                        android:text="@string/default_target_temp"
-                        android:textSize="18sp"
-                        android:textStyle="bold" />
-
-                    <Button
-                        android:id="@+id/btnTempPlus"
-                        android:layout_width="48dp"
-                        android:layout_height="wrap_content"
-                        android:text="@string/btn_temp_plus"
-                        android:textSize="18sp"
-                        android:layout_marginEnd="8dp" />
-
-                    <Button
-                        android:id="@+id/btnAcOn"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="@string/btn_ac_on"
-                        android:layout_marginEnd="4dp" />
-
-                    <Button
-                        android:id="@+id/btnAcOff"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="@string/btn_ac_off" />
-                </LinearLayout>
-
-                <!-- Lights & Horn -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
                     android:orientation="horizontal">
 
-                    <Button
-                        android:id="@+id/btnLights"
+                    <LinearLayout
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="@string/btn_lights"
-                        android:layout_marginEnd="8dp" />
+                        android:orientation="vertical">
 
-                    <Button
-                        android:id="@+id/btnHorn"
-                        android:layout_width="0dp"
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/card_account_title"
+                            android:textColor="?attr/colorOnSurface"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tvAccountSummary"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="@string/account_summary_unconfigured"
+                            android:textColor="?attr/colorOnSurfaceVariant"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnToggleAccount"
+                        style="@style/Widget.Material3.Button.TonalButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="36dp"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        android:minWidth="64dp"
+                        android:paddingHorizontal="12dp"
+                        android:text="@string/btn_edit_account"
+                        android:textAllCaps="false"
+                        android:textSize="12sp"
+                        app:cornerRadius="999dp" />
+                </LinearLayout>
+
+                <!-- First-Time Setup Guide (2nd Account & 6-Digit Control PIN) -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cardSetupGuide"
+                    style="@style/Widget.Material3.CardView.Filled"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    app:cardBackgroundColor="?attr/colorSurfaceContainerHigh"
+                    app:cardCornerRadius="16dp"
+                    app:strokeColor="?attr/colorOutlineVariant"
+                    app:strokeWidth="1dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="@string/btn_horn" />
+                        android:orientation="vertical"
+                        android:padding="12dp">
+
+                        <LinearLayout
+                            android:id="@+id/layoutSetupGuideHeader"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:orientation="vertical">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="@string/setup_guide_title"
+                                    android:textColor="?attr/colorOnSurface"
+                                    android:textSize="13sp"
+                                    android:textStyle="bold" />
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginTop="2dp"
+                                    android:text="@string/setup_guide_subtitle"
+                                    android:textColor="?attr/colorOnSurfaceVariant"
+                                    android:textSize="11sp" />
+                            </LinearLayout>
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnToggleSetupGuide"
+                                style="@style/Widget.Material3.Button.TonalButton"
+                                android:layout_width="wrap_content"
+                                android:layout_height="32dp"
+                                android:layout_marginStart="8dp"
+                                android:insetTop="0dp"
+                                android:insetBottom="0dp"
+                                android:minWidth="0dp"
+                                android:paddingHorizontal="12dp"
+                                android:text="@string/btn_show_guide"
+                                android:textAllCaps="false"
+                                android:textSize="11sp"
+                                app:cornerRadius="999dp" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:id="@+id/layoutSetupGuideSteps"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="10dp"
+                            android:orientation="vertical"
+                            android:visibility="gone">
+
+                            <TextView
+                                android:id="@+id/tvSetupGuideWarning"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginBottom="10dp"
+                                android:background="@drawable/bg_notice_amber"
+                                android:backgroundTint="?attr/colorTertiaryContainer"
+                                android:padding="10dp"
+                                android:text="@string/setup_guide_warning"
+                                android:textColor="?attr/colorOnTertiaryContainer"
+                                android:textSize="12sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="@string/setup_guide_step1_title"
+                                android:textColor="?attr/colorPrimary"
+                                android:textSize="12sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:layout_marginBottom="8dp"
+                                android:text="@string/setup_guide_step1_body"
+                                android:textColor="?attr/colorOnSurfaceVariant"
+                                android:textSize="12sp" />
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="@string/setup_guide_step2_title"
+                                android:textColor="?attr/colorPrimary"
+                                android:textSize="12sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:layout_marginBottom="8dp"
+                                android:text="@string/setup_guide_step2_body"
+                                android:textColor="?attr/colorOnSurfaceVariant"
+                                android:textSize="12sp" />
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="@string/setup_guide_step3_title"
+                                android:textColor="?attr/colorPrimary"
+                                android:textSize="12sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:layout_marginBottom="8dp"
+                                android:text="@string/setup_guide_step3_body"
+                                android:textColor="?attr/colorOnSurfaceVariant"
+                                android:textSize="12sp" />
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="@string/setup_guide_step4_title"
+                                android:textColor="?attr/colorPrimary"
+                                android:textSize="12sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:text="@string/setup_guide_step4_body"
+                                android:textColor="?attr/colorOnSurfaceVariant"
+                                android:textSize="12sp" />
+                        </LinearLayout>
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <LinearLayout
+                    android:id="@+id/layoutAccountFields"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/tvAuthNotice"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="14dp"
+                        android:background="@drawable/bg_notice_amber"
+                        android:backgroundTint="?attr/colorTertiaryContainer"
+                        android:padding="12dp"
+                        android:text="@string/auth_notice"
+                        android:textColor="?attr/colorOnTertiaryContainer"
+                        android:textSize="12sp" />
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/tilRegion"
+                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="10dp"
+                        android:hint="@string/label_region"
+                        app:boxCornerRadiusBottomEnd="16dp"
+                        app:boxCornerRadiusBottomStart="16dp"
+                        app:boxCornerRadiusTopEnd="16dp"
+                        app:boxCornerRadiusTopStart="16dp"
+                        app:helperText="@string/helper_region"
+                        app:helperTextEnabled="true">
+
+                        <AutoCompleteTextView
+                            android:id="@+id/actvRegion"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="none"
+                            android:textSize="14sp" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/tilCountryCode"
+                        style="@style/Widget.BydWatch.TextInputLayout"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="10dp"
+                        android:hint="@string/label_country_code"
+                        app:helperText="@string/helper_country_code"
+                        app:helperTextEnabled="true">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/etCountryCode"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:importantForAutofill="no"
+                            android:inputType="textCapCharacters|textNoSuggestions"
+                            android:maxLength="2"
+                            android:textSize="14sp" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/tilUsername"
+                        style="@style/Widget.BydWatch.TextInputLayout"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="10dp"
+                        android:hint="@string/label_username"
+                        app:helperText="@string/helper_username"
+                        app:helperTextEnabled="true">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/etUsername"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:autofillHints="username"
+                            android:importantForAutofill="yes"
+                            android:inputType="textEmailAddress"
+                            android:textSize="14sp" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/tilPassword"
+                        style="@style/Widget.BydWatch.TextInputLayout"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="10dp"
+                        android:hint="@string/label_password"
+                        app:endIconMode="none"
+                        app:helperText="@string/helper_password_required"
+                        app:helperTextEnabled="true">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/etPassword"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:autofillHints="password"
+                            android:importantForAutofill="yes"
+                            android:inputType="textPassword|textNoSuggestions"
+                            android:longClickable="false"
+                            android:textSize="14sp" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/tilPin"
+                        style="@style/Widget.BydWatch.TextInputLayout"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="10dp"
+                        android:hint="@string/label_pin"
+                        app:endIconMode="none"
+                        app:helperText="@string/helper_pin_required"
+                        app:helperTextEnabled="true">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/etPin"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:importantForAutofill="no"
+                            android:inputType="numberPassword"
+                            android:longClickable="false"
+                            android:maxLength="6"
+                            android:textSize="14sp" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/tilVin"
+                        style="@style/Widget.BydWatch.TextInputLayout"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="14dp"
+                        android:hint="@string/label_vin"
+                        app:helperText="@string/helper_vin"
+                        app:helperTextEnabled="true">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/etVin"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:clickable="false"
+                            android:cursorVisible="false"
+                            android:focusable="false"
+                            android:importantForAutofill="no"
+                            android:inputType="none"
+                            android:longClickable="false"
+                            android:maxLength="17"
+                            android:textSize="14sp" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/tilBatteryCapacityKwh"
+                        style="@style/Widget.BydWatch.TextInputLayout"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="14dp"
+                        android:hint="@string/label_battery_capacity_kwh"
+                        app:helperText="@string/helper_battery_capacity_kwh"
+                        app:helperTextEnabled="true">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/etBatteryCapacityKwh"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:importantForAutofill="no"
+                            android:inputType="numberDecimal"
+                            android:maxLength="6"
+                            android:textSize="14sp" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnFetchVin"
+                            style="@style/Widget.Material3.Button.TonalButton"
+                            android:layout_width="0dp"
+                            android:layout_height="46dp"
+                            android:layout_marginEnd="6dp"
+                            android:layout_weight="1"
+                            android:insetTop="0dp"
+                            android:insetBottom="0dp"
+                            android:text="@string/btn_fetch_vin"
+                            android:textAllCaps="false"
+                            android:textSize="13sp"
+                            android:textStyle="bold"
+                            app:cornerRadius="16dp" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnSaveCredentials"
+                            style="@style/Widget.Material3.Button"
+                            android:layout_width="0dp"
+                            android:layout_height="46dp"
+                            android:layout_marginStart="6dp"
+                            android:layout_weight="1"
+                            android:insetTop="0dp"
+                            android:insetBottom="0dp"
+                            android:text="@string/btn_save_credentials"
+                            android:textAllCaps="false"
+                            android:textSize="13sp"
+                            android:textStyle="bold"
+                            app:cornerRadius="16dp" />
+                    </LinearLayout>
                 </LinearLayout>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- Card 3: Watch Bridge Status & Log -->
+        <!-- Garage: what Fetch VIN actually returned, so a multi-car account is visible. -->
         <com.google.android.material.card.MaterialCardView
-            android:id="@+id/cardBridge"
+            android:id="@+id/cardGarage"
+            style="@style/Widget.BydWatch.Card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:cardCornerRadius="12dp"
-            app:cardElevation="2dp"
-            app:contentPadding="16dp">
+            android:layout_marginBottom="16dp"
+            android:visibility="gone">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical">
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/garage_title"
+                        android:textColor="?attr/colorOnSurface"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvGarageCount"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/bg_console"
+                        android:backgroundTint="?attr/colorPrimaryContainer"
+                        android:paddingHorizontal="10dp"
+                        android:paddingVertical="3dp"
+                        android:textColor="?attr/colorOnPrimaryContainer"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/tvGarageMeta"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:textSize="12sp" />
+
+                <LinearLayout
+                    android:id="@+id/layoutGarageRows"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:orientation="vertical" />
+
+                <TextView
+                    android:id="@+id/tvGarageEmptyHint"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:text="@string/garage_empty_hint"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:textSize="12sp"
+                    android:visibility="gone" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnRefreshGarage"
+                    style="@style/Widget.Material3.Button.TonalButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="42dp"
+                    android:layout_marginTop="10dp"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    android:text="@string/garage_refresh"
+                    android:textAllCaps="false"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    app:cornerRadius="14dp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Card 3: App & Widget Preferences (Page 3 via Drawer) -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardPreferences"
+            style="@style/Widget.BydWatch.Card"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="@string/card_bridge_title"
-                    android:textSize="18sp"
+                    android:layout_marginBottom="12dp"
+                    android:text="@string/card_preferences_title"
+                    android:textColor="?attr/colorOnSurface"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <!-- App Language Selector -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="6dp"
+                    android:text="@string/label_app_language"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.button.MaterialButtonToggleGroup
+                    android:id="@+id/toggleAppLanguage"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp"
+                    app:selectionRequired="true"
+                    app:singleSelection="true">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnLangSystem"
+                        style="?attr/materialButtonOutlinedStyle"
+                        android:layout_width="0dp"
+                        android:layout_height="36dp"
+                        android:layout_weight="1"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        android:maxLines="1"
+                        android:minWidth="0dp"
+                        android:paddingHorizontal="6dp"
+                        android:text="@string/lang_option_system"
+                        android:textAllCaps="false"
+                        android:textSize="11.5sp"
+                        app:cornerRadius="12dp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnLangEnglish"
+                        style="?attr/materialButtonOutlinedStyle"
+                        android:layout_width="0dp"
+                        android:layout_height="36dp"
+                        android:layout_weight="1"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        android:maxLines="1"
+                        android:minWidth="0dp"
+                        android:paddingHorizontal="6dp"
+                        android:text="@string/lang_option_english"
+                        android:textAllCaps="false"
+                        android:textSize="11.5sp"
+                        app:cornerRadius="12dp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnLangIndonesian"
+                        style="?attr/materialButtonOutlinedStyle"
+                        android:layout_width="0dp"
+                        android:layout_height="36dp"
+                        android:layout_weight="1"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        android:maxLines="1"
+                        android:minWidth="0dp"
+                        android:paddingHorizontal="6dp"
+                        android:text="@string/lang_option_indonesian"
+                        android:textAllCaps="false"
+                        android:textSize="11.5sp"
+                        app:cornerRadius="12dp" />
+                </com.google.android.material.button.MaterialButtonToggleGroup>
+
+                <!-- Widget Auto-Sync Frequency (Minutes or Hours) -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/tvSyncIntervalLabel"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/label_widget_sync_freq"
+                        android:textColor="?attr/colorOnSurfaceVariant"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+
+                    <EditText
+                        android:id="@+id/etSyncInterval"
+                        android:layout_width="56dp"
+                        android:layout_height="36dp"
+                        android:layout_marginEnd="6dp"
+                        android:background="@drawable/bg_pill_dark"
+                        android:backgroundTint="?attr/colorSurfaceContainerHighest"
+                        android:gravity="center"
+                        android:hint="30"
+                        android:importantForAutofill="no"
+                        android:inputType="number"
+                        android:maxLength="4"
+                        android:paddingHorizontal="8dp"
+                        android:textColor="?attr/colorOnSurface"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnSyncIntervalUnit"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="36dp"
+                        android:layout_marginEnd="6dp"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        android:minWidth="58dp"
+                        android:paddingHorizontal="10dp"
+                        android:text="@string/unit_minutes"
+                        android:textAllCaps="false"
+                        android:textSize="12sp"
+                        app:cornerRadius="12dp"
+                        app:strokeColor="?attr/colorOutlineVariant" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnApplySyncInterval"
+                        style="@style/Widget.Material3.Button.TonalButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="36dp"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        android:minWidth="0dp"
+                        android:paddingHorizontal="12dp"
+                        android:text="@string/btn_apply"
+                        android:textAllCaps="false"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        app:cornerRadius="12dp" />
+                </LinearLayout>
+
+                <!-- 4x3 Widget Battery Style Selector -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="6dp"
+                    android:text="@string/label_widget_battery_style"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.button.MaterialButtonToggleGroup
+                    android:id="@+id/toggleWidgetStyle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="4dp"
+                    app:selectionRequired="true"
+                    app:singleSelection="true">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnWidgetStyleCapsule"
+                        style="?attr/materialButtonOutlinedStyle"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        android:maxLines="1"
+                        android:ellipsize="end"
+                        android:minHeight="36dp"
+                        android:minWidth="0dp"
+                        android:paddingHorizontal="4dp"
+                        android:paddingVertical="6dp"
+                        android:text="@string/widget_style_capsule"
+                        android:textAllCaps="false"
+                        android:textSize="11sp"
+                        app:cornerRadius="12dp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnWidgetStyleRing"
+                        style="?attr/materialButtonOutlinedStyle"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        android:maxLines="1"
+                        android:ellipsize="end"
+                        android:minHeight="36dp"
+                        android:minWidth="0dp"
+                        android:paddingHorizontal="4dp"
+                        android:paddingVertical="6dp"
+                        android:text="@string/widget_style_ring"
+                        android:textAllCaps="false"
+                        android:textSize="11sp"
+                        app:cornerRadius="12dp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnWidgetStyleBento"
+                        style="?attr/materialButtonOutlinedStyle"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        android:maxLines="1"
+                        android:ellipsize="end"
+                        android:minHeight="36dp"
+                        android:minWidth="0dp"
+                        android:paddingHorizontal="4dp"
+                        android:paddingVertical="6dp"
+                        android:text="@string/widget_style_bento"
+                        android:textAllCaps="false"
+                        android:textSize="11sp"
+                        app:cornerRadius="12dp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnWidgetStyleTank"
+                        style="?attr/materialButtonOutlinedStyle"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        android:maxLines="1"
+                        android:ellipsize="end"
+                        android:minHeight="36dp"
+                        android:minWidth="0dp"
+                        android:paddingHorizontal="4dp"
+                        android:paddingVertical="6dp"
+                        android:text="@string/widget_style_tank"
+                        android:textAllCaps="false"
+                        android:textSize="11sp"
+                        app:cornerRadius="12dp" />
+                </com.google.android.material.button.MaterialButtonToggleGroup>
+
+                <TextView
+                    android:id="@+id/tvWidgetStyleDesc"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="10dp"
+                    android:text="@string/widget_style_desc_capsule"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:textSize="11sp" />
+
+                <!-- Live 4x3 Widget Preview + Customizable 4-Slot Bar -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/label_live_widget_preview"
+                        android:textColor="?attr/colorOnSurfaceVariant"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvWidgetPreviewSampleBadge"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="6dp"
+                        android:background="@drawable/bg_pill_dark"
+                        android:paddingHorizontal="8dp"
+                        android:paddingVertical="2dp"
+                        android:text="@string/badge_sample_preview"
+                        android:textColor="?attr/colorOnSurfaceVariant"
+                        android:textSize="10sp"
+                        android:visibility="gone" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/hint_live_widget_preview"
+                        android:textColor="?attr/colorOnSurfaceVariant"
+                        android:textSize="10.5sp" />
+                </LinearLayout>
+
+                <FrameLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp"
+                    android:background="@drawable/bg_panel_inner"
+                    android:padding="10dp">
+
+                    <FrameLayout
+                        android:id="@+id/flWidgetPreviewContainer"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content" />
+                </FrameLayout>
+
+                <!-- 4 Customizable Widget Button Slots -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="6dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/label_widget_buttons"
+                        android:textColor="?attr/colorOnSurfaceVariant"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnResetWidgetSlots"
+                        style="?attr/materialButtonOutlinedStyle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="30dp"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        android:minWidth="0dp"
+                        android:minHeight="0dp"
+                        android:paddingHorizontal="10dp"
+                        android:text="@string/btn_reset_slots"
+                        android:textAllCaps="false"
+                        android:textSize="11sp"
+                        app:cornerRadius="12dp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="14dp"
+                    android:orientation="horizontal">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnWidgetSlot1"
+                        style="?attr/materialButtonOutlinedStyle"
+                        android:layout_width="0dp"
+                        android:layout_height="34dp"
+                        android:layout_marginEnd="4dp"
+                        android:layout_weight="1"
+                        android:ellipsize="end"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        android:maxLines="1"
+                        android:minWidth="0dp"
+                        android:paddingHorizontal="6dp"
+                        android:text="1. Lock"
+                        android:textAllCaps="false"
+                        android:textSize="11sp"
+                        app:cornerRadius="10dp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnWidgetSlot2"
+                        style="?attr/materialButtonOutlinedStyle"
+                        android:layout_width="0dp"
+                        android:layout_height="34dp"
+                        android:layout_marginHorizontal="2dp"
+                        android:layout_weight="1"
+                        android:ellipsize="end"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        android:maxLines="1"
+                        android:minWidth="0dp"
+                        android:paddingHorizontal="6dp"
+                        android:text="2. Unlock"
+                        android:textAllCaps="false"
+                        android:textSize="11sp"
+                        app:cornerRadius="10dp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnWidgetSlot3"
+                        style="?attr/materialButtonOutlinedStyle"
+                        android:layout_width="0dp"
+                        android:layout_height="34dp"
+                        android:layout_marginHorizontal="2dp"
+                        android:layout_weight="1"
+                        android:ellipsize="end"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        android:maxLines="1"
+                        android:minWidth="0dp"
+                        android:paddingHorizontal="6dp"
+                        android:text="3. AC On"
+                        android:textAllCaps="false"
+                        android:textSize="11sp"
+                        app:cornerRadius="10dp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnWidgetSlot4"
+                        style="?attr/materialButtonOutlinedStyle"
+                        android:layout_width="0dp"
+                        android:layout_height="34dp"
+                        android:layout_marginStart="4dp"
+                        android:layout_weight="1"
+                        android:ellipsize="end"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        android:maxLines="1"
+                        android:minWidth="0dp"
+                        android:paddingHorizontal="6dp"
+                        android:text="4. Sync"
+                        android:textAllCaps="false"
+                        android:textSize="11sp"
+                        app:cornerRadius="10dp" />
+                </LinearLayout>
+
+                <!-- Action Combos Section -->
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginBottom="12dp"
+                    android:background="@color/stroke_subtle" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/label_action_combos"
+                        android:textColor="?attr/colorOnSurfaceVariant"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnNewActionCombo"
+                        style="@style/Widget.Material3.Button.TonalButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="32dp"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        android:minWidth="0dp"
+                        android:minHeight="0dp"
+                        android:paddingHorizontal="12dp"
+                        android:text="@string/btn_new_combo"
+                        android:textAllCaps="false"
+                        android:textSize="11.5sp"
+                        app:cornerRadius="12dp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/layoutCombosContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="14dp"
+                    android:orientation="vertical" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginBottom="10dp"
+                    android:background="@color/stroke_subtle" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnPrefsEditHomeLayout"
+                    style="@style/Widget.Material3.Button.TonalButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="42dp"
+                    android:layout_marginBottom="10dp"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    android:text="@string/btn_prefs_edit_home_layout"
+                    android:textAllCaps="false"
+                    android:textSize="12.5sp"
                     android:textStyle="bold"
-                    android:layout_marginBottom="8dp" />
+                    app:cornerRadius="14dp"
+                    app:icon="@drawable/ic_nav_tune"
+                    app:iconGravity="textStart"
+                    app:iconPadding="8dp"
+                    app:iconSize="16dp" />
+
+                <!-- Manual AC Mode Toggle (Atto 1 / No Climate Control) -->
+                <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/switchManualAc"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:text="@string/label_manual_ac_toggle"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:textSize="12sp" />
+
+                <!-- Hide Extra Controls Toggle (Vent Win / Close Win / Bat Heat / Seat Heat) -->
+                <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/switchHideExtraControls"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:text="@string/label_hide_extra_controls"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:textSize="12sp" />
+
+                <!-- Smart Alerts Toggle -->
+                <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/switchSmartAlerts"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/label_alerts_toggle"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:textSize="12sp" />
+
+                <!-- Single-Flight Action Lock Toggle -->
+                <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/switchSingleFlightAction"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:text="@string/label_single_flight_action"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:textSize="12sp" />
+
+                <!-- Extra Telemetry Logs Toggle -->
+                <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/switchVerboseLogs"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/label_verbose_logs_toggle"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:textSize="12sp" />
+
+                <!-- Biometric / PIN Security Card -->
+                <LinearLayout
+                    android:id="@+id/layoutBiometricSection"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:background="@drawable/bg_console"
+                    android:backgroundTint="?attr/colorSurfaceContainerHigh"
+                    android:orientation="vertical"
+                    android:padding="12dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:text="@string/section_biometric_security"
+                        android:textColor="?attr/colorOnSurface"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+
+                    <com.google.android.material.button.MaterialButtonToggleGroup
+                        android:id="@+id/toggleBiometricScope"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:selectionRequired="true"
+                        app:singleSelection="true">
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnBioScopeOff"
+                            style="@style/Widget.Material3.Button.OutlinedButton"
+                            android:layout_width="0dp"
+                            android:layout_height="36dp"
+                            android:layout_weight="1"
+                            android:insetTop="0dp"
+                            android:insetBottom="0dp"
+                            android:paddingHorizontal="4dp"
+                            android:text="@string/biometric_scope_off"
+                            android:textAllCaps="false"
+                            android:textSize="11sp" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnBioScopeApp"
+                            style="@style/Widget.Material3.Button.OutlinedButton"
+                            android:layout_width="0dp"
+                            android:layout_height="36dp"
+                            android:layout_weight="1"
+                            android:insetTop="0dp"
+                            android:insetBottom="0dp"
+                            android:paddingHorizontal="4dp"
+                            android:text="@string/biometric_scope_app"
+                            android:textAllCaps="false"
+                            android:textSize="11sp" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnBioScopeWidget"
+                            style="@style/Widget.Material3.Button.OutlinedButton"
+                            android:layout_width="0dp"
+                            android:layout_height="36dp"
+                            android:layout_weight="1"
+                            android:insetTop="0dp"
+                            android:insetBottom="0dp"
+                            android:paddingHorizontal="4dp"
+                            android:text="@string/biometric_scope_widget"
+                            android:textAllCaps="false"
+                            android:textSize="11sp" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnBioScopeBoth"
+                            style="@style/Widget.Material3.Button.OutlinedButton"
+                            android:layout_width="0dp"
+                            android:layout_height="36dp"
+                            android:layout_weight="1"
+                            android:insetTop="0dp"
+                            android:insetBottom="0dp"
+                            android:paddingHorizontal="4dp"
+                            android:text="@string/biometric_scope_both"
+                            android:textAllCaps="false"
+                            android:textSize="11sp" />
+                    </com.google.android.material.button.MaterialButtonToggleGroup>
+
+                    <LinearLayout
+                        android:id="@+id/layoutBiometricOptions"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:orientation="vertical"
+                        android:visibility="gone">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="4dp"
+                            android:text="@string/label_biometric_grace"
+                            android:textColor="?attr/colorOnSurfaceVariant"
+                            android:textSize="11sp" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <EditText
+                                android:id="@+id/etBiometricGraceMinutes"
+                                android:layout_width="68dp"
+                                android:layout_height="36dp"
+                                android:background="@drawable/bg_pill_dark"
+                                android:backgroundTint="?attr/colorSurfaceContainer"
+                                android:gravity="center"
+                                android:hint="@string/hint_biometric_grace_min"
+                                android:inputType="number"
+                                android:maxLength="4"
+                                android:paddingHorizontal="8dp"
+                                android:textColor="?attr/colorOnSurface"
+                                android:textSize="12sp" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="6dp"
+                                android:text="@string/unit_min"
+                                android:textColor="?attr/colorOnSurfaceVariant"
+                                android:textSize="11sp" />
+
+                            <View
+                                android:layout_width="0dp"
+                                android:layout_height="0dp"
+                                android:layout_weight="1" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnApplyBiometricGrace"
+                                style="@style/Widget.Material3.Button.TonalButton"
+                                android:layout_width="wrap_content"
+                                android:layout_height="36dp"
+                                android:insetTop="0dp"
+                                android:insetBottom="0dp"
+                                android:text="@string/btn_apply_biometric_grace"
+                                android:textAllCaps="false"
+                                android:textSize="11sp"
+                                app:cornerRadius="10dp" />
+                        </LinearLayout>
+
+                        <TextView
+                            android:id="@+id/btnToggleBiometricAdvanced"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:paddingVertical="4dp"
+                            android:text="@string/btn_biometric_advanced_show"
+                            android:textColor="?attr/colorPrimary"
+                            android:textSize="11sp"
+                            android:textStyle="bold" />
+
+                        <LinearLayout
+                            android:id="@+id/layoutBiometricAdvanced"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:visibility="gone">
+
+                            <com.google.android.material.materialswitch.MaterialSwitch
+                                android:id="@+id/switchBiometricWidgetSync"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="@string/label_biometric_widget_sync"
+                                android:textColor="?attr/colorOnSurfaceVariant"
+                                android:textSize="12sp" />
+                        </LinearLayout>
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- Dismissible Support Card (Placement #2) -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cardPrefSupport"
+                    style="@style/Widget.Material3.CardView.Filled"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    app:cardBackgroundColor="?attr/colorSurfaceContainerHigh"
+                    app:cardCornerRadius="14dp"
+                    app:strokeWidth="0dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="12dp">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <ImageView
+                                android:layout_width="16dp"
+                                android:layout_height="16dp"
+                                android:layout_marginEnd="6dp"
+                                android:contentDescription="@string/support_card_title"
+                                android:src="@drawable/ic_support_heart"
+                                app:tint="@color/accent_rose" />
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="@string/support_card_title"
+                                android:textColor="?attr/colorOnSurface"
+                                android:textSize="12sp"
+                                android:textStyle="bold" />
+
+                            <ImageButton
+                                android:id="@+id/btnDismissPrefSupport"
+                                android:layout_width="28dp"
+                                android:layout_height="28dp"
+                                android:background="?attr/selectableItemBackgroundBorderless"
+                                android:contentDescription="@string/support_card_dismiss_desc"
+                                android:padding="4dp"
+                                android:scaleType="centerInside"
+                                android:src="@drawable/ic_close"
+                                app:tint="?attr/colorOnSurfaceVariant" />
+                        </LinearLayout>
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:text="@string/support_card_body"
+                            android:textColor="?attr/colorOnSurfaceVariant"
+                            android:textSize="11sp" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnPrefSupport"
+                            style="@style/Widget.Material3.Button.TonalButton"
+                            android:layout_width="match_parent"
+                            android:layout_height="34dp"
+                            android:layout_marginTop="8dp"
+                            android:insetTop="0dp"
+                            android:insetBottom="0dp"
+                            android:text="@string/support_btn_label"
+                            android:textAllCaps="false"
+                            android:textSize="11sp"
+                            app:cornerRadius="12dp"
+                            app:icon="@drawable/ic_support_heart"
+                            app:iconGravity="textStart"
+                            app:iconSize="14dp"
+                            app:iconTint="@color/accent_rose" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Card 4: Watch Bridge & Event Log (Page 4 via Drawer) -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardBridge"
+            style="@style/Widget.BydWatch.Card"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:text="@string/card_bridge_title"
+                    android:textColor="?attr/colorOnSurface"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvWatchIntegrationNotice"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="10dp"
+                    android:background="@drawable/bg_notice_amber"
+                    android:backgroundTint="?attr/colorTertiaryContainer"
+                    android:padding="10dp"
+                    android:text="@string/watch_integration_notice"
+                    android:textColor="?attr/colorOnTertiaryContainer"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
 
                 <TextView
                     android:id="@+id/tvWatchStatus"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="@string/watch_status_ready"
-                    android:textSize="14sp"
-                    android:textStyle="italic"
-                    android:textColor="#27AE60"
-                    android:layout_marginBottom="4dp" />
+                    android:layout_marginBottom="6dp"
+                    android:background="@drawable/bg_pill_dark"
+                    android:backgroundTint="?attr/colorSurfaceContainerHighest"
+                    android:paddingHorizontal="12dp"
+                    android:paddingVertical="6dp"
+                    android:text="@string/watch_status_unconfigured"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:textSize="12sp" />
 
                 <TextView
                     android:id="@+id/tvServiceStatus"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:text="@string/service_status_stopped"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:textSize="12sp" />
+
+                <!-- 3-Step Setup Readiness Checklist -->
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="@string/service_status_stopped"
-                    android:textSize="13sp"
-                    android:textColor="#7F8C8D"
-                    android:layout_marginBottom="12dp" />
+                    android:layout_marginBottom="10dp"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/tvCheckAccount"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="4dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_pill_dark"
+                        android:backgroundTint="?attr/colorSurfaceContainerHighest"
+                        android:gravity="center"
+                        android:paddingVertical="5dp"
+                        android:text="1. Account"
+                        android:textColor="@color/accent_amber"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvCheckHealth"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginHorizontal="4dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_pill_dark"
+                        android:backgroundTint="?attr/colorSurfaceContainerHighest"
+                        android:gravity="center"
+                        android:paddingVertical="5dp"
+                        android:text="2. Health Auth"
+                        android:textColor="@color/accent_amber"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvCheckBattery"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="4dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_pill_dark"
+                        android:backgroundTint="?attr/colorSurfaceContainerHighest"
+                        android:gravity="center"
+                        android:paddingVertical="5dp"
+                        android:text="3. Battery"
+                        android:textColor="@color/accent_amber"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <!-- Watch Target Edition & Disclaimer -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="10dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnWatchTargetToggle"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="6dp"
+                        android:layout_weight="1"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        android:minHeight="36dp"
+                        android:paddingVertical="6dp"
+                        android:text="Watch: Dev Edition"
+                        android:textAllCaps="false"
+                        android:textSize="11sp"
+                        app:cornerRadius="12dp"
+                        app:strokeColor="?attr/colorOutlineVariant" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnDisclaimer"
+                        style="@style/Widget.Material3.Button.TextButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        android:minHeight="36dp"
+                        android:minWidth="0dp"
+                        android:paddingHorizontal="8dp"
+                        android:paddingVertical="6dp"
+                        android:text="@string/btn_disclaimer"
+                        android:textAllCaps="false"
+                        android:textColor="?attr/colorOnSurfaceVariant"
+                        android:textSize="11sp" />
+                </LinearLayout>
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:layout_marginBottom="8dp">
+                    android:layout_marginBottom="8dp"
+                    android:orientation="horizontal">
 
-                    <Button
+                    <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnAuthHealth"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
+                        android:layout_marginEnd="6dp"
                         android:layout_weight="1"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        android:minHeight="44dp"
+                        android:paddingVertical="6dp"
                         android:text="@string/btn_auth_health"
-                        android:layout_marginEnd="6dp" />
+                        android:textAllCaps="false"
+                        android:textColor="?attr/colorOnSurface"
+                        android:textSize="12sp"
+                        app:cornerRadius="16dp"
+                        app:strokeColor="?attr/colorOutlineVariant" />
 
-                    <Button
+                    <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnToggleService"
+                        style="@style/Widget.Material3.Button"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
+                        android:layout_marginStart="6dp"
                         android:layout_weight="1"
-                        android:text="@string/btn_start_service" />
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        android:minHeight="44dp"
+                        android:paddingVertical="6dp"
+                        android:text="@string/btn_start_service"
+                        android:textAllCaps="false"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        app:cornerRadius="16dp" />
                 </LinearLayout>
 
-                <Button
+                <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnBatteryOpt"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    android:minHeight="42dp"
+                    android:paddingVertical="6dp"
                     android:text="@string/btn_battery_opt"
-                    android:layout_marginBottom="12dp" />
-
-                <TextView
-                    android:id="@+id/tvStatusLog"
-                    android:layout_width="match_parent"
-                    android:layout_height="180dp"
-                    android:background="#F4F6F6"
-                    android:padding="8dp"
-                    android:fontFamily="monospace"
+                    android:textAllCaps="false"
+                    android:textColor="?attr/colorOnSurfaceVariant"
                     android:textSize="12sp"
-                    android:scrollbars="vertical"
-                    android:maxLines="1000"
-                    android:text="@string/status_initialized" />
+                    app:cornerRadius="16dp"
+                    app:strokeColor="?attr/colorOutlineVariant" />
+
+                <!-- Event Log Header + Clear -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="6dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/label_event_log"
+                        android:textColor="?attr/colorOnSurfaceVariant"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnCopyLog"
+                        style="@style/Widget.Material3.Button.TextButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="28dp"
+                        android:layout_marginEnd="2dp"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        android:minWidth="0dp"
+                        android:paddingHorizontal="8dp"
+                        android:text="@string/btn_copy_log"
+                        android:textAllCaps="false"
+                        android:textSize="11sp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnClearLog"
+                        style="@style/Widget.Material3.Button.TextButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="28dp"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        android:minWidth="0dp"
+                        android:paddingHorizontal="8dp"
+                        android:text="@string/btn_clear_log"
+                        android:textAllCaps="false"
+                        android:textSize="11sp" />
+                </LinearLayout>
+
+                <!-- Diagnostics Log -->
+                <androidx.core.widget.NestedScrollView
+                    android:id="@+id/scrollStatusLog"
+                    android:layout_width="match_parent"
+                    android:layout_height="200dp"
+                    android:background="@drawable/bg_console"
+                    android:backgroundTint="?attr/colorSurfaceContainerHigh"
+                    android:descendantFocusability="blocksDescendants"
+                    android:fadeScrollbars="false"
+                    android:fillViewport="true"
+                    android:padding="10dp"
+                    android:scrollbars="vertical">
+
+                    <TextView
+                        android:id="@+id/tvStatusLog"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:focusable="false"
+                        android:focusableInTouchMode="false"
+                        android:fontFamily="monospace"
+                        android:text="@string/status_initialized"
+                        android:textColor="?attr/colorOnSurface"
+                        android:textSize="11sp" />
+                </androidx.core.widget.NestedScrollView>
+
+                <!-- About & Open Source Attribution -->
+                <LinearLayout
+                    android:id="@+id/layoutAboutSection"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:background="@drawable/bg_console"
+                    android:backgroundTint="?attr/colorSurfaceContainerHigh"
+                    android:orientation="vertical"
+                    android:padding="12dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/about_section_title"
+                        android:textColor="?attr/colorOnSurface"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvAboutCreator"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="@string/about_creator"
+                        android:textColor="@color/accent_emerald"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvAboutNotice"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="@string/about_non_commercial"
+                        android:textColor="?attr/colorOnSurfaceVariant"
+                        android:textSize="11sp" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:id="@+id/tvAboutVersion"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:textColor="?attr/colorOnSurface"
+                                android:textSize="12sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:id="@+id/tvAppUpdateStatus"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="1dp"
+                                android:text="@string/update_status_idle"
+                                android:textColor="?attr/colorOnSurfaceVariant"
+                                android:textSize="11sp" />
+                        </LinearLayout>
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnCheckAppUpdate"
+                            style="@style/Widget.Material3.Button.TonalButton"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:insetTop="0dp"
+                            android:insetBottom="0dp"
+                            android:minHeight="36dp"
+                            android:paddingHorizontal="12dp"
+                            android:paddingVertical="6dp"
+                            android:text="@string/btn_check_updates"
+                            android:textAllCaps="false"
+                            android:textSize="11sp"
+                            app:cornerRadius="12dp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnAboutGithubCompanion"
+                            style="@style/Widget.Material3.Button.OutlinedButton"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="6dp"
+                            android:layout_weight="1"
+                            android:insetTop="0dp"
+                            android:insetBottom="0dp"
+                            android:maxLines="2"
+                            android:minHeight="36dp"
+                            android:paddingVertical="6dp"
+                            android:text="@string/about_github_companion"
+                            android:textAllCaps="false"
+                            android:textSize="11sp"
+                            app:cornerRadius="12dp"
+                            app:strokeColor="?attr/colorOutlineVariant" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnAboutGithubWatch"
+                            style="@style/Widget.Material3.Button.OutlinedButton"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="6dp"
+                            android:layout_weight="1"
+                            android:insetTop="0dp"
+                            android:insetBottom="0dp"
+                            android:maxLines="2"
+                            android:minHeight="36dp"
+                            android:paddingVertical="6dp"
+                            android:text="@string/about_github_watch"
+                            android:textAllCaps="false"
+                            android:textSize="11sp"
+                            app:cornerRadius="12dp"
+                            app:strokeColor="?attr/colorOutlineVariant" />
+                    </LinearLayout>
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnAboutSupport"
+                        style="@style/Widget.Material3.Button.TonalButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="34dp"
+                        android:layout_marginTop="8dp"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        android:text="@string/support_btn_label"
+                        android:textAllCaps="false"
+                        android:textSize="11sp"
+                        app:cornerRadius="12dp"
+                        app:icon="@drawable/ic_support_heart"
+                        app:iconGravity="textStart"
+                        app:iconSize="14dp"
+                        app:iconTint="@color/accent_rose" />
+                </LinearLayout>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
 
+    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+
+    <com.google.android.material.navigation.NavigationView
+        android:id="@+id/navView"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:layout_gravity="start"
+        android:background="?attr/colorSurfaceContainerLow"
+        app:headerLayout="@layout/nav_header_main"
+        app:menu="@menu/drawer_menu" />
+</androidx.drawerlayout.widget.DrawerLayout>
+
+    <!-- Full-screen App Lock Overlay -->
+    <LinearLayout
+        android:id="@+id/layoutAppLockOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="?attr/colorSurface"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:padding="28dp"
+        android:visibility="gone">
+
+        <ImageView
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:layout_marginBottom="16dp"
+            android:contentDescription="@string/app_lock_title"
+            android:src="@drawable/ic_byd_lock"
+            app:tint="?attr/colorPrimary" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="6dp"
+            android:text="@string/app_lock_title"
+            android:textColor="?attr/colorOnSurface"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="20dp"
+            android:gravity="center"
+            android:text="@string/app_lock_subtitle"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:textSize="13sp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnUnlockApp"
+            style="@style/Widget.Material3.Button"
+            android:layout_width="wrap_content"
+            android:layout_height="44dp"
+            android:paddingHorizontal="28dp"
+            android:text="@string/btn_unlock_app"
+            android:textAllCaps="false"
+            app:cornerRadius="14dp" />
     </LinearLayout>
-</ScrollView>
+</FrameLayout>

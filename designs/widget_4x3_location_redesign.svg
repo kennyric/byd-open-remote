@@ -1,0 +1,116 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="380" height="318" viewBox="0 0 380 318" fill="none">
+  <title>BYD EV 4x3 Widget - Single-Row Location Redesign (Penpot / Figma Editable Vector)</title>
+  <defs>
+    <clipPath id="cardClip">
+      <rect x="16" y="16" width="348" height="286" rx="22" />
+    </clipPath>
+  </defs>
+
+  <!-- Canvas Background -->
+  <g id="canvas-backdrop">
+    <rect width="380" height="318" rx="28" fill="#0E1412" />
+  </g>
+
+  <!-- 4x3 Widget Outer Surface -->
+  <g id="widget-4x3-card" clip-path="url(#cardClip)">
+    <rect x="16" y="16" width="348" height="286" rx="22" fill="#171E1B" stroke="#28332E" stroke-width="1" />
+
+    <!-- 1. Top Micro Bar -->
+    <g id="top-micro-bar">
+      <g id="brand-badge" transform="translate(28, 27)">
+        <rect x="2" y="1" width="10" height="12" rx="2.5" stroke="#6DDBAC" stroke-width="1.5" />
+        <path d="M5 0H9M5 14H9M7.5 4.2L5.8 7H8.2L6.5 9.8" stroke="#6DDBAC" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" />
+      </g>
+      <text id="car-model-title" x="48" y="38" fill="#E1E8E3" font-family="Inter, Roboto, sans-serif" font-size="11.5" font-weight="700">Atto 1</text>
+
+      <!-- Status Chips -->
+      <g id="chip-lock-status">
+        <rect x="242" y="24" width="54" height="20" rx="10" fill="#222B27" />
+        <text x="269" y="37.5" text-anchor="middle" fill="#B8C3BC" font-family="Inter, Roboto, sans-serif" font-size="10" font-weight="700">Locked</text>
+      </g>
+      <g id="chip-ac-status">
+        <rect x="300" y="24" width="52" height="20" rx="10" fill="#222B27" />
+        <text x="326" y="37.5" text-anchor="middle" fill="#B8C3BC" font-family="Inter, Roboto, sans-serif" font-size="10" font-weight="700">AC Off</text>
+      </g>
+    </g>
+
+    <!-- 2. Elevated Battery Subcard -->
+    <g id="battery-subcard">
+      <rect x="28" y="52" width="324" height="106" rx="16" fill="#202925" stroke="#2C3833" stroke-width="1" />
+      <text id="battery-soc" x="42" y="88" fill="#E1E8E3" font-family="Inter, Roboto, sans-serif" font-size="30" font-weight="700">46%</text>
+      <text id="battery-range" x="338" y="86" text-anchor="end" fill="#E1E8E3" font-family="Inter, Roboto, sans-serif" font-size="15" font-weight="700">138 km</text>
+
+      <!-- Progress Bar -->
+      <g id="soc-progress-bar">
+        <rect x="42" y="103" width="296" height="6" rx="3" fill="#313D38" />
+        <rect x="42" y="103" width="136" height="6" rx="3" fill="#6DDBAC" />
+      </g>
+
+      <!-- Battery Footer Metadata -->
+      <text id="battery-meta" x="42" y="138" fill="#B8C3BC" font-family="Inter, Roboto, sans-serif" font-size="10.5">24,111 km · Closed</text>
+      <text id="last-sync-label" x="338" y="138" text-anchor="end" fill="#B8C3BC" font-family="Inter, Roboto, sans-serif" font-size="10.5">Last sync 20:14</text>
+    </g>
+
+    <!-- 3. Redesigned Single-Row Location Bar (Pin Left + Street Name + Arrow Right) -->
+    <g id="location-bar-single-row">
+      <rect x="28" y="167" width="324" height="44" rx="14" fill="#202925" stroke="#2C3833" stroke-width="1" />
+
+      <!-- Pin Icon Badge (Left) -->
+      <g id="location-pin-badge">
+        <rect x="38" y="175" width="28" height="28" rx="9" fill="#005138" />
+        <path d="M52 181.5C49.2 181.5 47 183.7 47 186.5C47 190.2 52 195.8 52 195.8C52 195.8 57 190.2 57 186.5C57 183.7 54.8 181.5 52 181.5ZM52 188.3C51 188.3 50.2 187.5 50.2 186.5C50.2 185.5 51 184.7 52 184.7C53 184.7 53.8 185.5 53.8 186.5C53.8 187.5 53 188.3 52 188.3Z" fill="#9FF2CE" />
+      </g>
+
+      <!-- Single-Row Street Name -->
+      <text id="location-street-name" x="76" y="193.5" fill="#E1E8E3" font-family="Inter, Roboto, sans-serif" font-size="13" font-weight="700">Jalan W. R. Supratman, Pesawaran</text>
+
+      <!-- Navigation Arrow Button (Right) -->
+      <g id="location-arrow-button">
+        <rect x="316" y="176" width="26" height="26" rx="8" fill="#2A3530" />
+        <path d="M327 184.5L331.5 189L327 193.5" stroke="#B8C3BC" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      </g>
+    </g>
+
+    <!-- 4. Bottom 64dp Action Row -->
+    <g id="action-row">
+      <!-- Tile 1: Lock -->
+      <g id="tile-lock">
+        <rect x="28" y="220" width="75" height="68" rx="16" fill="#9FF2CE" />
+        <g transform="translate(56.5, 234)">
+          <rect x="2" y="8" width="14" height="10" rx="2" stroke="#002114" stroke-width="1.8" />
+          <path d="M5 8V5.5C5 3.3 6.8 1.5 9 1.5C11.2 1.5 13 3.3 13 5.5V8" stroke="#002114" stroke-width="1.8" stroke-linecap="round" />
+        </g>
+        <text x="65.5" y="274" text-anchor="middle" fill="#002114" font-family="Inter, Roboto, sans-serif" font-size="11.5" font-weight="700">Lock</text>
+      </g>
+
+      <!-- Tile 2: Unlock -->
+      <g id="tile-unlock">
+        <rect x="111" y="220" width="75" height="68" rx="16" fill="#CBE6FF" />
+        <g transform="translate(139.5, 234)">
+          <rect x="2" y="8" width="14" height="10" rx="2" stroke="#001E30" stroke-width="1.8" />
+          <path d="M5 8V5.5C5 3.3 6.8 1.5 9 1.5C10.9 1.5 12.5 2.8 12.9 4.5" stroke="#001E30" stroke-width="1.8" stroke-linecap="round" />
+        </g>
+        <text x="148.5" y="274" text-anchor="middle" fill="#001E30" font-family="Inter, Roboto, sans-serif" font-size="11.5" font-weight="700">Unlock</text>
+      </g>
+
+      <!-- Tile 3: AC On -->
+      <g id="tile-ac">
+        <rect x="194" y="220" width="75" height="68" rx="16" fill="#233741" stroke="#314E5B" stroke-width="1" />
+        <g transform="translate(222.5, 234)">
+          <path d="M9 1V17M2.1 5L15.9 13M15.9 5L2.1 13" stroke="#C7E7FF" stroke-width="1.8" stroke-linecap="round" />
+        </g>
+        <text x="231.5" y="274" text-anchor="middle" fill="#C7E7FF" font-family="Inter, Roboto, sans-serif" font-size="11.5" font-weight="700">AC On</text>
+      </g>
+
+      <!-- Tile 4: Sync -->
+      <g id="tile-sync">
+        <rect x="277" y="220" width="75" height="68" rx="16" fill="#222B27" stroke="#303B36" stroke-width="1" />
+        <g transform="translate(305.5, 234)">
+          <path d="M16 9A7 7 0 1 1 13.9 4" stroke="#C9D5CE" stroke-width="1.8" stroke-linecap="round" />
+          <path d="M16 2V6H12" stroke="#C9D5CE" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+        </g>
+        <text x="314.5" y="274" text-anchor="middle" fill="#C9D5CE" font-family="Inter, Roboto, sans-serif" font-size="11.5" font-weight="700">Sync</text>
+      </g>
+    </g>
+  </g>
+</svg>

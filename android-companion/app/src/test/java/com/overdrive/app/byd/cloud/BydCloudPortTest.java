@@ -37,6 +37,62 @@ public class BydCloudPortTest {
         assertEquals(3, params.getInt("mainSettingTemp"));
         assertEquals(3, params.getInt("copilotSettingTemp"));
         assertEquals(1, params.getInt("airConditioningMode"));
+        assertEquals(4, params.getInt("remoteMode"));
+        assertEquals(3, params.getInt("timeSpan"));
+
+        JSONObject thirtyMin = BydCloudClient.climateStartParams(20.0, 30);
+        assertEquals(5, thirtyMin.getInt("timeSpan"));
+    }
+
+    @Test
+    public void climateStartElectricParamsBuildsEleAirPayloadWithGearAndFan() throws Exception {
+        JSONObject params = BydCloudClient.climateStartElectricParams(3, 5, 10);
+        assertEquals(3, params.getInt("mainSettingTemp"));
+        assertEquals(3, params.getInt("copilotSettingTemp"));
+        assertEquals(5, params.getInt("remoteMode"));
+        assertEquals(2, params.getInt("airConditioningMode"));
+        assertEquals(5, params.getInt("windLevel"));
+        assertEquals(2, params.getInt("windMode"));
+        assertEquals(2, params.getInt("acSwitch"));
+        assertEquals(1, params.getInt("timeSpan"));
+        assertEquals(1, params.getInt("airAccuracy"));
+
+        JSONObject clamped = BydCloudClient.climateStartElectricParams(99, 0);
+        assertEquals(9, clamped.getInt("mainSettingTemp"));
+        assertEquals(4, clamped.getInt("windLevel"));
+
+        JSONObject minClamped = BydCloudClient.climateStartElectricParams(-2, 12);
+        assertEquals(1, minClamped.getInt("mainSettingTemp"));
+        assertEquals(7, minClamped.getInt("windLevel"));
+
+        JSONObject bodyOnly = BydCloudClient.climateStartElectricParams(3, 4, 1, 20);
+        assertEquals(1, bodyOnly.getInt("windMode"));
+
+        JSONObject feetOnly = BydCloudClient.climateStartElectricParams(5, 6, 3, 15);
+        assertEquals(3, feetOnly.getInt("windMode"));
+        assertEquals(2, feetOnly.getInt("timeSpan"));
+    }
+
+    @Test
+    public void cloudCapabilitiesDetectsElectricAcForFunction1015OrAirTypeOne() throws Exception {
+        JSONObject latest1015 = new JSONObject()
+                .put("data", new org.json.JSONArray()
+                        .put(new JSONObject().put("functionNo", "1015")));
+        CloudCapabilities caps1015 = CloudCapabilities.fromResponses("VIN_ATTO1", latest1015, null, 1L);
+        assertTrue(caps1015.supports(CloudCapabilities.Feature.CLIMATE));
+        assertTrue(caps1015.supports(CloudCapabilities.Feature.ELECTRIC_CLIMATE));
+        assertTrue(caps1015.isElectricAc());
+
+        JSONObject latest1001 = new JSONObject()
+                .put("data", new org.json.JSONArray()
+                        .put(new JSONObject().put("functionNo", "1001")));
+        CloudCapabilities capsAuto = CloudCapabilities.fromResponses("VIN_ATTO3", latest1001, null, 1L);
+        assertTrue(capsAuto.supports(CloudCapabilities.Feature.CLIMATE));
+        assertFalse(capsAuto.isElectricAc());
+
+        JSONObject vehicleAirType1 = new JSONObject().put("airType", 1);
+        CloudCapabilities capsAirType = CloudCapabilities.fromResponses("VIN_A1", latest1001, vehicleAirType1, 1L);
+        assertTrue(capsAirType.isElectricAc());
     }
 
     @Test
@@ -77,5 +133,34 @@ public class BydCloudPortTest {
         String checkcode = BydCryptoUtils.computeCheckcode(payload);
         assertNotNull(checkcode);
         assertEquals(32, checkcode.length());
+    }
+
+    @Test
+    public void tokenEnvelopeSignsUserTypeOnlyWhenProvided() throws Exception {
+        BydCloudConfig config = new BydCloudConfig("id", "ID", "en");
+        config.setUsername("guest@example.com");
+        BydCloudClient client = new BydCloudClient(config);
+        BydCloudSession session = new BydCloudSession("123456", "0123456789abcdef0123456789abcdef", "0123456789abcdef0123456789abcdef");
+
+        JSONObject inner = new JSONObject();
+        inner.put("vin", "LGX0TESTVIN000001");
+        inner.put("random", "0123456789abcdef");
+        inner.put("timeStamp", "1700000000000");
+
+        java.lang.reflect.Method buildMethod = BydCloudClient.class.getDeclaredMethod(
+                "buildTokenOuterEnvelope", long.class, BydCloudSession.class, JSONObject.class, String.class);
+        buildMethod.setAccessible(true);
+
+        Object ownerEnv = buildMethod.invoke(client, 1700000000000L, session, inner, null);
+        Object guestEnv = buildMethod.invoke(client, 1700000000000L, session, inner, "1");
+
+        java.lang.reflect.Field outerField = ownerEnv.getClass().getDeclaredField("outer");
+        outerField.setAccessible(true);
+        JSONObject ownerOuter = (JSONObject) outerField.get(ownerEnv);
+        JSONObject guestOuter = (JSONObject) outerField.get(guestEnv);
+
+        assertFalse(ownerOuter.has("userType"));
+        assertEquals("1", guestOuter.getString("userType"));
+        assertFalse(ownerOuter.getString("sign").equals(guestOuter.getString("sign")));
     }
 }

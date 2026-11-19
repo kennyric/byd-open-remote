@@ -12,8 +12,10 @@ public class WearEngineConfigTest {
     public void defaultValuesMatchBuildConfig() {
         WearEngineConfig config = new WearEngineConfig();
         assertEquals("com.bydwatch.watch", config.getWatchPackageName());
-        assertEquals("", config.getWatchCertFingerprint());
-        assertFalse(config.hasFingerprint());
+        assertEquals(
+                "com.bydwatch.watch_BBG+cmVghVnFoIr3ewR8fzWOe/T1PZKjybLqvtVd6ohc65XSefxD048CQzjWAwDtHJKXGWZeqNc5Qq/Fl8ZWIUI=",
+                config.getWatchCertFingerprint());
+        assertTrue(config.hasFingerprint());
     }
 
     @Test

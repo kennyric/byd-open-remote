@@ -56,6 +56,23 @@ public class SecureConfigStoreTest {
         assertEquals(17, store.getDefaultTempC());
     }
 
+    @Test
+    public void appLanguageDefaultsToSystemAndNormalizesChoices() {
+        assertEquals(ConfigStore.LANG_SYSTEM, store.getAppLanguage());
+
+        store.setAppLanguage("in");
+        assertEquals(ConfigStore.LANG_ID, store.getAppLanguage());
+
+        store.setAppLanguage("id-ID");
+        assertEquals(ConfigStore.LANG_ID, store.getAppLanguage());
+
+        store.setAppLanguage("en-US");
+        assertEquals(ConfigStore.LANG_EN, store.getAppLanguage());
+
+        store.setAppLanguage("unknown");
+        assertEquals(ConfigStore.LANG_SYSTEM, store.getAppLanguage());
+    }
+
     @Test(expected = IllegalStateException.class)
     public void contextConstructorFailsWithoutAndroidKeyStoreInJvm() {
         // Must reject without silent plaintext fallback when hardware KeyStore is absent

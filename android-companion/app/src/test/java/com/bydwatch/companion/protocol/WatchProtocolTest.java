@@ -1,6 +1,9 @@
 package com.bydwatch.companion.protocol;
 
+import com.bydwatch.companion.model.RegionOption;
+import com.bydwatch.companion.model.UnitPreferences;
 import com.bydwatch.companion.model.VehicleStatus;
+import com.bydwatch.companion.model.VehicleSummary;
 
 import org.json.JSONObject;
 import org.junit.Test;
@@ -150,5 +153,84 @@ public class WatchProtocolTest {
         assertTrue(roundTrip.acOn);
         assertEquals(18, roundTrip.targetTempC);
         assertEquals(1700000010L, roundTrip.ts);
+    }
+
+    @Test
+    public void parsesExtendedActionsAndExtendedVehicleStatusRoundTrip() throws Exception {
+        String[] extra = new String[]{"vent_windows", "close_windows", "bat_heat_on", "bat_heat_off", "seat_heat", "switch_car"};
+        for (int i = 0; i < extra.length; i++) {
+            WatchCommand cmd = WatchProtocol.parseCommand("{\"id\":\"e" + i + "\",\"action\":\"" + extra[i] + "\",\"vin\":\"VIN99\",\"level\":2}");
+            assertEquals(extra[i], cmd.action);
+            assertEquals("VIN99", cmd.vin);
+            assertEquals(2, cmd.level);
+        }
+
+        java.util.List<VehicleSummary> cars = java.util.Arrays.asList(
+                new VehicleSummary("VIN_A", "Seal U", "B1", "EV"),
+                new VehicleSummary("VIN_B", "Atto 1", "B2", "EV")
+        );
+        VehicleStatus rich = new VehicleStatus.Builder(84, 342, true, false, 23, 21, 1700000500L)
+                .vin("VIN_A")
+                .modelName("Seal U")
+                .chargingState(VehicleStatus.CHARGING_ACTIVE)
+                .chargeRemainingMinutes(45)
+                .doorsOpenCount(1)
+                .windowsOpenCount(2)
+                .trunkOpen(true)
+                .totalMileageKm(12450)
+                .outsideTempC(29)
+                .fuelPercent(60)
+                .fuelRangeKm(500)
+                .tirePressuresKpa(250, 248, 240, 242)
+                .batteryHeatOn(Boolean.TRUE)
+                .driverSeatLevel(2)
+                .capabilities(true, true, true)
+                .units("mi", "F", "PSI")
+                .vehicles(cars)
+                .build();
+
+        VehicleStatus decoded = VehicleStatus.fromJson(rich.toJson());
+        assertEquals("VIN_A", decoded.vin);
+        assertEquals("Seal U", decoded.modelName);
+        assertEquals(VehicleStatus.CHARGING_ACTIVE, decoded.chargingState);
+        assertEquals(Integer.valueOf(45), decoded.chargeRemainingMinutes);
+        assertEquals(1, decoded.doorsOpenCount);
+        assertEquals(2, decoded.windowsOpenCount);
+        assertTrue(decoded.trunkOpen);
+        assertEquals(Integer.valueOf(12450), decoded.totalMileageKm);
+        assertEquals(Integer.valueOf(29), decoded.outsideTempC);
+        assertEquals(Integer.valueOf(60), decoded.fuelPercent);
+        assertEquals(Integer.valueOf(500), decoded.fuelRangeKm);
+        assertEquals(Integer.valueOf(250), decoded.tireLfKpa);
+        assertEquals(Integer.valueOf(242), decoded.tireRrKpa);
+        assertEquals(Boolean.TRUE, decoded.batteryHeatOn);
+        assertEquals(2, decoded.driverSeatLevel);
+        assertTrue(decoded.canWindows);
+        assertTrue(decoded.canBatteryHeat);
+        assertTrue(decoded.canSeatClimate);
+        assertEquals("mi", decoded.distanceUnit);
+        assertEquals("F", decoded.tempUnit);
+        assertEquals("PSI", decoded.pressureUnit);
+        assertEquals(2, decoded.vehicles.size());
+        assertEquals("VIN_B", decoded.vehicles.get(1).vin);
+    }
+
+    @Test
+    public void unitConversionsAndRegionsWorkCorrectly() {
+        assertEquals("100 km", UnitPreferences.formatDistance(100, "km"));
+        assertEquals("62 mi", UnitPreferences.formatDistance(100, "mi"));
+        assertEquals("20°C", UnitPreferences.formatTemp(20, "C"));
+        assertEquals("68°F", UnitPreferences.formatTemp(20, "F"));
+        assertEquals("250 kPa", UnitPreferences.formatPressure(250, "kPa"));
+        assertEquals("36.3 PSI", UnitPreferences.formatPressure(250, "PSI"));
+        assertEquals("2.50 bar", UnitPreferences.formatPressure(250, "bar"));
+        assertEquals(Integer.valueOf(245), UnitPreferences.normalizeRawTpmsToKpa(2.45));
+        assertEquals(Integer.valueOf(269), UnitPreferences.normalizeRawTpmsToKpa(39.0));
+        assertEquals("39.0 PSI", UnitPreferences.formatPressure(UnitPreferences.normalizeRawTpmsToKpa(39.0), "PSI"));
+        assertEquals(Integer.valueOf(245), UnitPreferences.normalizeRawTpmsToKpa(245.0));
+
+        assertEquals(17, RegionOption.ALL_REGIONS.size());
+        assertEquals("cn", RegionOption.extractCodeFromText("China Mainland (CN)"));
+        assertEquals("eu", RegionOption.extractCodeFromText("Europe (EU)"));
     }
 }

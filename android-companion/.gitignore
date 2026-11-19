@@ -1,0 +1,26 @@
+# Gradle & Build outputs
+.gradle/
+build/
+**/build/
+*.apk
+*.aab
+*.apkm
+
+# IDE & Local config
+.idea/
+*.iml
+local.properties
+.DS_Store
+Thumbs.db
+
+# Secrets, Firebase/HMS config & Keystores
+app/agconnect-services.json
+**/agconnect-services.json
+google-services.json
+*.jks
+*.keystore
+*.p12
+*.cer
+*.csr
+*.p7b
+signing/

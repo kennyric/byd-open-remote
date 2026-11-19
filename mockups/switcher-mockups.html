@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BYD Open Remote — car switching mockups</title>
+<style>
+  :root{
+    --bg:#0F1412; --card:#171D1A; --inner:#202724; --console:#111715;
+    --stroke:#2F3934; --emerald:#6DDBAC; --cyan:#7ED0FF; --amber:#FFB95C;
+    --text:#E1E8E3; --text2:#B8C3BC; --muted:#87938C;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; padding:28px 24px 60px; background:#080A09; color:var(--text);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  }
+  h1{font-size:22px;margin:0 0 6px}
+  h2{font-size:16px;margin:38px 0 4px;color:var(--emerald);letter-spacing:.04em;text-transform:uppercase}
+  .lede{color:var(--text2);font-size:13px;margin:0 0 8px;max-width:760px;line-height:1.5}
+  .row{display:flex;gap:22px;align-items:flex-start;flex-wrap:wrap;margin-top:14px}
+  .frame{width:300px}
+  .frame .cap{font-size:11px;color:var(--muted);margin-top:8px;text-align:center;letter-spacing:.03em}
+  .device{
+    width:300px;background:var(--bg);border:1px solid var(--stroke);border-radius:26px;
+    padding:12px;box-shadow:0 12px 30px rgba(0,0,0,.45);position:relative;overflow:hidden;
+  }
+  .statusbar{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-bottom:8px}
+  .appbar{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+  .circle{width:32px;height:32px;border-radius:999px;background:var(--inner);display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--text2)}
+  .caricon{width:34px;height:34px;border-radius:11px;background:#1E3B31;display:flex;align-items:center;justify-content:center;font-size:16px}
+  .names{flex:1;min-width:0}
+  .model{font-size:15px;font-weight:800;letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .model .chev{color:var(--muted);font-weight:600;margin-left:3px}
+  .region{font-size:10px;color:var(--text2);margin-top:1px}
+  .card{border:1px solid var(--stroke);border-radius:18px;padding:12px;background:transparent;margin-bottom:10px}
+  .card-title{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+  .card-title b{font-size:13px;letter-spacing:.02em}
+  .edit{border:1px solid var(--stroke);border-radius:999px;padding:3px 10px;font-size:9px;color:var(--text2)}
+  .time{font-size:9px;color:var(--muted);background:var(--inner);border-radius:999px;padding:4px 8px}
+  .big{display:flex;align-items:flex-end;justify-content:space-between}
+  .soc{font-size:34px;font-weight:800;color:var(--emerald);line-height:1}
+  .range{text-align:right}
+  .range .lbl{font-size:9px;color:var(--text2)}
+  .range .val{font-size:22px;font-weight:800}
+  .bar{height:8px;border-radius:999px;background:#26302B;margin:9px 0 8px;overflow:hidden}
+  .bar i{display:block;height:100%;background:var(--emerald);border-radius:999px}
+  .banners{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:11px}
+  .b{font-size:9px;padding:4px 8px;border-radius:999px;border:1px solid var(--stroke);color:var(--text2)}
+  .b.green{color:var(--emerald);border-color:#2E5B4B}
+  .b.yellow{color:var(--amber);border-color:#4A3820}
+  .stats{display:flex;justify-content:space-between;background:var(--inner);border-radius:14px;padding:9px 11px;margin-bottom:10px}
+  .stat .k{font-size:8.5px;color:var(--muted)}
+  .stat .v{font-size:12px;font-weight:700;margin-top:2px}
+  .stat .v.green{color:var(--emerald)} .stat .v.cyan{color:var(--cyan)} .stat .v.muted{color:var(--text2)}
+  .btnrow{display:flex;gap:6px;margin-bottom:9px}
+  .btn{flex:1;height:34px;border-radius:12px;border:1px solid var(--stroke);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;gap:5px;color:var(--text2)}
+  .btn.solid{background:#2F4B44;color:#CFEDE1}
+  .btn.ghost{background:#1B2E2A;color:#B7E7D5}
+  .btn.pink{background:#2A1F2E;color:#F2C7E4}
+  .acrow{display:flex;gap:6px;align-items:center;background:var(--inner);border-radius:14px;padding:8px;margin-bottom:9px}
+  .ac{flex:1;border:1px solid #2E5B4B;border-radius:12px;padding:7px 9px;background:#172A25}
+  .ac b{display:block;font-size:10.5px;color:var(--emerald)}
+  .ac span{font-size:8.5px;color:var(--text2)}
+  .adj{border:1px solid var(--stroke);border-radius:12px;padding:7px 10px;font-size:10px;color:var(--text2)}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px}
+  .g{height:30px;border-radius:12px;border:1px solid var(--stroke);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--text2)}
+  .g.tint{background:#22322E}
+  .loc{display:flex;align-items:center;gap:8px;background:var(--inner);border-radius:14px;padding:9px 11px;margin-bottom:9px}
+  .loc .pin{font-size:12px;color:var(--emerald)}
+  .loc b{display:block;font-size:10.5px}
+  .loc span{font-size:9px;color:var(--muted)}
+  .gps{margin-left:auto;border-radius:999px;background:#2C4C43;color:#CBEFE0;font-size:9px;font-weight:700;padding:5px 9px}
+  .health{background:var(--inner);border-radius:14px;padding:9px 11px}
+  .health .hrow{display:flex;justify-content:space-between;font-size:9px;color:var(--text2);margin-bottom:6px}
+  .health .hrow b{font-size:9.5px;color:var(--text)}
+  .tires{display:flex;justify-content:space-between;font-size:8.5px;color:var(--text2)}
+
+  /* switcher elements */
+  .chipstrip{display:flex;gap:6px;margin-bottom:10px}
+  .chip{flex:1;display:flex;align-items:center;justify-content:space-between;gap:6px;border-radius:999px;border:1px solid var(--stroke);padding:8px 12px;font-size:10.5px;color:var(--text2);background:transparent}
+  .chip .pct{font-weight:700;font-size:10px;color:var(--muted)}
+  .chip.on{background:#1D3A32;border-color:#2E5B4B;color:var(--emerald)}
+  .chip.on .pct{color:var(--emerald)}
+  .pillrow{display:flex;align-items:center;justify-content:space-between;gap:8px;border:1px solid var(--stroke);border-radius:14px;padding:9px 12px;margin-bottom:10px;background:var(--inner)}
+  .pillrow .pl{display:flex;align-items:center;gap:8px}
+  .pillrow .t{font-size:10.5px;font-weight:700}
+  .pillrow .s{font-size:9px;color:var(--muted)}
+  .pillrow .chev{color:var(--muted);font-size:12px}
+  .oldrow{display:flex;align-items:center;gap:8px;background:var(--inner);border-radius:14px;padding:8px;margin-bottom:10px}
+  .oldrow .lbl{font-size:9.5px;color:var(--muted)}
+  .oldrow .btn{margin:0;height:28px;font-size:9px}
+
+  /* bottom sheet */
+  .dim{position:absolute;inset:0;background:rgba(0,0,0,.55);border-radius:26px}
+  .sheet{position:absolute;left:0;right:0;bottom:0;background:#1A211E;border-radius:22px 22px 0 0;padding:12px 14px 16px;border-top:1px solid var(--stroke)}
+  .grab{width:34px;height:4px;border-radius:999px;background:#3D4943;margin:0 auto 10px}
+  .sheet h3{margin:0;font-size:14px}
+  .sheet .sub{font-size:9.5px;color:var(--muted);margin:2px 0 10px}
+  .car{display:flex;align-items:center;gap:9px;padding:9px;border-radius:14px;border:1px solid var(--stroke);margin-bottom:7px}
+  .car.on{border-color:#2E5B4B;background:#17302A}
+  .car .ic{width:30px;height:30px;border-radius:10px;background:var(--inner);display:flex;align-items:center;justify-content:center;font-size:14px}
+  .car .main{flex:1;min-width:0}
+  .car .nm{font-size:11px;font-weight:800;letter-spacing:.02em}
+  .car .mt{font-size:9px;color:var(--text2);margin-top:2px}
+  .tag{font-size:8px;font-weight:800;letter-spacing:.08em;color:var(--emerald);border:1px solid #2E5B4B;border-radius:999px;padding:3px 7px}
+  .car .go{color:var(--muted);font-size:13px}
+  .sheet .foot{display:flex;justify-content:space-between;align-items:center;margin-top:9px;font-size:9px;color:var(--muted)}
+  .sheet .foot a{color:var(--emerald);text-decoration:none;font-weight:700}
+
+  /* account */
+  .field{border:1px solid var(--stroke);border-radius:12px;padding:8px 10px;margin-bottom:8px}
+  .field .fl{font-size:8px;color:var(--muted);margin-bottom:2px}
+  .field .fv{font-size:10.5px}
+  .field .fh{font-size:8px;color:var(--muted);margin-top:2px}
+  .two{display:flex;gap:6px;margin-top:2px}
+  .garage-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:2px}
+  .garage-head b{font-size:13px}
+  .count{font-size:9px;font-weight:800;color:var(--emerald);background:#17302A;border:1px solid #2E5B4B;border-radius:999px;padding:3px 8px}
+  .garage-sub{font-size:9px;color:var(--muted);margin-bottom:9px}
+  .inline-garage{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:8px;font-size:9.5px;color:var(--text2)}
+  .inline-garage .mng{color:var(--emerald);font-weight:700;white-space:nowrap}
+  .note{max-width:760px;font-size:12.5px;color:var(--text2);line-height:1.6;margin-top:10px}
+  .note b{color:var(--text)}
+  .badge-new{display:inline-block;font-size:9px;font-weight:800;letter-spacing:.08em;color:#0B1D16;background:var(--emerald);border-radius:999px;padding:2px 7px;margin-left:6px;vertical-align:middle}
+</style>
+</head>
+<body>
+<h1>Car switching — 4 directions</h1>
+<p class="lede">Dark-theme mockups using the app's own palette. Values are the demo sample data (Atto 1 · 78 % / 268 km, Seal · 64 % / 352 km).</p>
+
+<div id="out"></div>
+
+<script>
+const ATTO = {name:"ATTO 1", vin:"••••0001", pct:78, rng:268, chg:"⚡ Charging · 7.2 kW", tag:"ATTO 1", banner:`<span class="b yellow">⚡ Charging · 7.2 kW · 1h 35m left</span>`, temp:"23°C", ac:"AC On", acColor:"cyan", odo:"12450"};
+const SEAL = {name:"SEAL",   vin:"••••0002", pct:64, rng:352, chg:"Not Charging",       tag:"SEAL",   banner:`<span class="b">Not Charging</span>`, temp:"24°C", ac:"AC Off", acColor:"muted", odo:"8310", addr:"SCBD, Jakarta Selatan"};
+
+function statusbar(){return `<div class="statusbar"><span>08:12</span><span>3G ▲ 🔋</span></div>`;}
+
+function header(extra, model){return `
+  <div class="appbar">
+    <div class="circle">☰</div>
+    <div class="caricon">🚗</div>
+    <div class="names">
+      <div class="model">${model||"BYD ATTO 1"} ${extra||""}</div>
+      <div class="region">Indonesia (ID)</div>
+    </div>
+  </div>`;}
+
+function controlsBody(car=ATTO){
+  return `
+  <div class="card">
+    <div class="card-title"><b>${car.name} Controls</b><span class="edit">⚙ Edit</span><span class="time">08:12:04</span></div>
+    <div class="big"><div class="soc">${car.pct}%</div><div class="range"><div class="lbl">Range</div><div class="val">${car.rng} km</div></div></div>
+    <div class="bar"><i style="width:${car.pct}%"></i></div>
+    <div class="banners">${car.banner}<span class="b green">All Closed</span></div>
+    <div class="stats">
+      <div class="stat"><div class="k">Doors</div><div class="v green">Locked</div></div>
+      <div class="stat"><div class="k">Cabin Temp</div><div class="v">${car.temp}</div></div>
+      <div class="stat"><div class="k">AC</div><div class="v ${car.acColor}">${car.ac}</div></div>
+    </div>
+    <div class="btnrow"><div class="btn">⟳ Refresh</div><div class="btn solid">🔒 Lock</div><div class="btn pink">🔓 Unlock</div></div>
+    <div class="acrow"><div class="ac"><b>❄ ${car.ac==="AC On"?"AC On · Tap to Stop":"Turn AC On"}</b><span>Lvl 2 · Fan 4 · Body+Feet · 20m</span></div><div class="adj">☰ Adjust</div></div>
+    <div class="grid">
+      <div class="g">💡 Flash Lights</div><div class="g">📯 Horn</div>
+      <div class="g tint">Vent Win</div><div class="g tint">Close Win</div>
+      <div class="g">Bat Heat</div><div class="g">Seat Heat</div>
+    </div>
+  </div>`;
+}
+
+function tail(car=ATTO){
+  return `
+  <div class="loc"><span class="pin">📍</span><div><b>${car.addr || "Jl. M. H. Thamrin, Jakarta"}</b><span>Tap to open in navigation app</span></div><span class="gps">GPS</span></div>
+  <div class="health">
+    <div class="hrow"><b>Vehicle Health &amp; TPMS</b><span style="color:#87938C">Odo ${car.odo} km · Out 31°C</span></div>
+    <div class="tires"><span>LF 245 kPa</span><span>RF 245 kPa</span><span>LR 240 kPa</span><span>RR 240 kPa</span></div>
+  </div>`;
+}
+
+function phone(inner, cap, opts={}){
+  return `<div class="frame"><div class="device">${statusbar()}${inner}${opts.sheet||""}</div><div class="cap">${cap}</div></div>`;
+}
+
+function sheet(){
+  return `
+  <div class="dim"></div>
+  <div class="sheet">
+    <div class="grab"></div>
+    <h3>Your garage</h3>
+    <div class="sub">2 vehicles linked to this account</div>
+    <div class="car on">
+      <div class="ic">🚗</div>
+      <div class="main"><div class="nm">ATTO 1</div><div class="mt">••••0001 · 78% · 268 km · Charging</div></div>
+      <span class="tag">ACTIVE</span>
+    </div>
+    <div class="car">
+      <div class="ic">🚙</div>
+      <div class="main"><div class="nm">SEAL</div><div class="mt">••••0002 · 64% · 352 km · Idle</div></div>
+      <span class="go">›</span>
+    </div>
+    <div class="foot"><span>Fetched 2 vehicles · 08:12</span><a href="#">Refresh</a></div>
+  </div>`;
+}
+
+/* ---------- Option 1: header switcher + garage card ---------- */
+const opt1 = `
+  ${phone(header(`<span class="chev">▾</span>`) + controlsBody() + tail(), "1a · Controls — Active Car row removed, header is the switcher")}
+  ${phone(header(`<span class="chev">▾</span>`) + controlsBody() + tail(), "1b · Tap header → garage sheet", {sheet:sheet()})}
+  ${phone(accountGarage(), "1c · Account — Garage card shows 2 fetched vehicles")}
+`;
+
+function accountGarage(){
+  return `
+  <div class="appbar">
+    <div class="circle">☰</div>
+    <div class="names"><div class="model">Account</div><div class="region">demo.driver@example.com</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title"><b>BYD account</b></div>
+    <div class="field"><div class="fl">Email</div><div class="fv">demo.driver@example.com</div></div>
+    <div class="field"><div class="fl">Password</div><div class="fv">••••••••</div></div>
+    <div class="field"><div class="fl">Operation PIN</div><div class="fv">••••••</div></div>
+    <div class="field"><div class="fl">VIN</div><div class="fv">LGX0DEMO000000001</div><div class="fh">Primary vehicle</div></div>
+    <div class="two"><div class="btn ghost">Fetch VIN</div><div class="btn solid">Save</div></div>
+  </div>
+  <div class="card">
+    <div class="garage-head"><b>Garage</b><span class="count">2 VEHICLES</span></div>
+    <div class="garage-sub">Fetched 08:12 · ATTO 1 is active</div>
+    <div class="car on"><div class="ic">🚗</div><div class="main"><div class="nm">ATTO 1</div><div class="mt">••••0001 · 78% · 268 km</div></div><span class="tag">ACTIVE</span></div>
+    <div class="car"><div class="ic">🚙</div><div class="main"><div class="nm">SEAL</div><div class="mt">••••0002 · 64% · 352 km</div></div><span class="go">›</span></div>
+    <div class="two"><div class="btn">⟳ Refresh vehicles</div></div>
+  </div>`;
+}
+
+/* ---------- Option 2: chips ---------- */
+function chips(active){
+  const c=(car,on)=>`<div class="chip${on?" on":""}"><span>${car.tag}</span><span class="pct">${car.pct}%</span></div>`;
+  return `<div class="chipstrip">${c(ATTO,active==="atto")}${c(SEAL,active==="seal")}</div>`;
+}
+const opt2 = `
+  ${phone(header() + chips("atto") + controlsBody(ATTO) + tail(), "2a · Controls — one-tap car chips, no dialog")}
+  ${phone(header("", "BYD SEAL") + chips("seal") + controlsBody(SEAL) + tail(SEAL), "2b · After tapping SEAL, telemetry refreshes in place")}
+`;
+
+/* ---------- Option 3: header + chips ---------- */
+const opt3 = `
+  ${phone(header(`<span class="chev">▾</span>`) + chips("atto") + controlsBody() + tail(), "3a · Controls — chips for quick taps + header sheet for detail")}
+  ${phone(header(`<span class="chev">▾</span>`) + chips("atto") + controlsBody() + tail(), "3b · Header still opens the full garage sheet", {sheet:sheet()})}
+`;
+
+/* ---------- Option 4: minimal ---------- */
+const opt4 = `
+  ${phone(header() + controlsBody() + `
+    <div class="pillrow"><div class="pl"><span>🚗</span><div><div class="t">ATTO 1 · 78%</div><div class="s">••••0001 · tap to change car</div></div></div><span class="chev">▾</span></div>` + tail(), "4a · Controls — one compact dropdown pill")}
+  ${phone(`<div class="appbar"><div class="circle">☰</div><div class="names"><div class="model">Account</div><div class="region">demo.driver@example.com</div></div></div>
+    <div class="card">
+      <div class="card-title"><b>BYD account</b></div>
+      <div class="field"><div class="fl">Email</div><div class="fv">demo.driver@example.com</div></div>
+      <div class="field"><div class="fl">Operation PIN</div><div class="fv">••••••</div></div>
+      <div class="field"><div class="fl">VIN</div><div class="fv">LGX0DEMO000000001</div><div class="fh">Primary vehicle</div></div>
+      <div class="two"><div class="btn ghost">Fetch VIN</div><div class="btn solid">Save</div></div>
+      <div class="inline-garage"><span>2 vehicles linked · ATTO 1 active</span><span class="mng">Manage ›</span></div>
+    </div>
+    <div class="loc"><span class="pin">📍</span><div><b>Jl. M. H. Thamrin, Jakarta</b><span>Tap to open in navigation app</span></div><span class="gps">GPS</span></div>`,
+    "4b · Account — one line under VIN instead of a card")}
+`;
+
+const sections = [
+  ["opt1", "Option 1 — Header switcher + Garage card <span class='badge-new'>RECOMMENDED</span>",
+   "The car name you already look at becomes the switcher. No extra row on Controls; Account finally shows what Fetch VIN returned.",
+   [opt1]],
+  ["opt2", "Option 2 — Car chips + Garage card",
+   "One tap switching, charge visible per car. Controls gets busier; chips need horizontal scroll past 3 cars.",
+   [opt2]],
+  ["opt3", "Option 3 — Header + chips + Garage card",
+   "Chips for speed, header sheet for detail, same Garage card on Account.",
+   [opt3]],
+  ["opt4", "Option 4 — Minimal restyle",
+   "Smallest change: the existing row becomes a compact dropdown; Account gets a single status line.",
+   [opt4]],
+];
+
+document.getElementById("out").innerHTML = sections.map(([id,t,d,frames])=>`
+  <section class="opt" id="${id}">
+  <h2>${t}</h2>
+  <p class="lede">${d}</p>
+  <div class="row">${frames.join("")}</div>
+  </section>
+`).join("");
+
+// When opened with ?only=opt1 … ?only=opt4, show just that option (used for screenshots).
+const only = new URLSearchParams(location.search).get("only") || "";
+if (only) {
+  document.querySelectorAll(".opt").forEach(el => {
+    if (el.id !== only) el.style.display = "none";
+  });
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- One car in the garage list (Account card and switcher sheet). Filled in by MainActivity. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="6dp"
+    android:background="@drawable/bg_panel_inner"
+    android:backgroundTint="?attr/colorSurfaceContainerHigh"
+    android:clickable="true"
+    android:focusable="true"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingHorizontal="10dp"
+    android:paddingVertical="7dp">
+
+    <FrameLayout
+        android:layout_width="30dp"
+        android:layout_height="30dp"
+        android:background="@drawable/bg_panel_inner"
+        android:backgroundTint="?attr/colorPrimaryContainer">
+
+        <ImageView
+            android:id="@+id/ivGarageRowIcon"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:contentDescription="@string/garage_icon_desc"
+            android:scaleType="centerCrop"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/tvGarageRowEmoji"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:text="🚗"
+            android:textSize="14sp" />
+    </FrameLayout>
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="10dp"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/tvGarageRowName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textColor="?attr/colorOnSurface"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tvGarageRowMeta"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="1dp"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:textSize="11sp" />
+    </LinearLayout>
+
+    <!-- Rename this car. Row itself switches cars, so this is a separate target. -->
+    <ImageButton
+        android:id="@+id/btnGarageRowRename"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:layout_marginEnd="2dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/garage_rename_desc"
+        android:padding="7dp"
+        android:scaleType="fitCenter"
+        android:src="@drawable/ic_edit_pencil"
+        android:visibility="gone"
+        app:tint="?attr/colorOnSurfaceVariant" />
+
+    <!-- Selection indicator: the row itself is the click target, so the radio is not clickable. -->
+    <com.google.android.material.radiobutton.MaterialRadioButton
+        android:id="@+id/rbGarageRow"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="2dp"
+        android:buttonTint="?attr/colorPrimary"
+        android:clickable="false"
+        android:focusable="false"
+        android:importantForAccessibility="no" />
+</LinearLayout>

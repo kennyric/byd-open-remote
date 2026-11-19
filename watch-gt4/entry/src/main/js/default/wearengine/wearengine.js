@@ -151,7 +151,7 @@ P2pClient.prototype.setPeerPkgName = function(pkgName) {
  * @param {string} fingerPrint
  */
 P2pClient.prototype.setPeerFingerPrint = function(fingerPrint) {
-  this.peerFingerPrint = fingerPrint ? String(fingerPrint).replace(/:/g, '') : '';
+  this.peerFingerPrint = fingerPrint ? String(fingerPrint).split(':').join('') : '';
   if (nativeWear && typeof nativeWear.setPeerFingerPrint === 'function') {
     try {
       nativeWear.setPeerFingerPrint(this.peerFingerPrint);
@@ -193,10 +193,15 @@ P2pClient.prototype.registerReceiver = function(receiver) {
 
     try {
       nativeWear.registerReceiver(wrapper);
-      return;
     } catch (err) {
       console.warn('nativeWear.registerReceiver failed:', err);
+      this.isRegistered = false;
+      this._nativeReceiverWrapper = null;
+      if (receiver && typeof receiver.onFailure === 'function') {
+        receiver.onFailure(-1, err && err.message ? err.message : 'registerReceiver failed');
+      }
     }
+    return;
   }
 
   if (receiver && typeof receiver.onSuccess === 'function') {
@@ -254,10 +259,13 @@ P2pClient.prototype.send = function(message, callback) {
           }
         }
       });
-      return;
     } catch (err) {
       console.warn('nativeWear.send failed:', err);
+      if (callback && typeof callback.onFailure === 'function') {
+        callback.onFailure(-1, err && err.message ? err.message : 'send failed');
+      }
     }
+    return;
   }
 
   // Fallback for simulation / tests
@@ -287,10 +295,13 @@ P2pClient.prototype.ping = function(callback) {
           }
         }
       });
-      return;
     } catch (err) {
       console.warn('nativeWear.ping failed:', err);
+      if (callback && typeof callback.onFailure === 'function') {
+        callback.onFailure(-1, err && err.message ? err.message : 'ping failed');
+      }
     }
+    return;
   }
 
   if (callback && typeof callback.onSuccess === 'function') {

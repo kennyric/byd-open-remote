@@ -1,5 +1,6 @@
 package com.bydwatch.companion.protocol;
 
+import com.bydwatch.companion.data.ConfigStore;
 import com.bydwatch.companion.model.VehicleStatus;
 
 import org.json.JSONException;
@@ -26,6 +27,13 @@ public final class WatchProtocol {
     public static final String ACTION_AC_OFF = "ac_off";
     public static final String ACTION_LIGHTS = "lights";
     public static final String ACTION_HORN = "horn";
+    public static final String ACTION_VENT_WINDOWS = "vent_windows";
+    public static final String ACTION_CLOSE_WINDOWS = "close_windows";
+    public static final String ACTION_BATTERY_HEAT_ON = "bat_heat_on";
+    public static final String ACTION_BATTERY_HEAT_OFF = "bat_heat_off";
+    public static final String ACTION_SEAT_HEAT = "seat_heat";
+    public static final String ACTION_SWITCH_CAR = "switch_car";
+    public static final String ACTION_LOCATION = "location";
 
     private static final Set<String> VALID_ACTIONS = Collections.unmodifiableSet(
             new HashSet<>(Arrays.asList(
@@ -35,7 +43,14 @@ public final class WatchProtocol {
                     ACTION_AC_ON,
                     ACTION_AC_OFF,
                     ACTION_LIGHTS,
-                    ACTION_HORN
+                    ACTION_HORN,
+                    ACTION_VENT_WINDOWS,
+                    ACTION_CLOSE_WINDOWS,
+                    ACTION_BATTERY_HEAT_ON,
+                    ACTION_BATTERY_HEAT_OFF,
+                    ACTION_SEAT_HEAT,
+                    ACTION_SWITCH_CAR,
+                    ACTION_LOCATION
             ))
     );
 
@@ -88,7 +103,40 @@ public final class WatchProtocol {
             }
         }
 
-        return new WatchCommand(id, action, tempC);
+        String vin = obj.optString("vin", "").trim();
+        int level = obj.has("level") && !obj.isNull("level") ? obj.optInt("level", -1) : -1;
+        int tempGear = -1;
+        if (obj.has("tempGear") && !obj.isNull("tempGear")) {
+            int rawGear = obj.optInt("tempGear", -1);
+            if (rawGear > 0) {
+                tempGear = Math.max(1, Math.min(9, rawGear));
+            }
+        }
+        int fanLevel = -1;
+        if (obj.has("fanLevel") && !obj.isNull("fanLevel")) {
+            int rawFan = obj.optInt("fanLevel", -1);
+            if (rawFan > 0) {
+                fanLevel = Math.max(1, Math.min(7, rawFan));
+            }
+        }
+        int windMode = -1;
+        if (obj.has("windMode") && !obj.isNull("windMode")) {
+            int rawWind = obj.optInt("windMode", -1);
+            if (rawWind > 0) {
+                windMode = Math.max(1, Math.min(5, rawWind));
+            }
+        }
+        String acMode = obj.optString("acMode", "").trim();
+        int acDurationMin = -1;
+        if (obj.has("acDurationMin") && !obj.isNull("acDurationMin")) {
+            int rawDur = obj.optInt("acDurationMin", -1);
+            if (rawDur > 0) {
+                acDurationMin = ConfigStore.normalizeAcDurationMinutes(rawDur);
+            }
+        }
+
+        return new WatchCommand(
+                id, action, tempC, vin, level, tempGear, fanLevel, windMode, acMode, acDurationMin);
     }
 
     /**

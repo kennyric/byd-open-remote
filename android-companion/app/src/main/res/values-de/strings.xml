@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">BYD Open Remote</string>
+    <string name="header_title">BYD Open Remote</string>
+    <string name="header_subtitle">Open-Source Cloud-Fernsteuerung</string>
+    <string name="auth_notice">Sicherheitshinweis: Verwenden Sie vorzugsweise ein Unterkonto (Alternate Vehicle Authorization) aus der offiziellen BYD-App. Unabhängige Drittanbieter-App.</string>
+    <string name="card_account_title">BYD-Konto &amp; Region</string>
+    <string name="label_region">Cloud-Region / Markt</string>
+    <string name="helper_region">Muss dem Registrierungsland Ihres BYD-Kontos entsprechen (inkl. CN)</string>
+    <string name="label_active_vehicle">Aktives Fahrzeug (Multi-Car)</string>
+    <string name="btn_save_credentials">Zugangsdaten speichern</string>
+    <string name="btn_fetch_vin">Fahrzeuge laden &amp; Test</string>
+
+    <string name="card_controls_title">Fahrzeugstatus &amp; Steuerung</string>
+    <string name="label_range">Reichweite</string>
+    <string name="label_doors">Türen</string>
+    <string name="label_cabin_temp">Innenraum</string>
+    <string name="label_last_updated">Aktualisiert</string>
+
+    <string name="btn_refresh">Aktualisieren</string>
+    <string name="btn_lock">Verriegeln</string>
+    <string name="btn_unlock">Entriegeln</string>
+    <string name="btn_ac_on">Klima Ein</string>
+    <string name="btn_ac_off">Klima Aus</string>
+    <string name="btn_lights">Lichthupe</string>
+    <string name="btn_horn">Hupe</string>
+    <string name="btn_vent_windows">Lüften</string>
+    <string name="btn_close_windows">Fenster Zu</string>
+    <string name="btn_bat_heat">Akkuheizung</string>
+    <string name="btn_seat_heat">Sitzheizung</string>
+
+    <string name="label_vehicle_health">Fahrzeugzustand &amp; Reifendruck (TPMS)</string>
+    <string name="label_units">Einheiten</string>
+    <string name="label_alerts_toggle">Smarte Hinweise (Offen / Laden beendet)</string>
+    <string name="label_watch_edition">Uhr-Edition:</string>
+    <string name="btn_disclaimer">Haftungsausschluss</string>
+
+    <string name="card_bridge_title">Watch-Bridge &amp; Ereignisprotokoll</string>
+    <string name="btn_auth_health">Huawei Health autorisieren</string>
+    <string name="btn_start_service">Bridge-Dienst starten</string>
+    <string name="btn_stop_service">Bridge-Dienst stoppen</string>
+    <string name="btn_battery_opt">Akku-Optimierung deaktivieren</string>
+</resources>

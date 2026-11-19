@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Car icon — emoji or photo</title>
+<style>
+  :root{--bg:#0F1412;--card:#171D1A;--inner:#202724;--stroke:#2F3934;--emerald:#6DDBAC;--text:#E1E8E3;--text2:#B8C3BC;--muted:#87938C}
+  *{box-sizing:border-box}
+  body{margin:0;padding:24px 20px 52px;background:#080A09;color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  h1{font-size:20px;margin:0 0 5px}
+  h2{font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--emerald);margin:28px 0 2px}
+  p{color:var(--text2);font-size:12px;line-height:1.5;margin:0 0 8px;max-width:880px}
+  .row{display:flex;gap:18px;flex-wrap:wrap;margin-top:12px}
+  .phone{width:300px;background:var(--bg);border:1px solid var(--stroke);border-radius:22px;padding:10px;box-shadow:0 10px 24px rgba(0,0,0,.4)}
+  .cap{font-size:10.5px;color:var(--muted);margin-top:6px;line-height:1.5;max-width:300px}
+  .cap b{color:var(--text2)}
+  .status{display:flex;justify-content:space-between;font-size:8.5px;color:var(--muted);margin-bottom:5px}
+  .appbar{display:flex;align-items:center;gap:8px;margin-bottom:9px}
+  .circle{width:28px;height:28px;border-radius:999px;background:var(--inner);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--text2)}
+  .t{font-size:13px;font-weight:800}
+  .s{font-size:9px;color:var(--text2);margin-top:1px}
+
+  .card{border:1px solid var(--stroke);border-radius:16px;padding:10px;margin-bottom:9px}
+  .cardhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+  .cardhead b{font-size:12px}
+  .pill{font-size:8.5px;font-weight:800;color:var(--emerald);border:1px solid #2E5B4B;background:#17302A;border-radius:999px;padding:2px 7px}
+
+  .car{display:flex;align-items:center;gap:8px;border:1px solid var(--stroke);border-radius:13px;padding:8px;margin-bottom:6px}
+  .car.on{border-color:#2E5B4B;background:#17302A}
+  .ci{width:30px;height:30px;border-radius:9px;background:#1E3B31;display:flex;align-items:center;justify-content:center;font-size:14px;overflow:hidden;flex:none}
+  .ci img{width:100%;height:100%;object-fit:cover;display:block}
+  .cname{font-size:11px;font-weight:800}
+  .cmeta{font-size:8.5px;color:var(--muted);margin-top:1px}
+  .grow{flex:1;min-width:0}
+  .pencil{width:24px;height:24px;border-radius:999px;border:1px solid var(--stroke);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--muted)}
+  .radio{width:15px;height:15px;border-radius:50%;border:2px solid #6E7A73;flex:none}
+  .radio.on{border-color:var(--emerald);box-shadow:inset 0 0 0 3px #17302A, inset 0 0 0 8px var(--emerald)}
+
+  /* edit sheet */
+  .sheet{background:#1A211E;border-radius:18px;border:1px solid var(--stroke);padding:12px}
+  .sheet h3{margin:0;font-size:13px}
+  .sheet .sub{font-size:9px;color:var(--muted);margin:2px 0 10px}
+  .preview{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+  .bigicon{width:52px;height:52px;border-radius:16px;background:#1E3B31;display:flex;align-items:center;justify-content:center;font-size:26px;overflow:hidden;flex:none;border:1px solid #2E5B4B}
+  .bigicon img{width:100%;height:100%;object-fit:cover}
+  .field{flex:1;border:1px solid var(--stroke);border-radius:11px;padding:6px 9px;font-size:11px;color:var(--text)}
+  .seg{display:flex;border:1px solid var(--stroke);border-radius:999px;overflow:hidden;margin-bottom:9px}
+  .seg div{flex:1;text-align:center;font-size:9.5px;padding:6px 0;color:var(--text2)}
+  .seg .on{background:#17302A;color:var(--emerald);font-weight:700}
+  .emoji{display:grid;grid-template-columns:repeat(6,1fr);gap:5px}
+  .e{aspect-ratio:1;border-radius:10px;border:1px solid var(--stroke);display:flex;align-items:center;justify-content:center;font-size:16px;background:#141B18}
+  .e.on{border-color:#2E5B4B;background:#17302A}
+  .photo{border:1px dashed #3A463F;border-radius:12px;padding:12px;text-align:center;font-size:9.5px;color:var(--text2)}
+  .photo b{display:block;font-size:10.5px;color:var(--text);margin-bottom:2px}
+  .actions{display:flex;gap:6px;margin-top:10px}
+  .btn{flex:1;height:32px;border-radius:11px;border:1px solid var(--stroke);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--text2)}
+  .btn.primary{background:#1F3D33;border-color:#2E5B4B;color:#CDEFE1}
+
+  /* vehicle card */
+  .vcard{border:1px solid #2E5B4B;background:#17231F;border-radius:16px;padding:11px}
+  .vtop{display:flex;align-items:center;gap:8px}
+  .vic{width:34px;height:34px;border-radius:11px;background:#1E3B31;display:flex;align-items:center;justify-content:center;font-size:15px;overflow:hidden;flex:none}
+  .vic img{width:100%;height:100%;object-fit:cover}
+  .vname{font-size:13px;font-weight:800}
+  .vmeta{font-size:8.5px;color:var(--muted);margin-top:1px}
+  .bar{height:6px;border-radius:99px;background:#26302B;margin:8px 0 5px;overflow:hidden}
+  .bar i{display:block;height:100%;border-radius:99px;background:var(--emerald)}
+  .vfoot{display:flex;justify-content:space-between;font-size:8.5px;color:var(--text2)}
+  .vfoot b{color:var(--emerald)}
+  .note{max-width:880px;font-size:12px;color:var(--muted);margin-top:14px;line-height:1.6}
+  .note b{color:var(--text2)}
+</style>
+</head>
+<body>
+<h1>Car icon — emoji or custom photo</h1>
+<p>The icon shown next to the car name becomes editable per car, from the same place as the rename. Same icon then appears in the garage rows, the Controls vehicle card and the drawer.</p>
+
+<div class="row">
+
+  <div>
+    <h2>1 · Garage rows show the chosen icon</h2>
+    <div class="phone">
+      <div class="status"><span>14:30</span><span>Wi-Fi ▲ 🔋</span></div>
+      <div class="appbar"><div class="circle">☰</div><div><div class="t">BYD Open Remote</div><div class="s">BYD Account &amp; Region</div></div></div>
+
+      <div class="card">
+        <div class="cardhead"><b>Garage</b><span class="pill">2 VEHICLES</span></div>
+        <div class="car on">
+          <div class="ci">🚗</div>
+          <div class="grow"><div class="cname">ATTO 1</div><div class="cmeta">••••0001 · 78% · 268 km</div></div>
+          <div class="pencil">✎</div><div class="radio on"></div>
+        </div>
+        <div class="car">
+          <div class="ci"><img alt="car" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='60' height='60'><rect width='60' height='60' fill='%232A3B33'/><path d='M10 36l6-12h28l6 12v8H10z' fill='%236DDBAC'/><circle cx='20' cy='44' r='4' fill='%23101714'/><circle cx='40' cy='44' r='4' fill='%23101714'/></svg>"></div>
+          <div class="grow"><div class="cname">Family Seal</div><div class="cmeta">••••0002 · 64% · 352 km</div></div>
+          <div class="pencil">✎</div><div class="radio"></div>
+        </div>
+      </div>
+    </div>
+    <div class="cap"><b>Row icon</b> = emoji or photo, 30dp rounded square. Pencil opens the editor below.</div>
+  </div>
+
+  <div>
+    <h2>2 · Edit sheet: emoji tab</h2>
+    <div class="phone">
+      <div class="status"><span>14:30</span><span>Wi-Fi ▲ 🔋</span></div>
+      <div class="appbar"><div class="circle">☰</div><div><div class="t">BYD Open Remote</div><div class="s">BYD Account &amp; Region</div></div></div>
+
+      <div class="sheet">
+        <h3>Edit Family Seal</h3>
+        <div class="sub">Name and icon are stored for this car only.</div>
+
+        <div class="preview">
+          <div class="bigicon">🚙</div>
+          <div class="field">Family Seal</div>
+        </div>
+
+        <div class="seg"><div class="on">Emoji</div><div>Photo</div></div>
+
+        <div class="emoji">
+          <div class="e">🚗</div><div class="e">🚙</div><div class="e on">🚙</div><div class="e">🚐</div><div class="e">🛻</div><div class="e">🏎️</div>
+          <div class="e">🚕</div><div class="e">🚌</div><div class="e">🚓</div><div class="e">🚑</div><div class="e">🚒</div><div class="e">🏍️</div>
+          <div class="e">🛵</div><div class="e">🚲</div><div class="e">🛴</div><div class="e">🚂</div><div class="e">⛵</div><div class="e">🚤</div>
+          <div class="e">🔋</div><div class="e">⚡</div><div class="e">🌟</div><div class="e">🛞</div><div class="e">🚀</div><div class="e">🛸</div>
+        </div>
+
+        <div class="actions">
+          <div class="btn">Reset</div>
+          <div class="btn">Cancel</div>
+          <div class="btn primary">Save</div>
+        </div>
+      </div>
+    </div>
+    <div class="cap"><b>Emoji grid</b> ~24 curated glyphs, no keyboard needed. Selected one gets the emerald outline.</div>
+  </div>
+
+  <div>
+    <h2>3 · Photo tab</h2>
+    <div class="phone">
+      <div class="status"><span>14:30</span><span>Wi-Fi ▲ 🔋</span></div>
+      <div class="appbar"><div class="circle">☰</div><div><div class="t">BYD Open Remote</div><div class="s">BYD Account &amp; Region</div></div></div>
+
+      <div class="sheet">
+        <h3>Edit Family Seal</h3>
+        <div class="sub">Photo is cropped square and copied into the app, so it keeps working if the original is deleted.</div>
+
+        <div class="preview">
+          <div class="bigicon"><img alt="car" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='60' height='60'><rect width='60' height='60' fill='%232A3B33'/><path d='M10 36l6-12h28l6 12v8H10z' fill='%236DDBAC'/><circle cx='20' cy='44' r='4' fill='%23101714'/><circle cx='40' cy='44' r='4' fill='%23101714'/></svg>"></div>
+          <div class="field">Family Seal</div>
+        </div>
+
+        <div class="seg"><div>Emoji</div><div class="on">Photo</div></div>
+
+        <div class="photo">
+          <b>Choose from gallery</b>
+          JPG/PNG · 1:1 crop
+        </div>
+
+        <div class="actions">
+          <div class="btn">Reset</div>
+          <div class="btn">Cancel</div>
+          <div class="btn primary">Save</div>
+        </div>
+      </div>
+    </div>
+    <div class="cap"><b>Photo</b> becomes the same rounded square. Reset returns to the default car emoji.</div>
+  </div>
+
+  <div>
+    <h2>4 · Controls vehicle card</h2>
+    <div class="phone">
+      <div class="status"><span>14:30</span><span>Wi-Fi ▲ 🔋</span></div>
+      <div class="appbar"><div class="circle">☰</div><div><div class="t">BYD Open Remote</div><div class="s">Controls</div></div></div>
+
+      <div class="vcard">
+        <div class="vtop">
+          <div class="vic"><img alt="car" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='60' height='60'><rect width='60' height='60' fill='%232A3B33'/><path d='M10 36l6-12h28l6 12v8H10z' fill='%236DDBAC'/><circle cx='20' cy='44' r='4' fill='%23101714'/><circle cx='40' cy='44' r='4' fill='%23101714'/></svg>"></div>
+          <div class="grow"><div class="vname">Family Seal</div><div class="vmeta">BYD Seal · Indonesia · ••••0002</div></div>
+          <span class="pill">Switch ▾</span>
+        </div>
+        <div class="bar"><i style="width:64%"></i></div>
+        <div class="vfoot"><span><b>64%</b> · 352 km</span><span>Idle</span></div>
+      </div>
+
+      <div class="card" style="margin-top:9px">
+        <div class="cardhead"><b>Controls</b><span class="pill">⚙ Edit</span></div>
+        <div style="display:flex;justify-content:space-between;background:#202724;border-radius:12px;padding:7px 9px;font-size:10px">
+          <span>Doors <b style="color:#6DDBAC">Locked</b></span><span>Cabin 24°C</span><span>AC Off</span>
+        </div>
+      </div>
+    </div>
+    <div class="cap"><b>Same icon</b> in the swipeable vehicle card, so the car is recognizable at a glance while switching.</div>
+  </div>
+
+</div>
+
+<p class="note">
+  <b>Storage &amp; scope.</b> Emoji is a short string stored per VIN next to the custom name. Photos are decoded, center-cropped square, downscaled (~256px) and saved under app files keyed by VIN, so no gallery permission or URI is kept. Emoji also works in home-screen widgets (plain text); photos would only render in the app unless widgets get a bitmap path. <b>Widget support for photos is a separate decision.</b>
+</p>
+
+</body>
+</html>

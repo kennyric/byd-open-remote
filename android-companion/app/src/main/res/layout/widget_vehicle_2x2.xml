@@ -1,0 +1,237 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widgetRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/bg_widget_card"
+    android:orientation="vertical"
+    android:padding="8dp">
+
+    <!-- Header: car selector (multi-car) on one line, big SOC below -->
+    <LinearLayout
+        android:id="@+id/widgetHeader"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="4dp"
+        android:orientation="vertical"
+        android:paddingHorizontal="2dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/tvWidgetCarModel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_widget_car_pill"
+                android:contentDescription="@string/widget_vehicle_settings_desc"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:paddingHorizontal="6dp"
+                android:paddingVertical="2dp"
+                android:textColor="@color/accent_emerald"
+                android:textSize="9sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/tvWidgetRange"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:gravity="end"
+                android:maxLines="2"
+                android:text="-- km"
+                android:textColor="@color/widget_on_surface_variant"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/tvWidgetSoc"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="--%"
+            android:textColor="@color/widget_on_surface"
+            android:textSize="21sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- Row 1: Lock & Unlock -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="horizontal">
+
+        <LinearLayout
+            android:id="@+id/tileWidgetLock"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_marginEnd="2dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_widget_btn_primary"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:paddingHorizontal="2dp">
+
+            <ImageView
+                android:id="@+id/ivWidgetLock"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:layout_marginBottom="2dp"
+                android:importantForAccessibility="no"
+                android:src="@drawable/ic_slot_lock"
+                android:tint="@color/widget_on_primary_container" />
+
+            <Button
+                android:id="@+id/btnWidgetLock"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@android:color/transparent"
+                android:ellipsize="end"
+                android:gravity="center"
+                android:maxLines="1"
+                android:minWidth="0dp"
+                android:minHeight="0dp"
+                android:padding="0dp"
+                android:stateListAnimator="@null"
+                android:text="Lock"
+                android:textAllCaps="false"
+                android:textColor="@color/widget_on_primary_container"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/tileWidgetUnlock"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_marginStart="2dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_widget_btn_tertiary"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:paddingHorizontal="2dp">
+
+            <ImageView
+                android:id="@+id/ivWidgetUnlock"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:layout_marginBottom="2dp"
+                android:importantForAccessibility="no"
+                android:src="@drawable/ic_slot_unlock"
+                android:tint="@color/widget_on_tertiary_container" />
+
+            <Button
+                android:id="@+id/btnWidgetUnlock"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@android:color/transparent"
+                android:ellipsize="end"
+                android:gravity="center"
+                android:maxLines="1"
+                android:minWidth="0dp"
+                android:minHeight="0dp"
+                android:padding="0dp"
+                android:stateListAnimator="@null"
+                android:text="Unlock"
+                android:textAllCaps="false"
+                android:textColor="@color/widget_on_tertiary_container"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Row 2: AC Toggle & Sync -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginTop="7dp"
+        android:layout_weight="1"
+        android:orientation="horizontal">
+
+        <LinearLayout
+            android:id="@+id/tileWidgetAc"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_marginEnd="2dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_widget_btn_secondary"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:paddingHorizontal="2dp">
+
+            <ImageView
+                android:id="@+id/ivWidgetAc"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:layout_marginBottom="2dp"
+                android:importantForAccessibility="no"
+                android:src="@drawable/ic_slot_ac"
+                android:tint="@color/widget_on_secondary_container" />
+
+            <Button
+                android:id="@+id/btnWidgetAc"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@android:color/transparent"
+                android:ellipsize="end"
+                android:gravity="center"
+                android:maxLines="1"
+                android:minWidth="0dp"
+                android:minHeight="0dp"
+                android:padding="0dp"
+                android:stateListAnimator="@null"
+                android:text="AC On"
+                android:textAllCaps="false"
+                android:textColor="@color/widget_on_secondary_container"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/tileWidgetRefresh"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_marginStart="2dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_widget_btn_tonal"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:paddingHorizontal="2dp">
+
+            <ImageView
+                android:id="@+id/ivWidgetRefresh"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:layout_marginBottom="2dp"
+                android:importantForAccessibility="no"
+                android:src="@drawable/ic_slot_sync"
+                android:tint="@color/widget_on_surface_variant" />
+
+            <Button
+                android:id="@+id/btnWidgetRefresh"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@android:color/transparent"
+                android:ellipsize="end"
+                android:gravity="center"
+                android:maxLines="1"
+                android:minWidth="0dp"
+                android:minHeight="0dp"
+                android:padding="0dp"
+                android:stateListAnimator="@null"
+                android:text="Sync"
+                android:textAllCaps="false"
+                android:textColor="@color/widget_on_surface_variant"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>

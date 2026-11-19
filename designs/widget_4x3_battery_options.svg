@@ -1,0 +1,174 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="690" viewBox="0 0 800 690" fill="none">
+  <title>BYD EV 4x3 Widget - Battery Section Redesign Options (Penpot / Figma Editable Vector)</title>
+
+  <!-- Artboard Canvas -->
+  <rect width="800" height="690" rx="24" fill="#0B100E" />
+  <text x="28" y="34" fill="#E1E8E3" font-family="Inter, Roboto, sans-serif" font-size="16" font-weight="700">4×3 Widget · Battery Section Redesign Options (with Approved 1-Row Location)</text>
+  <text x="28" y="54" fill="#87938C" font-family="Inter, Roboto, sans-serif" font-size="12">Open in Penpot / Figma / Inkscape — each option is grouped as an editable frame.</text>
+
+  <!-- ================= OPTION 1: Dual Metric Hero + Capsule Bar ================= -->
+  <g id="option-1-dual-hero" transform="translate(28, 72)">
+    <text x="0" y="14" fill="#6DDBAC" font-family="Inter, Roboto, sans-serif" font-size="12" font-weight="700">OPTION 1 · Balanced Dual Metric (App-Matched Capsule)</text>
+    <rect x="0" y="24" width="356" height="276" rx="22" fill="#171E1B" stroke="#28332E" />
+    <!-- Top bar -->
+    <text x="16" y="47" fill="#E1E8E3" font-family="Inter, Roboto, sans-serif" font-size="12" font-weight="700">Atto 1</text>
+    <rect x="234" y="33" width="52" height="20" rx="10" fill="#222B27" />
+    <text x="260" y="46.5" text-anchor="middle" fill="#B8C3BC" font-family="Inter, Roboto, sans-serif" font-size="10.5" font-weight="700">Locked</text>
+    <rect x="290" y="33" width="50" height="20" rx="10" fill="#222B27" />
+    <text x="315" y="46.5" text-anchor="middle" fill="#B8C3BC" font-family="Inter, Roboto, sans-serif" font-size="10.5" font-weight="700">AC Off</text>
+
+    <!-- Battery Card Opt 1 -->
+    <rect x="14" y="60" width="328" height="102" rx="16" fill="#202925" stroke="#2C3833" />
+    <text x="28" y="96" fill="#6DDBAC" font-family="Inter, Roboto, sans-serif" font-size="32" font-weight="800">46%</text>
+    <text x="328" y="79" text-anchor="end" fill="#87938C" font-family="Inter, Roboto, sans-serif" font-size="10.5" font-weight="600">EST. RANGE</text>
+    <text x="328" y="98" text-anchor="end" fill="#E1E8E3" font-family="Inter, Roboto, sans-serif" font-size="18" font-weight="700">138 km</text>
+    <rect x="28" y="109" width="300" height="10" rx="5" fill="#2F3B36" />
+    <rect x="28" y="109" width="138" height="10" rx="5" fill="#6DDBAC" />
+    <rect x="28" y="130" width="118" height="20" rx="10" fill="#29342F" />
+    <text x="87" y="143.5" text-anchor="middle" fill="#B8C3BC" font-family="Inter, Roboto, sans-serif" font-size="10.5" font-weight="600">24,111 km · Closed</text>
+    <text x="328" y="143.5" text-anchor="end" fill="#87938C" font-family="Inter, Roboto, sans-serif" font-size="10.5">Last sync 20:14</text>
+
+    <!-- 1-Row Location -->
+    <rect x="14" y="170" width="328" height="42" rx="14" fill="#202925" stroke="#2C3833" />
+    <rect x="23" y="177" width="28" height="28" rx="9" fill="#005138" />
+    <circle cx="37" cy="191" r="4.5" fill="#9FF2CE" />
+    <text x="61" y="195.5" fill="#E1E8E3" font-family="Inter, Roboto, sans-serif" font-size="12.5" font-weight="700">Jalan W. R. Supratman, Pes...</text>
+    <rect x="307" y="178" width="26" height="26" rx="8" fill="#2A3530" />
+    <path d="M318 186.5L322.5 191L318 195.5" stroke="#B8C3BC" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+
+    <!-- Action Tiles -->
+    <rect x="14" y="220" width="76" height="66" rx="16" fill="#9FF2CE" />
+    <text x="52" y="266" text-anchor="middle" fill="#002114" font-family="Inter, Roboto, sans-serif" font-size="11.5" font-weight="700">Lock</text>
+    <rect x="98" y="220" width="76" height="66" rx="16" fill="#CBE6FF" />
+    <text x="136" y="266" text-anchor="middle" fill="#001E30" font-family="Inter, Roboto, sans-serif" font-size="11.5" font-weight="700">Unlock</text>
+    <rect x="182" y="220" width="76" height="66" rx="16" fill="#233741" stroke="#314E5B" />
+    <text x="220" y="266" text-anchor="middle" fill="#C7E7FF" font-family="Inter, Roboto, sans-serif" font-size="11.5" font-weight="700">AC On</text>
+    <rect x="266" y="220" width="76" height="66" rx="16" fill="#222B27" stroke="#303B36" />
+    <text x="304" y="266" text-anchor="middle" fill="#C9D5CE" font-family="Inter, Roboto, sans-serif" font-size="11.5" font-weight="700">Sync</text>
+  </g>
+
+  <!-- ================= OPTION 2: Circular Ring Gauge + Range ================= -->
+  <g id="option-2-ring-gauge" transform="translate(416, 72)">
+    <text x="0" y="14" fill="#7ED0FF" font-family="Inter, Roboto, sans-serif" font-size="12" font-weight="700">OPTION 2 · Circular Ring Gauge + Right Metrics</text>
+    <rect x="0" y="24" width="356" height="276" rx="22" fill="#171E1B" stroke="#28332E" />
+    <!-- Top bar -->
+    <text x="16" y="47" fill="#E1E8E3" font-family="Inter, Roboto, sans-serif" font-size="12" font-weight="700">Atto 1</text>
+    <rect x="234" y="33" width="52" height="20" rx="10" fill="#222B27" />
+    <text x="260" y="46.5" text-anchor="middle" fill="#B8C3BC" font-family="Inter, Roboto, sans-serif" font-size="10.5" font-weight="700">Locked</text>
+    <rect x="290" y="33" width="50" height="20" rx="10" fill="#222B27" />
+    <text x="315" y="46.5" text-anchor="middle" fill="#B8C3BC" font-family="Inter, Roboto, sans-serif" font-size="10.5" font-weight="700">AC Off</text>
+
+    <!-- Battery Card Opt 2 -->
+    <rect x="14" y="60" width="328" height="102" rx="16" fill="#202925" stroke="#2C3833" />
+    <circle cx="66" cy="111" r="34" stroke="#2F3B36" stroke-width="8" />
+    <path d="M66 77 A34 34 0 0 1 74 144" stroke="#6DDBAC" stroke-width="8" stroke-linecap="round" />
+    <text x="66" y="116" text-anchor="middle" fill="#E1E8E3" font-family="Inter, Roboto, sans-serif" font-size="18" font-weight="800">46%</text>
+
+    <text x="116" y="84" fill="#87938C" font-family="Inter, Roboto, sans-serif" font-size="10.5" font-weight="600">ESTIMATED RANGE</text>
+    <text x="116" y="111" fill="#E1E8E3" font-family="Inter, Roboto, sans-serif" font-size="25" font-weight="800">138 km</text>
+    <text x="116" y="132" fill="#B8C3BC" font-family="Inter, Roboto, sans-serif" font-size="11" font-weight="600">Odo 24,111 km · All Closed</text>
+    <text x="116" y="149" fill="#87938C" font-family="Inter, Roboto, sans-serif" font-size="10.5">Last sync 20:14</text>
+
+    <!-- 1-Row Location -->
+    <rect x="14" y="170" width="328" height="42" rx="14" fill="#202925" stroke="#2C3833" />
+    <rect x="23" y="177" width="28" height="28" rx="9" fill="#005138" />
+    <circle cx="37" cy="191" r="4.5" fill="#9FF2CE" />
+    <text x="61" y="195.5" fill="#E1E8E3" font-family="Inter, Roboto, sans-serif" font-size="12.5" font-weight="700">Jalan W. R. Supratman, Pes...</text>
+    <rect x="307" y="178" width="26" height="26" rx="8" fill="#2A3530" />
+    <path d="M318 186.5L322.5 191L318 195.5" stroke="#B8C3BC" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+
+    <!-- Action Tiles -->
+    <rect x="14" y="220" width="76" height="66" rx="16" fill="#9FF2CE" />
+    <text x="52" y="266" text-anchor="middle" fill="#002114" font-family="Inter, Roboto, sans-serif" font-size="11.5" font-weight="700">Lock</text>
+    <rect x="98" y="220" width="76" height="66" rx="16" fill="#CBE6FF" />
+    <text x="136" y="266" text-anchor="middle" fill="#001E30" font-family="Inter, Roboto, sans-serif" font-size="11.5" font-weight="700">Unlock</text>
+    <rect x="182" y="220" width="76" height="66" rx="16" fill="#233741" stroke="#314E5B" />
+    <text x="220" y="266" text-anchor="middle" fill="#C7E7FF" font-family="Inter, Roboto, sans-serif" font-size="11.5" font-weight="700">AC On</text>
+    <rect x="266" y="220" width="76" height="66" rx="16" fill="#222B27" stroke="#303B36" />
+    <text x="304" y="266" text-anchor="middle" fill="#C9D5CE" font-family="Inter, Roboto, sans-serif" font-size="11.5" font-weight="700">Sync</text>
+  </g>
+
+  <!-- ================= OPTION 3: Split Bento KPI Tiles ================= -->
+  <g id="option-3-bento-tiles" transform="translate(28, 376)">
+    <text x="0" y="14" fill="#FFB95C" font-family="Inter, Roboto, sans-serif" font-size="12" font-weight="700">OPTION 3 · Side-by-Side Split KPI Tiles (Bento)</text>
+    <rect x="0" y="24" width="356" height="276" rx="22" fill="#171E1B" stroke="#28332E" />
+    <text x="16" y="47" fill="#E1E8E3" font-family="Inter, Roboto, sans-serif" font-size="12" font-weight="700">Atto 1</text>
+    <rect x="234" y="33" width="52" height="20" rx="10" fill="#222B27" />
+    <text x="260" y="46.5" text-anchor="middle" fill="#B8C3BC" font-family="Inter, Roboto, sans-serif" font-size="10.5" font-weight="700">Locked</text>
+    <rect x="290" y="33" width="50" height="20" rx="10" fill="#222B27" />
+    <text x="315" y="46.5" text-anchor="middle" fill="#B8C3BC" font-family="Inter, Roboto, sans-serif" font-size="10.5" font-weight="700">AC Off</text>
+
+    <!-- Left Tile: Battery SoC -->
+    <rect x="14" y="60" width="160" height="102" rx="16" fill="#1B3028" stroke="#2B4B3E" />
+    <text x="28" y="81" fill="#9FF2CE" font-family="Inter, Roboto, sans-serif" font-size="11" font-weight="700">BATTERY</text>
+    <text x="28" y="117" fill="#E1E8E3" font-family="Inter, Roboto, sans-serif" font-size="30" font-weight="800">46%</text>
+    <rect x="28" y="132" width="132" height="8" rx="4" fill="#264338" />
+    <rect x="28" y="132" width="61" height="8" rx="4" fill="#6DDBAC" />
+    <text x="28" y="153" fill="#9FF2CE" font-family="Inter, Roboto, sans-serif" font-size="10">All Closed</text>
+
+    <!-- Right Tile: Range & Sync -->
+    <rect x="182" y="60" width="160" height="102" rx="16" fill="#202925" stroke="#2C3833" />
+    <text x="196" y="81" fill="#87938C" font-family="Inter, Roboto, sans-serif" font-size="11" font-weight="700">RANGE</text>
+    <text x="196" y="115" fill="#E1E8E3" font-family="Inter, Roboto, sans-serif" font-size="24" font-weight="800">138 km</text>
+    <text x="196" y="137" fill="#B8C3BC" font-family="Inter, Roboto, sans-serif" font-size="10.5">Odo 24,111 km</text>
+    <text x="196" y="153" fill="#87938C" font-family="Inter, Roboto, sans-serif" font-size="10">Last sync 20:14</text>
+
+    <!-- 1-Row Location -->
+    <rect x="14" y="170" width="328" height="42" rx="14" fill="#202925" stroke="#2C3833" />
+    <rect x="23" y="177" width="28" height="28" rx="9" fill="#005138" />
+    <circle cx="37" cy="191" r="4.5" fill="#9FF2CE" />
+    <text x="61" y="195.5" fill="#E1E8E3" font-family="Inter, Roboto, sans-serif" font-size="12.5" font-weight="700">Jalan W. R. Supratman, Pes...</text>
+    <rect x="307" y="178" width="26" height="26" rx="8" fill="#2A3530" />
+    <path d="M318 186.5L322.5 191L318 195.5" stroke="#B8C3BC" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+
+    <!-- Action Tiles -->
+    <rect x="14" y="220" width="76" height="66" rx="16" fill="#9FF2CE" />
+    <text x="52" y="266" text-anchor="middle" fill="#002114" font-family="Inter, Roboto, sans-serif" font-size="11.5" font-weight="700">Lock</text>
+    <rect x="98" y="220" width="76" height="66" rx="16" fill="#CBE6FF" />
+    <text x="136" y="266" text-anchor="middle" fill="#001E30" font-family="Inter, Roboto, sans-serif" font-size="11.5" font-weight="700">Unlock</text>
+    <rect x="182" y="220" width="76" height="66" rx="16" fill="#233741" stroke="#314E5B" />
+    <text x="220" y="266" text-anchor="middle" fill="#C7E7FF" font-family="Inter, Roboto, sans-serif" font-size="11.5" font-weight="700">AC On</text>
+    <rect x="266" y="220" width="76" height="66" rx="16" fill="#222B27" stroke="#303B36" />
+    <text x="304" y="266" text-anchor="middle" fill="#C9D5CE" font-family="Inter, Roboto, sans-serif" font-size="11.5" font-weight="700">Sync</text>
+  </g>
+
+  <!-- ================= OPTION 4: Integrated Fuel-Gauge Fill Card ================= -->
+  <g id="option-4-fill-card" transform="translate(416, 376)">
+    <text x="0" y="14" fill="#B8C3BC" font-family="Inter, Roboto, sans-serif" font-size="12" font-weight="700">OPTION 4 · Full-Height EV Battery Tank Fill</text>
+    <rect x="0" y="24" width="356" height="276" rx="22" fill="#171E1B" stroke="#28332E" />
+    <text x="16" y="47" fill="#E1E8E3" font-family="Inter, Roboto, sans-serif" font-size="12" font-weight="700">Atto 1</text>
+    <rect x="234" y="33" width="52" height="20" rx="10" fill="#222B27" />
+    <text x="260" y="46.5" text-anchor="middle" fill="#B8C3BC" font-family="Inter, Roboto, sans-serif" font-size="10.5" font-weight="700">Locked</text>
+    <rect x="290" y="33" width="50" height="20" rx="10" fill="#222B27" />
+    <text x="315" y="46.5" text-anchor="middle" fill="#B8C3BC" font-family="Inter, Roboto, sans-serif" font-size="10.5" font-weight="700">AC Off</text>
+
+    <!-- Battery Tank Card -->
+    <rect x="14" y="60" width="328" height="102" rx="16" fill="#202925" stroke="#2C3833" />
+    <rect x="14" y="60" width="150" height="102" rx="16" fill="#005138" opacity="0.85" />
+    <text x="28" y="83" fill="#9FF2CE" font-family="Inter, Roboto, sans-serif" font-size="10.5" font-weight="700">CHARGE LEVEL</text>
+    <text x="28" y="119" fill="#FFFFFF" font-family="Inter, Roboto, sans-serif" font-size="34" font-weight="800">46%</text>
+    <text x="28" y="147" fill="#9FF2CE" font-family="Inter, Roboto, sans-serif" font-size="10.5" font-weight="600">24,111 km · Closed</text>
+
+    <text x="328" y="83" text-anchor="end" fill="#87938C" font-family="Inter, Roboto, sans-serif" font-size="10.5" font-weight="600">RANGE</text>
+    <text x="328" y="115" text-anchor="end" fill="#E1E8E3" font-family="Inter, Roboto, sans-serif" font-size="22" font-weight="800">138 km</text>
+    <text x="328" y="147" text-anchor="end" fill="#87938C" font-family="Inter, Roboto, sans-serif" font-size="10.5">Last sync 20:14</text>
+
+    <!-- 1-Row Location -->
+    <rect x="14" y="170" width="328" height="42" rx="14" fill="#202925" stroke="#2C3833" />
+    <rect x="23" y="177" width="28" height="28" rx="9" fill="#005138" />
+    <circle cx="37" cy="191" r="4.5" fill="#9FF2CE" />
+    <text x="61" y="195.5" fill="#E1E8E3" font-family="Inter, Roboto, sans-serif" font-size="12.5" font-weight="700">Jalan W. R. Supratman, Pes...</text>
+    <rect x="307" y="178" width="26" height="26" rx="8" fill="#2A3530" />
+    <path d="M318 186.5L322.5 191L318 195.5" stroke="#B8C3BC" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+
+    <!-- Action Tiles -->
+    <rect x="14" y="220" width="76" height="66" rx="16" fill="#9FF2CE" />
+    <text x="52" y="266" text-anchor="middle" fill="#002114" font-family="Inter, Roboto, sans-serif" font-size="11.5" font-weight="700">Lock</text>
+    <rect x="98" y="220" width="76" height="66" rx="16" fill="#CBE6FF" />
+    <text x="136" y="266" text-anchor="middle" fill="#001E30" font-family="Inter, Roboto, sans-serif" font-size="11.5" font-weight="700">Unlock</text>
+    <rect x="182" y="220" width="76" height="66" rx="16" fill="#233741" stroke="#314E5B" />
+    <text x="220" y="266" text-anchor="middle" fill="#C7E7FF" font-family="Inter, Roboto, sans-serif" font-size="11.5" font-weight="700">AC On</text>
+    <rect x="266" y="220" width="76" height="66" rx="16" fill="#222B27" stroke="#303B36" />
+    <text x="304" y="266" text-anchor="middle" fill="#C9D5CE" font-family="Inter, Roboto, sans-serif" font-size="11.5" font-weight="700">Sync</text>
+  </g>
+</svg>

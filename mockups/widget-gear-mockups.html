@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BYD Open Remote — widget car setting mockups</title>
+<style>
+  :root{
+    --bg:#0F1412; --card:#171D1A; --inner:#202724; --stroke:#2F3934;
+    --emerald:#6DDBAC; --text:#E1E8E3; --text2:#B8C3BC; --muted:#87938C;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;padding:28px 24px 60px;background:#080A09;color:var(--text);
+       font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  h1{font-size:22px;margin:0 0 6px}
+  h2{font-size:16px;margin:38px 0 4px;color:var(--emerald);letter-spacing:.04em;text-transform:uppercase}
+  .lede{color:var(--text2);font-size:13px;margin:0 0 8px;max-width:760px;line-height:1.5}
+  .row{display:flex;gap:22px;align-items:flex-start;flex-wrap:wrap;margin-top:14px}
+  .frame{width:300px}
+  .frame .cap{font-size:11px;color:var(--muted);margin-top:8px;text-align:center;line-height:1.45}
+  .device{width:300px;background:var(--bg);border:1px solid var(--stroke);border-radius:26px;
+          padding:12px;box-shadow:0 12px 30px rgba(0,0,0,.45);position:relative;overflow:hidden;min-height:520px}
+  .statusbar{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-bottom:8px}
+  .home{position:relative;min-height:500px;border-radius:18px;overflow:hidden;
+        background:radial-gradient(120% 80% at 70% 0%, #1B2B25 0%, #0E1512 55%, #0A0E0C 100%)}
+  .appicons{position:absolute;top:14px;left:14px;right:14px;display:grid;grid-template-columns:repeat(4,1fr);gap:14px;opacity:.5}
+  .appicons i{display:block;height:32px;border-radius:10px;background:#1C2622;border:1px solid #26312C}
+  .dock{position:absolute;bottom:10px;left:14px;right:14px;display:flex;justify-content:space-around;opacity:.7}
+  .dock i{width:32px;height:32px;border-radius:11px;background:#1C2622;border:1px solid #26312C}
+
+  .wgt{position:absolute;left:14px;right:14px;border-radius:20px;background:#141C18;border:1px solid #2E3B35;
+       padding:11px;box-shadow:0 8px 18px rgba(0,0,0,.4)}
+  .wgt .top{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+  .wgt .who{flex:1;display:flex;align-items:center;gap:5px;font-size:9px;font-weight:800;letter-spacing:.05em;color:var(--text2);min-width:0}
+  .wgt .who em{font-style:normal;color:var(--emerald)}
+  .wgt .who .vin{opacity:.55;font-weight:600}
+  .wgt .gear{width:18px;height:18px;color:#87938C;display:flex;align-items:center;justify-content:center;font-size:12px;flex:none}
+  .wgt .chips{display:flex;gap:4px;flex:none}
+  .wgt .chip{font-size:7.5px;border:1px solid #33423B;border-radius:999px;padding:2px 5px;color:var(--text2)}
+  .wgt .chip.on{color:var(--emerald);border-color:#2E5B4B}
+  .wgt .battery{display:flex;align-items:flex-end;justify-content:space-between}
+  .wgt .soc{font-size:28px;font-weight:800;color:var(--emerald);line-height:1}
+  .wgt .rng{font-size:9px;color:var(--text2);text-align:right}
+  .wgt .rng b{display:block;font-size:14px;color:var(--text)}
+  .wgt .bar{height:6px;border-radius:999px;background:#243029;margin:7px 0}
+  .wgt .bar i{display:block;height:100%;border-radius:999px;background:var(--emerald)}
+  .wgt .acts{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-top:8px}
+  .wgt .act{height:32px;border-radius:11px;border:1px solid #2E3B35;background:#18211D;display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--text2)}
+  .wgt .act.on{background:#1F3D33;color:#CDEFE1;border-color:#2E5B4B}
+
+  .dim{position:absolute;inset:0;background:rgba(0,0,0,.55);border-radius:26px;z-index:5}
+  .sheet{position:absolute;left:0;right:0;bottom:0;background:#1A211E;border-radius:22px 22px 0 0;
+         padding:12px 14px 16px;border-top:1px solid var(--stroke);z-index:6}
+  .grab{width:34px;height:4px;border-radius:999px;background:#3D4943;margin:0 auto 10px}
+  .sheet h3{margin:0;font-size:14px}
+  .sheet .sub{font-size:9.5px;color:var(--muted);margin:2px 0 10px;line-height:1.45}
+  .car{display:flex;align-items:center;gap:9px;padding:9px;border-radius:14px;border:1px solid var(--stroke);margin-bottom:7px}
+  .car.on{border-color:#2E5B4B;background:#17302A}
+  .car .ic{width:28px;height:28px;border-radius:9px;background:var(--inner);display:flex;align-items:center;justify-content:center;font-size:13px}
+  .car .main{flex:1;min-width:0}
+  .car .nm{font-size:11px;font-weight:800}
+  .car .mt{font-size:9px;color:var(--text2);margin-top:2px}
+  .radio{width:17px;height:17px;border-radius:50%;border:2px solid #6E7A73;flex:none}
+  .radio.on{border-color:var(--emerald);box-shadow:inset 0 0 0 4px #17302A, inset 0 0 0 9px var(--emerald)}
+  .note{max-width:800px;font-size:12.5px;color:var(--text2);line-height:1.6;margin-top:10px}
+  .note b{color:var(--text)}
+</style>
+</head>
+<body>
+<h1>Widget car setting — mockups</h1>
+<p class="lede">A tiny gear in the widget header, shown only when the account has more than one car. It opens a picker; the widget then shows and controls only that car.</p>
+
+<div id="out"></div>
+
+<script>
+function statusbar(){return `<div class="statusbar"><span>11:02</span><span>Wi-Fi ▲ 🔋</span></div>`;}
+
+function widget(opts){
+  const o = Object.assign({name:"ATTO 1", vin:"••••0001", pct:78, rng:268, gear:true, acOn:true, top:140}, opts);
+  return `
+  <div class="wgt" style="top:${o.top}px;${o.dim?"opacity:.35":""}">
+    <div class="top">
+      <div class="who">🚗 <em>${o.name}</em> <span class="vin">${o.vin}</span></div>
+      <div class="chips">
+        <span class="chip">Locked</span>
+        <span class="chip ${o.acOn?"on":""}">${o.acOn?"AC On":"AC Off"}</span>
+      </div>
+      ${o.gear ? `<div class="gear">⚙</div>` : ``}
+    </div>
+    <div class="battery"><div class="soc">${o.pct}%</div><div class="rng">Range<b>${o.rng} km</b></div></div>
+    <div class="bar"><i style="width:${o.pct}%"></i></div>
+    <div style="display:flex;justify-content:space-between;font-size:8px;color:#87938C">
+      <span>${o.acOn?"Charging 7.2 kW":"Idle"}</span><span>Sync 11:01</span>
+    </div>
+    <div class="acts">
+      <div class="act on">🔒 Lock</div><div class="act">🔓 Unlock</div>
+      <div class="act ${o.acOn?"on":""}">❄ AC</div><div class="act">⟳ Sync</div>
+    </div>
+  </div>`;
+}
+
+const home = (inner) => `<div class="home"><div class="appicons">${"<i></i>".repeat(8)}</div>${inner}<div class="dock">${"<i></i>".repeat(4)}</div></div>`;
+
+function phone(inner, cap){return `<div class="frame"><div class="device">${statusbar()}${inner}</div><div class="cap">${cap}</div></div>`;}
+
+const s1 = home(`
+  ${widget({name:"ATTO 1", pct:78, rng:268, gear:false, top:120})}
+  <div style="position:absolute;top:300px;left:14px;right:14px;font-size:9px;color:#87938C">single-car account — no gear</div>
+`);
+
+const s2 = home(`
+  ${widget({name:"ATTO 1", pct:78, rng:268, gear:true, top:120})}
+  <div style="position:absolute;top:300px;left:14px;right:14px;font-size:9px;color:#87938C">multi-car account — gear appears top-right</div>
+`);
+
+const s3 = home(widget({gear:true, dim:true, top:120})) + `
+  <div class="dim"></div>
+  <div class="sheet">
+    <div class="grab"></div>
+    <h3>Which car is this widget for?</h3>
+    <div class="sub">This widget will show and control only the selected car. Add a second widget for the other one.</div>
+
+    <div class="car on">
+      <div class="ic">🔁</div>
+      <div class="main"><div class="nm">Follow active car <span style="font-weight:600;font-size:8px;color:#6DDBAC">DEFAULT</span></div><div class="mt">Switch cars with the app</div></div>
+      <span class="radio on"></span>
+    </div>
+    <div class="car">
+      <div class="ic">🚗</div>
+      <div class="main"><div class="nm">ATTO 1</div><div class="mt">••••0001 · 78% · 268 km</div></div>
+      <span class="radio"></span>
+    </div>
+    <div class="car">
+      <div class="ic">🚙</div>
+      <div class="main"><div class="nm">SEAL</div><div class="mt">••••0002 · 64% · 352 km</div></div>
+      <span class="radio"></span>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:9px">
+      <div style="flex:1;height:34px;border-radius:12px;border:1px solid #2F3934;display:flex;align-items:center;justify-content:center;font-size:11px;color:#B8C3BC">Cancel</div>
+    </div>
+  </div>`;
+
+const s4 = home(`
+  ${widget({name:"ATTO 1", vin:"••••0001", pct:78, rng:268, gear:true, top:80})}
+  ${widget({name:"SEAL", vin:"••••0002", pct:64, rng:352, gear:true, acOn:false, top:330})}
+`);
+
+const sections = [
+  ["opt1","1 · No gear on a single-car account",
+   "Unchanged for most users: one car means there is nothing to choose.",
+   [phone(s1,"Single-car widget")]],
+  ["opt2","2 · Gear appears only with 2+ cars",
+   "Small, muted, top-right of the widget header; tappable without stealing the whole header (header tap still opens the app).",
+   [phone(s2,"Multi-car widget")]],
+  ["opt3","3 · Tapping the gear opens the picker",
+   "Follow active car stays the default. Picking a car pins this widget to that VIN immediately; no Save button.",
+   [phone(s3,"Widget car picker")]],
+  ["opt4","4 · Two widgets, two cars",
+   "Each keeps its own charge, range and lock state, and its buttons act on its own VIN. The gear stays available to rebind.",
+   [phone(s4,"Home screen with both widgets")]],
+];
+
+document.getElementById("out").innerHTML = sections.map(([id,t,d,frames])=>`
+  <section class="opt" id="${id}">
+    <h2>${t}</h2>
+    <p class="lede">${d}</p>
+    <div class="row">${frames.join("")}</div>
+  </section>`).join("");
+
+const only = new URLSearchParams(location.search).get("only") || "";
+if (only) {
+  document.querySelectorAll(".opt").forEach(el => { if (el.id !== only) el.style.display = "none"; });
+}
+</script>
+</body>
+</html>

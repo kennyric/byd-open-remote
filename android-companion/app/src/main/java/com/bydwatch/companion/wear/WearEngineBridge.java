@@ -45,6 +45,10 @@ public class WearEngineBridge {
     private volatile ConnectionState connectionState = ConnectionState.DISCONNECTED;
     private volatile boolean isRunning = false;
 
+    public BydRepository getRepository() {
+        return repository;
+    }
+
     public WearEngineBridge(BydRepository repository, PeerTransport transport) {
         if (repository == null) {
             throw new IllegalArgumentException("BydRepository cannot be null");

@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Controls — swipeable vehicle card</title>
+<style>
+  :root{--bg:#0F1412;--card:#171D1A;--inner:#202724;--stroke:#2F3934;--emerald:#6DDBAC;--cyan:#7ED0FF;--text:#E1E8E3;--text2:#B8C3BC;--muted:#87938C}
+  *{box-sizing:border-box}
+  body{margin:0;padding:26px 22px 56px;background:#080A09;color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  h1{font-size:21px;margin:0 0 6px}
+  h2{font-size:14px;margin:34px 0 2px;color:var(--emerald);letter-spacing:.05em;text-transform:uppercase}
+  .lede{color:var(--text2);font-size:12.5px;margin:0 0 6px;max-width:840px;line-height:1.55}
+  .grid{display:flex;gap:20px;flex-wrap:wrap;margin-top:14px}
+  .phone{width:300px;background:var(--bg);border:1px solid var(--stroke);border-radius:24px;padding:11px;box-shadow:0 12px 28px rgba(0,0,0,.45)}
+  .cap{font-size:11px;color:var(--muted);margin-top:7px;line-height:1.5}
+  .cap b{color:var(--text2)}
+  .status{display:flex;justify-content:space-between;font-size:9px;color:var(--muted);margin-bottom:6px}
+  .appbar{display:flex;align-items:center;gap:9px;margin-bottom:10px}
+  .circle{width:30px;height:30px;border-radius:999px;background:var(--inner);display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--text2)}
+  .apps .t{font-size:14px;font-weight:800}
+  .apps .s{font-size:9.5px;color:var(--text2);margin-top:1px}
+
+  /* carousel */
+  .viewport{overflow:hidden;border-radius:18px;position:relative}
+  .strip{display:flex;gap:10px;transition:none}
+  .vcard{flex:0 0 252px;border:1px solid #2E5B4B;background:#17231F;border-radius:18px;padding:12px}
+  .vcard.off{border-color:var(--stroke);background:#141B18}
+  .vtop{display:flex;align-items:center;gap:9px}
+  .vic{width:34px;height:34px;border-radius:11px;background:#1E3B31;display:flex;align-items:center;justify-content:center;font-size:15px;flex:none}
+  .vmain{flex:1;min-width:0}
+  .vname{font-size:14px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .vmeta{font-size:9px;color:var(--muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pill{display:inline-flex;align-items:center;gap:3px;border:1px solid #2E5B4B;background:#17302A;border-radius:999px;padding:4px 9px;font-size:9px;font-weight:800;color:var(--emerald);white-space:nowrap;flex:none}
+  .bar{height:7px;border-radius:99px;background:#26302B;margin:9px 0 6px;overflow:hidden}
+  .bar i{display:block;height:100%;border-radius:99px;background:var(--emerald)}
+  .bar.neutral i{background:#5F6F67}
+  .vfoot{display:flex;justify-content:space-between;font-size:9px;color:var(--text2)}
+  .vfoot b{color:var(--emerald)}
+  .vcard.off .vfoot b{color:var(--text2)}
+
+  .dots{display:flex;gap:5px;justify-content:center;margin-top:8px}
+  .dot{width:5px;height:5px;border-radius:99px;background:#3A463F}
+  .dot.on{width:14px;background:var(--emerald)}
+
+  .hint{font-size:9px;color:var(--muted);text-align:center;margin-top:6px}
+  .card{border:1px solid var(--stroke);border-radius:18px;padding:11px;margin-top:10px}
+  .cardhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px}
+  .cardhead b{font-size:12.5px}
+  .edit{border:1px solid var(--stroke);border-radius:999px;padding:3px 9px;font-size:8.5px;color:var(--text2)}
+  .time{font-size:8.5px;color:var(--muted);background:var(--inner);border-radius:999px;padding:3px 7px}
+  .stats{display:flex;justify-content:space-between;background:var(--inner);border-radius:13px;padding:8px 10px;margin-bottom:8px}
+  .stat .k{font-size:7.5px;color:var(--muted)}
+  .stat .v{font-size:11px;font-weight:700;margin-top:1px}
+  .stat .v.g{color:var(--emerald)} .stat .v.c{color:var(--cyan)}
+  .btnrow{display:flex;gap:5px;margin-bottom:7px}
+  .btn{flex:1;height:32px;border-radius:11px;border:1px solid var(--stroke);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;gap:4px;color:var(--text2)}
+  .btn.solid{background:#2F4B44;color:#CFEDE1}.btn.pink{background:#2A1F2E;color:#F2C7E4}
+  .note{max-width:840px;font-size:12px;color:var(--muted);margin-top:12px;line-height:1.6}
+  .note b{color:var(--text2)}
+</style>
+</head>
+<body>
+<h1>Swipeable vehicle card — Controls page</h1>
+<p class="lede">Option 1 with a horizontal carousel: the vehicle card swipes left/right to switch cars. The neighbouring card peeks at the edge, so the gesture is visible before you try it; dots confirm position.</p>
+
+<h2>State A · one car focused, next card peeking</h2>
+<div class="grid">
+  <div>
+    <div class="phone">
+      <div class="status"><span>13:40</span><span>Wi-Fi ▲ 🔋</span></div>
+      <div class="appbar"><div class="circle">☰</div><div class="apps"><div class="t">BYD Open Remote</div><div class="s">Controls</div></div></div>
+
+      <div class="viewport">
+        <div class="strip" style="width:514px">
+          <div class="vcard">
+            <div class="vtop">
+              <div class="vic">🚗</div>
+              <div class="vmain"><div class="vname">BYD Atto 1</div><div class="vmeta">Indonesia · ••••0001</div></div>
+              <span class="pill">Switch ▾</span>
+            </div>
+            <div class="bar"><i style="width:78%"></i></div>
+            <div class="vfoot"><span><b>78%</b> · 268 km</span><span>⚡ 7.2 kW</span></div>
+          </div>
+          <div class="vcard off">
+            <div class="vtop">
+              <div class="vic">🚙</div>
+              <div class="vmain"><div class="vname">BYD Seal</div><div class="vmeta">Indonesia · ••••0002</div></div>
+            </div>
+            <div class="bar neutral"><i style="width:64%"></i></div>
+            <div class="vfoot"><span><b>64%</b> · 352 km</span><span>Idle</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="dots"><span class="dot on"></span><span class="dot"></span></div>
+      <div class="hint">← swipe to switch →</div>
+
+      <div class="card">
+        <div class="cardhead"><b>Controls</b><span class="edit">⚙ Edit</span><span class="time">13:39</span></div>
+        <div class="stats">
+          <div class="stat"><div class="k">Doors</div><div class="v g">Locked</div></div>
+          <div class="stat"><div class="k">Cabin</div><div class="v">23°C</div></div>
+          <div class="stat"><div class="k">AC</div><div class="v c">On</div></div>
+        </div>
+        <div class="btnrow"><div class="btn">⟳ Refresh</div><div class="btn solid">🔒 Lock</div><div class="btn pink">🔓 Unlock</div></div>
+      </div>
+    </div>
+    <div class="cap"><b>Peek + dots</b> make the swipe discoverable without arrows. The Switch pill stays for people who prefer tapping.</div>
+  </div>
+</div>
+
+<h2>State B · mid-swipe</h2>
+<div class="grid">
+  <div>
+    <div class="phone">
+      <div class="status"><span>13:40</span><span>Wi-Fi ▲ 🔋</span></div>
+      <div class="appbar"><div class="circle">☰</div><div class="apps"><div class="t">BYD Open Remote</div><div class="s">Controls</div></div></div>
+
+      <div class="viewport">
+        <div class="strip" style="width:514px;margin-left:-90px">
+          <div class="vcard" style="opacity:.7">
+            <div class="vtop">
+              <div class="vic">🚗</div>
+              <div class="vmain"><div class="vname">BYD Atto 1</div><div class="vmeta">••••0001</div></div>
+            </div>
+            <div class="bar"><i style="width:78%"></i></div>
+            <div class="vfoot"><span><b>78%</b> · 268 km</span></div>
+          </div>
+          <div class="vcard">
+            <div class="vtop">
+              <div class="vic">🚙</div>
+              <div class="vmain"><div class="vname">BYD Seal</div><div class="vmeta">••••0002</div></div>
+            </div>
+            <div class="bar"><i style="width:64%"></i></div>
+            <div class="vfoot"><span><b>64%</b> · 352 km</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="dots"><span class="dot"></span><span class="dot on"></span></div>
+
+      <div class="card" style="opacity:.6">
+        <div class="cardhead"><b>Controls</b><span class="edit">⚙ Edit</span><span class="time">13:39</span></div>
+        <div class="stats">
+          <div class="stat"><div class="k">Doors</div><div class="v g">Locked</div></div>
+          <div class="stat"><div class="k">Cabin</div><div class="v">24°C</div></div>
+          <div class="stat"><div class="k">AC</div><div class="v">Off</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="cap"><b>Snap threshold</b> ~30% of card width or a fling; otherwise it springs back. Wrap-around at the ends.</div>
+  </div>
+</div>
+
+<h2>State C · settled on the second car</h2>
+<div class="grid">
+  <div>
+    <div class="phone">
+      <div class="status"><span>13:40</span><span>Wi-Fi ▲ 🔋</span></div>
+      <div class="appbar"><div class="circle">☰</div><div class="apps"><div class="t">BYD Open Remote</div><div class="s">Controls</div></div></div>
+
+      <div class="viewport">
+        <div class="strip" style="width:514px;margin-left:-262px">
+          <div class="vcard off">
+            <div class="vtop">
+              <div class="vic">🚗</div>
+              <div class="vmain"><div class="vname">BYD Atto 1</div><div class="vmeta">••••0001</div></div>
+            </div>
+            <div class="bar neutral"><i style="width:78%"></i></div>
+            <div class="vfoot"><span><b>78%</b> · 268 km</span></div>
+          </div>
+          <div class="vcard">
+            <div class="vtop">
+              <div class="vic">🚙</div>
+              <div class="vmain"><div class="vname">BYD Seal</div><div class="vmeta">Indonesia · ••••0002</div></div>
+              <span class="pill">Switch ▾</span>
+            </div>
+            <div class="bar"><i style="width:64%"></i></div>
+            <div class="vfoot"><span><b>64%</b> · 352 km</span><span>Idle</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="dots"><span class="dot"></span><span class="dot on"></span></div>
+
+      <div class="card">
+        <div class="cardhead"><b>Controls</b><span class="edit">⚙ Edit</span><span class="time">13:40</span></div>
+        <div class="stats">
+          <div class="stat"><div class="k">Doors</div><div class="v g">Locked</div></div>
+          <div class="stat"><div class="k">Cabin</div><div class="v">24°C</div></div>
+          <div class="stat"><div class="k">AC</div><div class="v">Off</div></div>
+        </div>
+        <div class="btnrow"><div class="btn">⟳ Refresh</div><div class="btn solid">🔒 Lock</div><div class="btn pink">🔓 Unlock</div></div>
+      </div>
+    </div>
+    <div class="cap"><b>Switch happens on settle</b>, so the header, telemetry, widgets and garage card all follow the new car.</div>
+  </div>
+</div>
+
+<p class="note">
+  <b>Behaviour details.</b> Vertical scrolling still wins: the card only captures clearly horizontal drags. One car → no peek, no dots, no hint (card fills the width). The <b>Switch ▾</b> pill stays as the explicit alternative, and tapping the card (no drag) opens the full garage sheet. Swipe is disabled while a command is in flight.
+</p>
+</body>
+</html>

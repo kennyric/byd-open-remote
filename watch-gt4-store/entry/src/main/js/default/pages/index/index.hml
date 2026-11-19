@@ -1,0 +1,270 @@
+<stack class="root">
+  <!-- Main 7-page horizontal swipe pager (Copyright-free Store Edition) -->
+  <swiper
+    id="mainSwiper"
+    class="main-swiper"
+    index="0"
+    loop="false"
+    vertical="false"
+    onchange="onSwiperChange"
+    onswipe="onMainSwipe"
+    ontouchstart="onMainTouchStart"
+    ontouchend="onMainTouchEnd">
+
+    <!-- Page 1: Hero Telemetry & Lock/Unlock (Original Geometric EV Emblem) -->
+    <div class="page-item">
+      <stack class="hero-stack">
+        <progress
+          type="arc"
+          percent="{{socPercent}}"
+          class="soc-arc"
+          style="color: {{socArcColor}};">
+        </progress>
+
+        <div class="hero-center">
+          <div class="brand-row">
+            <image src="/common/icons/ev_emblem.png" class="brand-emblem"></image>
+            <text class="brand-title">{{modelTitle}}</text>
+          </div>
+
+          <div class="status-row">
+            <image src="{{lockStatusIcon}}" class="status-lock-icon"></image>
+            <text class="status-lock-text" style="color: {{lockTextColor}};">{{lockText}}</text>
+            <text if="{{hasCabinTemp}}" class="status-sep"> · </text>
+            <text if="{{hasCabinTemp}}" class="status-temp-text">{{cabinTempText}}</text>
+          </div>
+
+          <text class="soc-value">{{socText}}</text>
+          <text class="range-text">{{rangeText}}</text>
+
+          <div
+            class="hero-btn"
+            style="background-color: {{primaryBtnBg}};"
+            onclick="onPrimaryLockTap">
+            <image src="{{primaryBtnIcon}}" class="hero-btn-icon"></image>
+            <text class="hero-btn-text" style="color: {{primaryBtnColor}};">{{primaryBtnText}}</text>
+          </div>
+        </div>
+      </stack>
+    </div>
+
+    <!-- Page 2: 2x2 Diamond Quick Controls -->
+    <div class="page-item">
+      <stack class="diamond-stage">
+        <div
+          class="circle-btn circle-top"
+          style="background-color: {{acCircleBg}}; border-color: {{acCircleBorder}};"
+          onclick="onAcToggleTap">
+          <image src="/common/icons/ac_cool.png" class="circle-icon"></image>
+          <text class="circle-label" style="color: {{acCircleTextColor}};">{{acCircleLabel}}</text>
+        </div>
+
+        <div class="circle-btn circle-left" onclick="onLightsTap">
+          <image src="/common/icons/lights.png" class="circle-icon"></image>
+          <text class="circle-label">Lights</text>
+        </div>
+
+        <div class="diamond-hub" style="background-color: {{hubBg}};"></div>
+
+        <div class="circle-btn circle-right" onclick="onHornTap">
+          <image src="/common/icons/horn.png" class="circle-icon"></image>
+          <text class="circle-label">Horn</text>
+        </div>
+
+        <div class="circle-btn circle-bottom" onclick="onSyncTap">
+          <image src="/common/icons/refresh.png" class="circle-icon"></image>
+          <text class="circle-label">Sync</text>
+        </div>
+      </stack>
+    </div>
+
+    <!-- Page 3: Climate Temp Stepper & Bridge Info -->
+    <div class="page-item">
+      <div class="climate-page">
+        <text class="section-title">CLIMATE &amp; LINK</text>
+
+        <div class="ac-pill" style="background-color: {{acPillBg}};" onclick="onAcToggleTap">
+          <image src="/common/icons/ac_cool.png" class="btn-icon-sm"></image>
+          <text class="ac-pill-text" style="color: {{acPillTextColor}};">{{acPillLabel}}</text>
+        </div>
+
+        <div class="temp-stepper">
+          <div class="step-btn" onclick="onTempMinusTap">
+            <text class="step-btn-text">−</text>
+          </div>
+          <text class="temp-target-text">{{targetTempText}}</text>
+          <div class="step-btn" onclick="onTempPlusTap">
+            <text class="step-btn-text">+</text>
+          </div>
+        </div>
+
+        <div class="timer-pill" onclick="onAcDurationTap">
+          <text class="timer-pill-text">{{acDurationLabel}}</text>
+        </div>
+
+        <div class="link-card">
+          <text class="link-status" style="color: {{phoneLinkColor}};">{{phoneLinkText}}</text>
+          <text class="link-sync">{{lastSyncText}}</text>
+        </div>
+
+        <div class="sync-pill" onclick="onSyncTap">
+          <image src="/common/icons/refresh.png" class="btn-icon-sm"></image>
+          <text class="sync-pill-text">Refresh Now</text>
+        </div>
+      </div>
+    </div>
+
+    <!-- Page 4: Comfort Diamond -->
+    <div class="page-item">
+      <stack class="diamond-stage">
+        <div class="circle-btn circle-top" onclick="onVentWindowsTap">
+          <image src="/common/icons/win_vent.png" class="circle-icon"></image>
+          <text class="circle-label">Vent Win</text>
+        </div>
+
+        <div class="circle-btn circle-left" onclick="onCloseWindowsTap">
+          <image src="/common/icons/win_close.png" class="circle-icon"></image>
+          <text class="circle-label">Close Win</text>
+        </div>
+
+        <div class="diamond-hub" style="background-color: {{hubBg}};"></div>
+
+        <div
+          class="circle-btn circle-right"
+          style="background-color: {{batHeatBg}}; border-color: {{batHeatBorder}};"
+          onclick="onBatHeatTap">
+          <image src="/common/icons/bat_heat.png" class="circle-icon"></image>
+          <text class="circle-label" style="color: {{batHeatTextColor}};">{{batHeatLabel}}</text>
+        </div>
+
+        <div
+          class="circle-btn circle-bottom"
+          style="background-color: {{seatHeatBg}}; border-color: {{seatHeatBorder}};"
+          onclick="onSeatHeatTap">
+          <image src="/common/icons/seat_heat.png" class="circle-icon"></image>
+          <text class="circle-label" style="color: {{seatHeatTextColor}};">{{seatHeatLabel}}</text>
+        </div>
+      </stack>
+    </div>
+
+    <!-- Page 5: Vehicle Health & 4-Corner TPMS -->
+    <div class="page-item">
+      <div class="health-page">
+        <text class="section-title">VEHICLE HEALTH</text>
+
+        <div class="health-pill" style="background-color: {{healthSummaryBg}}; border-color: {{healthSummaryBorder}};">
+          <text class="health-pill-text" style="color: {{healthSummaryColor}};">{{healthSummaryText}}</text>
+        </div>
+
+        <div class="tpms-row">
+          <div class="tpms-box">
+            <text class="tpms-corner">LF</text>
+            <text class="tpms-val">{{tpmsLfText}}</text>
+          </div>
+          <div class="tpms-box">
+            <text class="tpms-corner">RF</text>
+            <text class="tpms-val">{{tpmsRfText}}</text>
+          </div>
+        </div>
+
+        <div class="tpms-row">
+          <div class="tpms-box">
+            <text class="tpms-corner">LR</text>
+            <text class="tpms-val">{{tpmsLrText}}</text>
+          </div>
+          <div class="tpms-box">
+            <text class="tpms-corner">RR</text>
+            <text class="tpms-val">{{tpmsRrText}}</text>
+          </div>
+        </div>
+
+        <text class="health-footer">{{healthFooterText}}</text>
+      </div>
+    </div>
+
+    <!-- Page 6: My Garage (Multi-Car Switcher) -->
+    <div class="page-item">
+      <div class="garage-page">
+        <text class="section-title">MY GARAGE</text>
+
+        <div if="{{car0Visible}}" class="garage-card" style="background-color: {{car0Bg}}; border-color: {{car0Border}};" onclick="onSelectCar0">
+          <div class="garage-card-info">
+            <text class="garage-name">{{car0Name}}</text>
+            <text class="garage-sub">{{car0Sub}}</text>
+          </div>
+          <text class="garage-tag">{{car0Tag}}</text>
+        </div>
+
+        <div if="{{car1Visible}}" class="garage-card" style="background-color: {{car1Bg}}; border-color: {{car1Border}};" onclick="onSelectCar1">
+          <div class="garage-card-info">
+            <text class="garage-name">{{car1Name}}</text>
+            <text class="garage-sub">{{car1Sub}}</text>
+          </div>
+          <text class="garage-tag">{{car1Tag}}</text>
+        </div>
+
+        <div if="{{car2Visible}}" class="garage-card" style="background-color: {{car2Bg}}; border-color: {{car2Border}};" onclick="onSelectCar2">
+          <div class="garage-card-info">
+            <text class="garage-name">{{car2Name}}</text>
+            <text class="garage-sub">{{car2Sub}}</text>
+          </div>
+          <text class="garage-tag">{{car2Tag}}</text>
+        </div>
+
+        <text if="{{!hasMultipleCars}}" class="garage-hint">Fetch cars on phone to switch</text>
+      </div>
+    </div>
+
+    <!-- Page 7: Companion APK Setup QR Code & Legal Review -->
+    <div class="page-item">
+      <div class="qr-page">
+        <text class="qr-title">COMPANION APK</text>
+        <div class="qr-card">
+          <image src="/common/icons/qr_apk.png" class="qr-img"></image>
+        </div>
+        <text class="qr-url">{{companionUrlText}}</text>
+        <div class="qr-info-pill" onclick="openDisclaimer">
+          <text class="qr-info-text">Disclaimer &amp; Notice</text>
+        </div>
+      </div>
+    </div>
+  </swiper>
+
+  <!-- First-Launch Unofficial Third-Party Safety & Legal Disclaimer Gate -->
+  <div if="{{showDisclaimer}}" class="disclaimer-backdrop">
+    <div class="disclaimer-wrap">
+      <image src="/common/icons/ev_emblem.png" class="disclaimer-emblem"></image>
+      <text class="disclaimer-header">EV WATCH LINK</text>
+      <div class="disclaimer-card">
+        <text class="disclaimer-warn">Unofficial 3rd-Party App</text>
+        <text class="disclaimer-body">Not affiliated with any automaker. Commands run at your own risk. Check surroundings first.</text>
+      </div>
+      <div class="disclaimer-btn" onclick="acceptDisclaimer">
+        <text class="disclaimer-btn-text">I Agree &amp; Continue</text>
+      </div>
+    </div>
+  </div>
+
+  <!-- Unlock 2-Tap Confirmation Overlay -->
+  <div if="{{confirmUnlock}}" class="modal-backdrop">
+    <div class="modal-card">
+      <image src="/common/icons/unlock.png" class="modal-icon"></image>
+      <text class="modal-title">{{confirmTitle}}</text>
+      <div class="modal-actions">
+        <div class="modal-btn modal-cancel" onclick="cancelUnlockAction">
+          <text class="modal-btn-text">Cancel</text>
+        </div>
+        <div class="modal-btn modal-confirm" onclick="confirmUnlockAction">
+          <text class="modal-confirm-text">Unlock</text>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pending / Action Feedback Pill Banner -->
+  <div if="{{showBanner}}" class="banner-overlay">
+    <div class="banner-pill" style="background-color: {{bannerBg}}; border-color: {{bannerBorder}};">
+      <text class="banner-text">{{bannerText}}</text>
+    </div>
+  </div>
+</stack>

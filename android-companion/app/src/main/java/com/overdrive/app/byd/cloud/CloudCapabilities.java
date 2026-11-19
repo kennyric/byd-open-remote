@@ -34,22 +34,27 @@ public final class CloudCapabilities {
         SEAT_DRIVER,
         SEAT_PASSENGER,
         SEAT_STEERING_WHEEL,
-        SMART_CHARGING
+        SMART_CHARGING,
+        ELECTRIC_CLIMATE
     }
 
     private final String vin;
     private final Set<String> functionNos;
     private final Map<String, Integer> learnInfo;
     private final boolean learnInfoKnown;
+    private final int airType;
+    private final int airTempRangeCode;
     private final long fetchedAtMs;
 
     private CloudCapabilities(String vin, Set<String> functionNos,
                               Map<String, Integer> learnInfo, boolean learnInfoKnown,
-                              long fetchedAtMs) {
+                              int airType, int airTempRangeCode, long fetchedAtMs) {
         this.vin = vin != null ? vin : "";
         this.functionNos = Collections.unmodifiableSet(new HashSet<>(functionNos));
         this.learnInfo = Collections.unmodifiableMap(new HashMap<>(learnInfo));
         this.learnInfoKnown = learnInfoKnown;
+        this.airType = airType;
+        this.airTempRangeCode = airTempRangeCode;
         this.fetchedAtMs = fetchedAtMs;
     }
 
@@ -76,7 +81,9 @@ public final class CloudCapabilities {
             case FLASH_LIGHTS:
                 return hasFunction("1008");
             case CLIMATE:
-                return hasAnyFunction("1001", "10300001", "1015");
+                return hasAnyFunction("1001", "10300001", "1015") || airType == 1;
+            case ELECTRIC_CLIMATE:
+                return isElectricAc();
             case WINDOWS_CLOSE:
                 return hasFunction("1026");
             case WINDOWS_OPEN_VENT:
@@ -110,6 +117,22 @@ public final class CloudCapabilities {
             default:
                 return true;
         }
+    }
+
+    public int getAirType() {
+        return airType;
+    }
+
+    public int getAirTempRangeCode() {
+        return airTempRangeCode;
+    }
+
+    /**
+     * Returns true when this vehicle uses manual/electric AC (EleAir, no thermostat)
+     * rather than automatic Celsius climate control.
+     */
+    public boolean isElectricAc() {
+        return airType == 1 || (hasFunction("1015") && !hasAnyFunction("1001", "10300001"));
     }
 
     public boolean hasFunction(String functionNo) {
@@ -151,9 +174,24 @@ public final class CloudCapabilities {
         Set<String> functionNos = new HashSet<>();
         collectFunctionNos(latestConfig, functionNos);
 
+        int airType = -1;
+        int airTempRangeCode = -1;
+        Integer cfgAirType = findIntRecursive(latestConfig, "airType");
+        if (cfgAirType != null) airType = cfgAirType.intValue();
+        Integer cfgRange = findIntRecursive(latestConfig, "airTempRangeCode");
+        if (cfgRange != null) airTempRangeCode = cfgRange.intValue();
+
         Map<String, Integer> learnInfo = new HashMap<>();
         boolean learnInfoKnown = false;
         if (vehicleRecord != null) {
+            if (airType < 0) {
+                Integer recAirType = findIntRecursive(vehicleRecord, "airType");
+                if (recAirType != null) airType = recAirType.intValue();
+            }
+            if (airTempRangeCode < 0) {
+                Integer recRange = findIntRecursive(vehicleRecord, "airTempRangeCode");
+                if (recRange != null) airTempRangeCode = recRange.intValue();
+            }
             JSONObject source = vehicleRecord.optJSONObject("vehicleFunLearnInfo");
             if (source != null) {
                 learnInfoKnown = true;
@@ -166,7 +204,30 @@ public final class CloudCapabilities {
                 }
             }
         }
-        return new CloudCapabilities(vin, functionNos, learnInfo, learnInfoKnown, fetchedAtMs);
+        return new CloudCapabilities(vin, functionNos, learnInfo, learnInfoKnown,
+                airType, airTempRangeCode, fetchedAtMs);
+    }
+
+    private static Integer findIntRecursive(Object node, String targetKey) {
+        if (node instanceof JSONObject) {
+            JSONObject obj = (JSONObject) node;
+            if (obj.has(targetKey) && !obj.isNull(targetKey)) {
+                Integer direct = parseInt(obj.opt(targetKey));
+                if (direct != null) return direct;
+            }
+            Iterator<String> keys = obj.keys();
+            while (keys.hasNext()) {
+                Integer nested = findIntRecursive(obj.opt(keys.next()), targetKey);
+                if (nested != null) return nested;
+            }
+        } else if (node instanceof JSONArray) {
+            JSONArray array = (JSONArray) node;
+            for (int i = 0; i < array.length(); i++) {
+                Integer nested = findIntRecursive(array.opt(i), targetKey);
+                if (nested != null) return nested;
+            }
+        }
+        return null;
     }
 
     private static void collectFunctionNos(Object node, Set<String> destination) {

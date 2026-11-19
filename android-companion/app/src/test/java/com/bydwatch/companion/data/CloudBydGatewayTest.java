@@ -1,20 +1,24 @@
 package com.bydwatch.companion.data;
 
 import com.bydwatch.companion.model.VehicleStatus;
+import com.bydwatch.companion.model.VehicleSummary;
 import com.overdrive.app.byd.cloud.BydCloudClient;
 import com.overdrive.app.byd.cloud.BydCloudConfig;
 import com.overdrive.app.byd.cloud.crypto.BydCryptoUtils;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
 import java.net.SocketTimeoutException;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -236,14 +240,246 @@ public class CloudBydGatewayTest {
         assertEquals("freshuser@byd.com", gateway.getConfig().username);
     }
 
+    @Test
+    public void parseVehicleStatusExtractsTpmsChargingDoorsAndOdometer() throws Exception {
+        CloudBydGateway gateway = new CloudBydGateway(null, null, configStore);
+
+        JSONObject vi = new JSONObject();
+        vi.put("elecPercent", 82);
+        vi.put("enduranceMileageV2", 335);
+        vi.put("chargeState", 1);
+        vi.put("remainingHours", 1);
+        vi.put("remainingMinutes", 15);
+        vi.put("leftFrontDoor", 1);
+        vi.put("rightFrontDoor", 0);
+        vi.put("trunkLid", 1);
+        vi.put("leftFrontWindow", 2);
+        vi.put("totalMileageV2", 18420);
+        vi.put("tempOutCar", 31);
+        vi.put("leftFrontTirePressure", 2.45);
+        vi.put("rightFrontTirePressure", 248);
+        vi.put("leftRearTirePressure", 39);
+        vi.put("rightRearTirePressure", 242);
+        vi.put("batteryHeatState", 1);
+        vi.put("mainSeatHeatState", 3);
+
+        VehicleStatus status = gateway.parseVehicleStatus(vi);
+        assertEquals(VehicleStatus.CHARGING_ACTIVE, status.chargingState);
+        assertEquals(Integer.valueOf(75), status.chargeRemainingMinutes);
+        assertEquals(1, status.doorsOpenCount);
+        assertEquals(1, status.windowsOpenCount);
+        assertTrue(status.trunkOpen);
+        assertEquals(Integer.valueOf(18420), status.totalMileageKm);
+        assertEquals(Integer.valueOf(31), status.outsideTempC);
+        assertEquals(Integer.valueOf(245), status.tireLfKpa);
+        assertEquals(Integer.valueOf(248), status.tireRfKpa);
+        assertEquals(Integer.valueOf(269), status.tireLrKpa);
+        assertEquals(Integer.valueOf(242), status.tireRrKpa);
+        assertEquals(Boolean.TRUE, status.batteryHeatOn);
+        assertEquals(2, status.driverSeatLevel);
+    }
+
+    @Test
+    public void regionSwitchToChinaAndMultiCarFetchWork() throws Exception {
+        FakeClient fakeClient = new FakeClient();
+        fakeClient.vehicleListResult = new JSONArray()
+                .put(new JSONObject().put("vin", "LGX_CAR_1").put("modelName", "Seal").put("plateNo", "B 100 EV"))
+                .put(new JSONObject().put("vin", "LGX_CAR_2").put("modelName", "Atto 1").put("plateNo", "B 200 EV"));
+
+        CloudBydGateway gateway = new CloudBydGateway(configStore, cfg -> fakeClient);
+        configStore.setRegion("cn");
+        configStore.setCountryCode("CN");
+
+        List<VehicleSummary> cars = gateway.fetchVehicles();
+        assertEquals("cn", gateway.getConfig().region);
+        assertEquals("CN", gateway.getConfig().countryCode);
+        assertEquals(2, cars.size());
+        assertEquals("LGX_CAR_1", cars.get(0).vin);
+        assertEquals("Seal", cars.get(0).modelName);
+    }
+
+    @Test
+    public void autoDiscoversVehicleModelAndExtractsChargingPowerAndFullHourFallback() throws Exception {
+        VehicleSummary fromSeries = VehicleSummary.fromBydVehicleJson(new JSONObject()
+                .put("vin", "LGX_ATTO_3")
+                .put("autoType", "1")
+                .put("seriesName", "Atto 3"));
+        assertNotNull(fromSeries);
+        assertEquals("Atto 3", fromSeries.modelName);
+
+        FakeClient fakeClient = new FakeClient();
+        fakeClient.vehicleListResult = new JSONArray()
+                .put(new JSONObject()
+                        .put("vin", "LGX_ATTO_3")
+                        .put("autoType", "1")
+                        .put("seriesName", "Atto 3"));
+        fakeClient.realtimeResult = new JSONObject()
+                .put("elecPercent", 54.0)
+                .put("enduranceMileageV2", 240)
+                .put("chargeState", 1)
+                .put("fullHour", 0)
+                .put("fullMinute", 45)
+                .put("gl", -7.24);
+
+        configStore.setVin("LGX_ATTO_3");
+        configStore.setVehicleName(VehicleSummary.DEFAULT_MODEL_NAME);
+        CloudBydGateway gateway = new CloudBydGateway(configStore, cfg -> fakeClient);
+
+        VehicleStatus status = gateway.fetchVehicleRealtime("LGX_ATTO_3");
+        assertEquals("Atto 3", configStore.getVehicleName());
+        assertEquals("Atto 3", status.modelName);
+        assertEquals(Integer.valueOf(45), status.chargeRemainingMinutes);
+        assertEquals(Double.valueOf(7.2), status.chargePowerKw);
+    }
+
+    @Test
+    public void atto1ParkedTelemetryStaysOffAndNotChargingWhilePowerGearThreeAndHvacStatusOneActivate() throws Exception {
+        FakeClient fakeClient = new FakeClient();
+        // Mirrors real Atto 1 parked/off/unplugged/AC-off capture
+        fakeClient.realtimeResult = new JSONObject()
+                .put("elecPercent", 79)
+                .put("enduranceMileageV2", 237)
+                .put("chargeState", 15)
+                .put("chargingState", -1)
+                .put("connectState", -1)
+                .put("powerGear", 1)
+                .put("vehicleState", 2)
+                .put("airRunState", 2)
+                .put("tempInCar", -129)
+                .put("speed", 0.0)
+                .put("vin", "LC0SECRET123")
+                .put("latitude", -5.4)
+                .put("userToken", "tok_secret");
+        fakeClient.hvacResult = new JSONObject()
+                .put("statusNow", new JSONObject()
+                        .put("acSwitch", 1)
+                        .put("airConditioningMode", 2)
+                        .put("status", 2)
+                        .put("tempInCar", -129)
+                        .put("tempOutCar", 33));
+
+        CloudBydGateway gateway = new CloudBydGateway(configStore, cfg -> fakeClient);
+        VehicleStatus parked = gateway.fetchVehicleRealtime("LGX_ATTO_1");
+        assertFalse(parked.vehicleOn);
+        assertEquals(VehicleStatus.CHARGING_NONE, parked.chargingState);
+        assertFalse(parked.acOn);
+        assertTrue(parked.manualAc);
+        assertNull(parked.cabinTempC);
+        assertEquals(Integer.valueOf(33), parked.outsideTempC);
+        assertTrue(configStore.isManualAcMode());
+
+        configStore.setVerboseLogsEnabled(true);
+        fakeClient.realtimeResult.put("powerGear", 3);
+        fakeClient.hvacResult = new JSONObject()
+                .put("statusNow", new JSONObject()
+                        .put("acSwitch", 1)
+                        .put("airConditioningMode", 2)
+                        .put("status", 1));
+
+        VehicleStatus driving = gateway.fetchVehicleRealtime("LGX_ATTO_1");
+        assertTrue(driving.vehicleOn);
+        assertEquals(VehicleStatus.CHARGING_NONE, driving.chargingState);
+        assertTrue(driving.acOn);
+        assertTrue(driving.diagSummary.contains("hv.sn.status=1"));
+        assertTrue(driving.diagSummary.contains("powerGear=3"));
+        assertFalse(driving.diagSummary.contains("LC0SECRET123"));
+        assertFalse(driving.diagSummary.contains("tok_secret"));
+        assertFalse(driving.diagSummary.contains("latitude="));
+
+        configStore.setDefaultTempGear(2);
+        configStore.setDefaultFanLevel(6);
+        configStore.setDefaultWindMode(ConfigStore.WIND_MODE_BODY);
+        configStore.setDefaultAcDurationMinutes(25);
+        assertTrue(gateway.startClimate("LGX_ATTO_1", 17.0));
+        assertEquals(2, fakeClient.lastElectricGear);
+        assertEquals(6, fakeClient.lastElectricWind);
+        assertEquals(ConfigStore.WIND_MODE_BODY, fakeClient.lastElectricWindMode);
+        assertEquals(25, fakeClient.lastAcDurationMinutes);
+
+        // Switching to a car WITH automatic climate control resets manual AC detection cleanly
+        fakeClient.realtimeResult = new JSONObject()
+                .put("elecPercent", 85.0)
+                .put("enduranceMileage", 400)
+                .put("leftFrontDoorLock", 2)
+                .put("rightFrontDoorLock", 2)
+                .put("leftRearDoorLock", 2)
+                .put("rightRearDoorLock", 2)
+                .put("tempInCar", 26.0)
+                .put("autoAirConditioning", 1);
+        fakeClient.hvacResult = new JSONObject()
+                .put("statusNow", new JSONObject()
+                        .put("airType", 0)
+                        .put("airConditioningMode", 1)
+                        .put("status", 2));
+        VehicleStatus autoCar = gateway.fetchVehicleRealtime("LGX_ATTO_3");
+        assertFalse(autoCar.manualAc);
+        assertFalse(configStore.isManualAcMode());
+        assertTrue(gateway.startClimate("LGX_ATTO_3", 21.0));
+        assertEquals(21.0, fakeClient.lastAutoClimateTemp, 0.01);
+    }
+
+    @Test
+    public void fetchRealtimeAlwaysQueriesHvacWhenAcOnAndParsesLiveManualAndAutoAcSettings() throws Exception {
+        FakeClient fakeClient = new FakeClient();
+        // Realtime payload already says airConditionStatus=1 (AC On); getStatusNow has actual temp=1, fan=4, vent=Body
+        fakeClient.realtimeResult = new JSONObject()
+                .put("elecPercent", 62)
+                .put("enduranceMileageV2", 185)
+                .put("airConditionStatus", 1)
+                .put("airType", 1);
+        fakeClient.hvacResult = new JSONObject()
+                .put("statusNow", new JSONObject()
+                        .put("status", 1)
+                        .put("airConditioningMode", 2)
+                        .put("mainSettingTemp", 1)
+                        .put("windLevel", 4)
+                        .put("windMode", 1));
+
+        CloudBydGateway gateway = new CloudBydGateway(configStore, cfg -> fakeClient);
+        VehicleStatus manualLive = gateway.fetchVehicleRealtime("LGX_ATTO_1");
+        assertTrue(manualLive.acOn);
+        assertTrue(manualLive.manualAc);
+        assertEquals(Integer.valueOf(1), manualLive.targetTempGear);
+        assertEquals(Integer.valueOf(4), manualLive.fanLevel);
+        assertEquals(Integer.valueOf(ConfigStore.WIND_MODE_BODY), manualLive.windMode);
+
+        // Auto-climate car: getStatusNow raw mainSettingTemp=8 maps to 22C (8 + 14)
+        fakeClient.realtimeResult = new JSONObject()
+                .put("elecPercent", 80)
+                .put("enduranceMileageV2", 310)
+                .put("airConditionStatus", 1)
+                .put("tempInCar", 25);
+        fakeClient.hvacResult = new JSONObject()
+                .put("statusNow", new JSONObject()
+                        .put("status", 1)
+                        .put("airType", 0)
+                        .put("mainSettingTemp", 8));
+        VehicleStatus autoLive = gateway.fetchVehicleRealtime("LGX_ATTO_3");
+        assertTrue(autoLive.acOn);
+        assertFalse(autoLive.manualAc);
+        assertEquals(22, autoLive.targetTempC);
+    }
+
     // ── Fake BydCloudClient ───────────────────────────────────────────────
 
     private static class FakeClient extends BydCloudClient {
         JSONObject realtimeResult;
+        JSONObject hvacResult;
+        JSONArray vehicleListResult;
         String firstVinResult = "VIN_DEFAULT";
 
         FakeClient() {
             super(new BydCloudConfig());
+        }
+
+        @Override
+        public JSONObject fetchHvacStatusFast(String vin) {
+            return hvacResult;
+        }
+
+        @Override
+        public JSONArray fetchVehicleList() {
+            return vehicleListResult;
         }
 
         @Override
@@ -278,8 +514,42 @@ public class CloudBydGatewayTest {
 
         @Override
         public boolean startClimate(String vin, double tempCelsius) {
+            return startClimate(vin, tempCelsius, 20);
+        }
+
+        @Override
+        public boolean startClimate(String vin, double tempCelsius, int durationMinutes) {
+            lastAutoClimateTemp = tempCelsius;
+            lastAcDurationMinutes = durationMinutes;
             return true;
         }
+
+        double lastAutoClimateTemp = Double.NaN;
+
+        @Override
+        public boolean startElectricClimate(String vin, int tempGear, int windLevel) {
+            return startElectricClimate(vin, tempGear, windLevel, ConfigStore.WIND_MODE_BODY_FEET, 20);
+        }
+
+        @Override
+        public boolean startElectricClimate(String vin, int tempGear, int windLevel, int windMode) {
+            return startElectricClimate(vin, tempGear, windLevel, windMode, 20);
+        }
+
+        @Override
+        public boolean startElectricClimate(
+                String vin, int tempGear, int windLevel, int windMode, int durationMinutes) {
+            lastElectricGear = tempGear;
+            lastElectricWind = windLevel;
+            lastElectricWindMode = windMode;
+            lastAcDurationMinutes = durationMinutes;
+            return true;
+        }
+
+        int lastElectricGear = -1;
+        int lastElectricWind = -1;
+        int lastElectricWindMode = -1;
+        int lastAcDurationMinutes = -1;
 
         @Override
         public boolean stopClimate(String vin) {
@@ -295,5 +565,57 @@ public class CloudBydGatewayTest {
         public boolean findCar(String vin) {
             return true;
         }
+    }
+
+    @Test
+    public void rejectsAllZeroPlaceholderTelemetryWhenTboxStillWaking() throws Exception {
+        JSONObject placeholder = new JSONObject()
+                .put("onlineState", 1)
+                .put("elecPercent", 0.0)
+                .put("enduranceMileage", 0)
+                .put("leftFrontDoorLock", 0)
+                .put("tempInCar", 0)
+                .put("time", 0L);
+        assertFalse(CloudBydGateway.hasTelemetry(placeholder));
+
+        FakeClient fakeClient = new FakeClient();
+        fakeClient.realtimeResult = placeholder;
+        CloudBydGateway gateway = new CloudBydGateway(configStore, cfg -> fakeClient);
+        try {
+            gateway.fetchVehicleRealtime("LC0SECRET123");
+            fail("Expected SocketTimeoutException for unpopulated all-zero placeholder");
+        } catch (java.net.SocketTimeoutException expected) {
+            assertTrue(expected.getMessage().contains("unavailable"));
+        }
+    }
+
+    @Test
+    public void parsesAtto1LockStateUsingDoorLocksAndVehicleState() throws Exception {
+        FakeClient fakeClient = new FakeClient();
+        CloudBydGateway gateway = new CloudBydGateway(configStore, cfg -> fakeClient);
+
+        fakeClient.realtimeResult = new JSONObject()
+                .put("onlineState", 1)
+                .put("elecPercent", 55.0)
+                .put("leftFrontDoorLock", 0)
+                .put("rightFrontDoorLock", 0)
+                .put("leftRearDoorLock", 0)
+                .put("rightRearDoorLock", 0)
+                .put("vehicleState", 2)
+                .put("vs", 2)
+                .put("sentryStatus", 0);
+        assertTrue(gateway.fetchVehicleRealtime("LC0SECRET123").locked);
+
+        fakeClient.realtimeResult = new JSONObject()
+                .put("onlineState", 1)
+                .put("elecPercent", 55.0)
+                .put("leftFrontDoorLock", 1)
+                .put("rightFrontDoorLock", 1)
+                .put("leftRearDoorLock", 1)
+                .put("rightRearDoorLock", 1)
+                .put("vehicleState", 0)
+                .put("vs", 0)
+                .put("sentryStatus", 2);
+        assertFalse(gateway.fetchVehicleRealtime("LC0SECRET123").locked);
     }
 }

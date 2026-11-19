@@ -1,0 +1,102 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="820" height="440" viewBox="0 0 820 440" fill="none">
+  <title>BYD Open Remote - App Logo Options (Penpot / Figma Editable Vector)</title>
+
+  <!-- Canvas -->
+  <rect width="820" height="440" rx="24" fill="#0B100E" />
+  <text x="28" y="36" fill="#E1E8E3" font-family="Inter, Roboto, sans-serif" font-size="16" font-weight="700">BYD Open Remote · Copyright-Free App &amp; Widget Logo Concepts</text>
+  <text x="28" y="56" fill="#87938C" font-family="Inter, Roboto, sans-serif" font-size="12">All 4 icons use zero smartwatch cues and zero BYD trademarks — editable vector layers (108dp adaptive icon safe zone ready).</text>
+
+  <!-- ================= OPTION 1: KeyFob Pulse (Recommended) ================= -->
+  <g id="logo-1-keyfob-pulse" transform="translate(28, 80)">
+    <rect width="176" height="324" rx="20" fill="#141C19" stroke="#26332D" />
+    <!-- 108dp Adaptive Icon Squircle -->
+    <rect x="34" y="24" width="108" height="108" rx="28" fill="#0D1C17" stroke="#224438" stroke-width="1.5" />
+    <!-- Remote RF Signal Waves -->
+    <path d="M72 44 C81 36, 95 36, 104 44" stroke="#7ED0FF" stroke-width="3.2" stroke-linecap="round" />
+    <path d="M78 51 C84 46, 92 46, 98 51" stroke="#6DDBAC" stroke-width="3.2" stroke-linecap="round" />
+    <!-- KeyFob Capsule Body -->
+    <rect x="64" y="57" width="48" height="58" rx="18" fill="#132D24" stroke="#E1E8E3" stroke-width="3.2" />
+    <!-- EV Lightning Bolt -->
+    <path d="M92 67 L79 86 H88 L84 103 L97 84 H88 Z" fill="#6DDBAC" />
+    <!-- Monochrome 24px badge preview -->
+    <rect x="70" y="152" width="36" height="36" rx="10" fill="#202A26" />
+    <path d="M81 160 C85 156, 91 156, 95 160" stroke="#6DDBAC" stroke-width="1.8" stroke-linecap="round" />
+    <rect x="81" y="164" width="14" height="18" rx="5.5" stroke="#6DDBAC" stroke-width="1.8" />
+    <path d="M89.5 168 L85 173.5 H88 L86.5 178.5 L91 173 H88 Z" fill="#6DDBAC" />
+    <!-- Labels -->
+    <text x="88" y="216" text-anchor="middle" fill="#6DDBAC" font-family="Inter, Roboto, sans-serif" font-size="12" font-weight="700">1 · KEYFOB PULSE ★</text>
+    <text x="88" y="236" text-anchor="middle" fill="#E1E8E3" font-family="Inter, Roboto, sans-serif" font-size="11" font-weight="600">Recommended</text>
+    <text x="88" y="256" text-anchor="middle" fill="#87938C" font-family="Inter, Roboto, sans-serif" font-size="10.5">Smart EV key fob +</text>
+    <text x="88" y="272" text-anchor="middle" fill="#87938C" font-family="Inter, Roboto, sans-serif" font-size="10.5">dual remote RF waves</text>
+    <text x="88" y="298" text-anchor="middle" fill="#6DDBAC" font-family="Inter, Roboto, sans-serif" font-size="10.5" font-weight="600">Readable at 14dp–108dp</text>
+  </g>
+
+  <!-- ================= OPTION 2: Open Core Hex ================= -->
+  <g id="logo-2-open-hex" transform="translate(224, 80)">
+    <rect width="176" height="324" rx="20" fill="#141C19" stroke="#26332D" />
+    <rect x="34" y="24" width="108" height="108" rx="28" fill="#101820" stroke="#233745" stroke-width="1.5" />
+    <!-- Hexagon EV Cell Outline -->
+    <path d="M88 42 L118 59 V95 L88 112 L58 95 V59 Z" fill="#162925" stroke="#6DDBAC" stroke-width="3.2" stroke-linejoin="round" />
+    <!-- Open-source < /> Brackets + Center Bolt -->
+    <path d="M77 69 L68 78 L77 87" stroke="#E1E8E3" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M99 69 L108 78 L99 87" stroke="#E1E8E3" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M90.5 64 L82 78 H88.5 L85.5 92 L94 78 H87.5 Z" fill="#7ED0FF" />
+    <!-- Monochrome 24px badge preview -->
+    <rect x="70" y="152" width="36" height="36" rx="10" fill="#202A26" />
+    <path d="M88 159 L97 164.5 V175.5 L88 181 L79 175.5 V164.5 Z" stroke="#6DDBAC" stroke-width="1.8" stroke-linejoin="round" />
+    <path d="M89.2 164 L84.5 170.5 H88 L86.8 176 L91.5 169.5 H88 Z" fill="#6DDBAC" />
+    <!-- Labels -->
+    <text x="88" y="216" text-anchor="middle" fill="#7ED0FF" font-family="Inter, Roboto, sans-serif" font-size="12" font-weight="700">2 · OPEN CELL HEX</text>
+    <text x="88" y="236" text-anchor="middle" fill="#E1E8E3" font-family="Inter, Roboto, sans-serif" font-size="11" font-weight="600">Developer / OSS Vibe</text>
+    <text x="88" y="256" text-anchor="middle" fill="#87938C" font-family="Inter, Roboto, sans-serif" font-size="10.5">Blade cell hex +</text>
+    <text x="88" y="272" text-anchor="middle" fill="#87938C" font-family="Inter, Roboto, sans-serif" font-size="10.5">open code brackets &lt;/&gt;</text>
+    <text x="88" y="298" text-anchor="middle" fill="#87938C" font-family="Inter, Roboto, sans-serif" font-size="10.5">Distinct GitHub identity</text>
+  </g>
+
+  <!-- ================= OPTION 3: Connected Hatch ================= -->
+  <g id="logo-3-connected-hatch" transform="translate(420, 80)">
+    <rect width="176" height="324" rx="20" fill="#141C19" stroke="#26332D" />
+    <rect x="34" y="24" width="108" height="108" rx="28" fill="#101B18" stroke="#284038" stroke-width="1.5" />
+    <!-- Remote Waves Above Car -->
+    <path d="M71 48 C81 40, 95 40, 105 48" stroke="#6DDBAC" stroke-width="3" stroke-linecap="round" />
+    <path d="M78 55 C84 50, 92 50, 98 55" stroke="#7ED0FF" stroke-width="3" stroke-linecap="round" />
+    <!-- Geometric Front Hatch Car Silhouette -->
+    <path d="M62 84 L68 68 C70 64, 74 62, 79 62 H97 C102 62, 106 64, 108 68 L114 84 V98 C114 101, 111.5 103, 108.5 103 H103 V97 H73 V103 H67.5 C64.5 103, 62 101, 62 98 Z" fill="#183129" stroke="#E1E8E3" stroke-width="2.8" stroke-linejoin="round" />
+    <!-- Headlights -->
+    <circle cx="71" cy="86" r="3.5" fill="#6DDBAC" />
+    <circle cx="105" cy="86" r="3.5" fill="#6DDBAC" />
+    <path d="M80 86 H96" stroke="#7ED0FF" stroke-width="2.8" stroke-linecap="round" />
+    <!-- Monochrome 24px badge preview -->
+    <rect x="70" y="152" width="36" height="36" rx="10" fill="#202A26" />
+    <path d="M81 162 C85 158.5, 91 158.5, 95 162" stroke="#6DDBAC" stroke-width="1.8" stroke-linecap="round" />
+    <path d="M78.5 174 L81 167 H95 L97.5 174 V180 H94.5 V178 H81.5 V180 H78.5 Z" stroke="#6DDBAC" stroke-width="1.8" stroke-linejoin="round" />
+    <!-- Labels -->
+    <text x="88" y="216" text-anchor="middle" fill="#9FF2CE" font-family="Inter, Roboto, sans-serif" font-size="12" font-weight="700">3 · CONNECTED EV</text>
+    <text x="88" y="236" text-anchor="middle" fill="#E1E8E3" font-family="Inter, Roboto, sans-serif" font-size="11" font-weight="600">Instant Car Clarity</text>
+    <text x="88" y="256" text-anchor="middle" fill="#87938C" font-family="Inter, Roboto, sans-serif" font-size="10.5">Compact EV front view</text>
+    <text x="88" y="272" text-anchor="middle" fill="#87938C" font-family="Inter, Roboto, sans-serif" font-size="10.5">+ cloud telemetry waves</text>
+    <text x="88" y="298" text-anchor="middle" fill="#87938C" font-family="Inter, Roboto, sans-serif" font-size="10.5">Zero ambiguity on home screen</text>
+  </g>
+
+  <!-- ================= OPTION 4: Power Ring Node ================= -->
+  <g id="logo-4-power-ring" transform="translate(616, 80)">
+    <rect width="176" height="324" rx="20" fill="#141C19" stroke="#26332D" />
+    <rect x="34" y="24" width="108" height="108" rx="28" fill="#0E1513" stroke="#2B3933" stroke-width="1.5" />
+    <!-- Power Dial Ring (broken top for power symbol feel) -->
+    <path d="M107 52 A27 27 0 1 1 69 52" stroke="#6DDBAC" stroke-width="6.5" stroke-linecap="round" />
+    <line x1="88" y1="42" x2="88" y2="62" stroke="#E1E8E3" stroke-width="5.5" stroke-linecap="round" />
+    <!-- Centered EV Bolt -->
+    <path d="M92.5 67 L80 83 H88.5 L84.5 98 L97 82 H88.5 Z" fill="#7ED0FF" />
+    <!-- Monochrome 24px badge preview -->
+    <rect x="70" y="152" width="36" height="36" rx="10" fill="#202A26" />
+    <path d="M94 162.5 A9 9 0 1 1 82 162.5" stroke="#6DDBAC" stroke-width="2.1" stroke-linecap="round" />
+    <line x1="88" y1="159" x2="88" y2="166" stroke="#6DDBAC" stroke-width="2.1" stroke-linecap="round" />
+    <path d="M89.5 168 L85.5 173 H88.5 L87 177.5 L91 172.5 H88 Z" fill="#6DDBAC" />
+    <!-- Labels -->
+    <text x="88" y="216" text-anchor="middle" fill="#FFB95C" font-family="Inter, Roboto, sans-serif" font-size="12" font-weight="700">4 · POWER RING</text>
+    <text x="88" y="236" text-anchor="middle" fill="#E1E8E3" font-family="Inter, Roboto, sans-serif" font-size="11" font-weight="600">Ultra-Minimal</text>
+    <text x="88" y="256" text-anchor="middle" fill="#87938C" font-family="Inter, Roboto, sans-serif" font-size="10.5">Remote start dial +</text>
+    <text x="88" y="272" text-anchor="middle" fill="#87938C" font-family="Inter, Roboto, sans-serif" font-size="10.5">high-voltage core bolt</text>
+    <text x="88" y="298" text-anchor="middle" fill="#87938C" font-family="Inter, Roboto, sans-serif" font-size="10.5">Crisp Pixel-style look</text>
+  </g>
+</svg>

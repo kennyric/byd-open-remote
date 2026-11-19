@@ -1,0 +1,40 @@
+{
+  "app": {
+    "bundleName": "com.evwatch.bridge",
+    "vendor": "evwatchlink",
+    "version": {
+      "code": 1000002,
+      "name": "1.0.2"
+    }
+  },
+  "deviceConfig": {},
+  "module": {
+    "deviceType": [
+      "liteWearable"
+    ],
+    "distro": {
+      "deliveryWithInstall": true,
+      "moduleName": "entry",
+      "moduleType": "entry"
+    },
+    "abilities": [
+      {
+        "name": ".default",
+        "srcLanguage": "js",
+        "srcPath": "default",
+        "icon": "$media:icon",
+        "description": "$string:mainability_description",
+        "label": "$string:app_name",
+        "type": "page"
+      }
+    ],
+    "js": [
+      {
+        "pages": [
+          "pages/index/index"
+        ],
+        "name": ".default"
+      }
+    ]
+  }
+}

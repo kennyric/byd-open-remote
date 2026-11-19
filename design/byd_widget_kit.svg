@@ -1,0 +1,164 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="580" viewBox="0 0 960 580" fill="none">
+  <!-- Reusable Vector UI Kit for Figma / Penpot (Drag & drop this SVG into Figma to get editable vector frames & text layers) -->
+  <rect width="960" height="580" fill="#0E1412"/>
+
+  <text x="36" y="42" fill="#ECF2EE" font-family="Inter, Segoe UI, sans-serif" font-size="18" font-weight="700">BYD Watch Widget — Reusable 4x2 Design Kit (Figma / Penpot Importable)</text>
+  <text x="36" y="64" fill="#8FA199" font-family="Inter, Segoe UI, sans-serif" font-size="12">Obsidian Card #171E1B · Elevated Subcard #202925 · Emerald Accent #6BE3AF · Action Tiles: Lock / Unlock / AC / Sync</text>
+
+  <!-- OPTION 1 ARTBOARD -->
+  <g id="Option1_4x3_Twin" transform="translate(36, 90)">
+    <text x="0" y="-10" fill="#8CF7C7" font-family="Inter, Segoe UI, sans-serif" font-size="13" font-weight="700">OPTION 1 — 4x3 Direct Twin (Recommended)</text>
+    <rect x="0" y="0" width="420" height="218" rx="22" fill="#171E1B" stroke="#28332E" stroke-width="1.5"/>
+
+    <!-- Top Micro Bar -->
+    <g id="Header_Bar" transform="translate(14, 12)">
+      <rect x="3" y="2" width="10" height="14" rx="2.5" stroke="#5CE1A8" stroke-width="1.6"/>
+      <path d="M5 18H11M5 0H11" stroke="#5CE1A8" stroke-width="1.5" stroke-linecap="round"/>
+      <text x="20" y="13" fill="#ECF2EE" font-family="Inter, Segoe UI, sans-serif" font-size="12" font-weight="700">Atto 1</text>
+
+      <rect x="266" y="-2" width="58" height="20" rx="10" fill="#222B27"/>
+      <text x="295" y="12" text-anchor="middle" fill="#B8C7BF" font-family="Inter, Segoe UI, sans-serif" font-size="10.5" font-weight="700">Locked</text>
+
+      <rect x="330" y="-2" width="60" height="20" rx="10" fill="#222B27"/>
+      <text x="360" y="12" text-anchor="middle" fill="#B8C7BF" font-family="Inter, Segoe UI, sans-serif" font-size="10.5" font-weight="700">AC Off</text>
+    </g>
+
+    <!-- Elevated Battery Subcard -->
+    <g id="Battery_Subcard" transform="translate(14, 40)">
+      <rect x="0" y="0" width="392" height="88" rx="16" fill="#202925" stroke="#2C3833" stroke-width="1"/>
+      <text x="14" y="34" fill="#F3F8F5" font-family="Inter, Segoe UI, sans-serif" font-size="28" font-weight="700">46%</text>
+      <text x="378" y="32" text-anchor="end" fill="#DCE6E0" font-family="Inter, Segoe UI, sans-serif" font-size="15" font-weight="700">138 km</text>
+
+      <rect x="14" y="46" width="364" height="6" rx="3" fill="#313D38"/>
+      <rect x="14" y="46" width="167" height="6" rx="3" fill="#6BE3AF"/>
+
+      <text x="14" y="72" fill="#9AA8A1" font-family="Inter, Segoe UI, sans-serif" font-size="11">24,111 km · Closed</text>
+      <text x="378" y="72" text-anchor="end" fill="#9AA8A1" font-family="Inter, Segoe UI, sans-serif" font-size="11">Last sync 20:14</text>
+    </g>
+
+    <!-- Bottom Action Tiles -->
+    <g id="Action_Tiles" transform="translate(14, 140)">
+      <g transform="translate(0, 0)">
+        <rect width="92" height="64" rx="16" fill="#A9DFCE"/>
+        <text x="46" y="46" text-anchor="middle" fill="#05291E" font-family="Inter, Segoe UI, sans-serif" font-size="12" font-weight="700">Lock</text>
+        <rect x="39" y="21" width="14" height="10" rx="2" stroke="#05291E" stroke-width="1.8"/>
+        <path d="M42 21V18a4 4 0 0 1 8 0v3" stroke="#05291E" stroke-width="1.8"/>
+      </g>
+      <g transform="translate(100, 0)">
+        <rect width="92" height="64" rx="16" fill="#CDE5FF"/>
+        <text x="46" y="46" text-anchor="middle" fill="#06243E" font-family="Inter, Segoe UI, sans-serif" font-size="12" font-weight="700">Unlock</text>
+        <rect x="39" y="21" width="14" height="10" rx="2" stroke="#06243E" stroke-width="1.8"/>
+        <path d="M42 21V18a4 4 0 0 1 7.2-2.2" stroke="#06243E" stroke-width="1.8"/>
+      </g>
+      <g transform="translate(200, 0)">
+        <rect width="92" height="64" rx="16" fill="#243942" stroke="#32515E" stroke-width="1"/>
+        <text x="46" y="46" text-anchor="middle" fill="#C6E8F8" font-family="Inter, Segoe UI, sans-serif" font-size="12" font-weight="700">AC On</text>
+        <path d="M46 15v14M40 18l12 8M52 18l-12 8" stroke="#C6E8F8" stroke-width="1.8" stroke-linecap="round"/>
+      </g>
+      <g transform="translate(300, 0)">
+        <rect width="92" height="64" rx="16" fill="#222B27" stroke="#303B36" stroke-width="1"/>
+        <text x="46" y="46" text-anchor="middle" fill="#C9D5CE" font-family="Inter, Segoe UI, sans-serif" font-size="12" font-weight="700">Sync</text>
+        <path d="M52 22a6 6 0 1 1-1.8-4.2M52 15v4h-4" stroke="#C9D5CE" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </g>
+    </g>
+  </g>
+
+  <!-- OPTION 2 ARTBOARD -->
+  <g id="Option2_With_Preset" transform="translate(500, 90)">
+    <text x="0" y="-10" fill="#8CF7C7" font-family="Inter, Segoe UI, sans-serif" font-size="13" font-weight="700">OPTION 2 — 4x3 Twin + AC Preset Sub-label</text>
+    <rect x="0" y="0" width="420" height="218" rx="22" fill="#171E1B" stroke="#28332E" stroke-width="1.5"/>
+
+    <!-- Top Micro Bar -->
+    <g transform="translate(14, 12)">
+      <rect x="3" y="2" width="10" height="14" rx="2.5" stroke="#5CE1A8" stroke-width="1.6"/>
+      <path d="M5 18H11M5 0H11" stroke="#5CE1A8" stroke-width="1.5" stroke-linecap="round"/>
+      <text x="20" y="13" fill="#ECF2EE" font-family="Inter, Segoe UI, sans-serif" font-size="12" font-weight="700">Atto 1</text>
+
+      <rect x="234" y="-2" width="56" height="20" rx="10" fill="#222B27"/>
+      <text x="262" y="12" text-anchor="middle" fill="#B8C7BF" font-family="Inter, Segoe UI, sans-serif" font-size="10.5" font-weight="700">Locked</text>
+
+      <rect x="296" y="-2" width="96" height="20" rx="10" fill="#222B27"/>
+      <text x="344" y="12" text-anchor="middle" fill="#B8C7BF" font-family="Inter, Segoe UI, sans-serif" font-size="10.5" font-weight="700">AC Off · L3·F4</text>
+    </g>
+
+    <!-- Elevated Battery Subcard -->
+    <g transform="translate(14, 40)">
+      <rect x="0" y="0" width="392" height="88" rx="16" fill="#202925" stroke="#2C3833" stroke-width="1"/>
+      <text x="14" y="34" fill="#F3F8F5" font-family="Inter, Segoe UI, sans-serif" font-size="28" font-weight="700">46%</text>
+      <text x="378" y="32" text-anchor="end" fill="#DCE6E0" font-family="Inter, Segoe UI, sans-serif" font-size="15" font-weight="700">138 km</text>
+
+      <rect x="14" y="46" width="364" height="6" rx="3" fill="#313D38"/>
+      <rect x="14" y="46" width="167" height="6" rx="3" fill="#6BE3AF"/>
+
+      <text x="14" y="72" fill="#9AA8A1" font-family="Inter, Segoe UI, sans-serif" font-size="11">24,111 km · Closed</text>
+      <text x="378" y="72" text-anchor="end" fill="#9AA8A1" font-family="Inter, Segoe UI, sans-serif" font-size="11">Last sync 20:14</text>
+    </g>
+
+    <!-- Bottom Action Tiles with AC Preset Subtext -->
+    <g transform="translate(14, 140)">
+      <g transform="translate(0, 0)">
+        <rect width="92" height="64" rx="16" fill="#A9DFCE"/>
+        <text x="46" y="46" text-anchor="middle" fill="#05291E" font-family="Inter, Segoe UI, sans-serif" font-size="12" font-weight="700">Lock</text>
+        <rect x="39" y="21" width="14" height="10" rx="2" stroke="#05291E" stroke-width="1.8"/>
+        <path d="M42 21V18a4 4 0 0 1 8 0v3" stroke="#05291E" stroke-width="1.8"/>
+      </g>
+      <g transform="translate(100, 0)">
+        <rect width="92" height="64" rx="16" fill="#CDE5FF"/>
+        <text x="46" y="46" text-anchor="middle" fill="#06243E" font-family="Inter, Segoe UI, sans-serif" font-size="12" font-weight="700">Unlock</text>
+        <rect x="39" y="21" width="14" height="10" rx="2" stroke="#06243E" stroke-width="1.8"/>
+        <path d="M42 21V18a4 4 0 0 1 7.2-2.2" stroke="#06243E" stroke-width="1.8"/>
+      </g>
+      <g transform="translate(200, 0)">
+        <rect width="92" height="64" rx="16" fill="#243942" stroke="#32515E" stroke-width="1"/>
+        <text x="46" y="41" text-anchor="middle" fill="#C6E8F8" font-family="Inter, Segoe UI, sans-serif" font-size="12" font-weight="700">AC On</text>
+        <text x="46" y="55" text-anchor="middle" fill="#9BC3D6" font-family="Inter, Segoe UI, sans-serif" font-size="9.5" font-weight="600">L3 · F4 · Body</text>
+        <path d="M46 13v13M41 16l10 7M51 16l-10 7" stroke="#C6E8F8" stroke-width="1.8" stroke-linecap="round"/>
+      </g>
+      <g transform="translate(300, 0)">
+        <rect width="92" height="64" rx="16" fill="#222B27" stroke="#303B36" stroke-width="1"/>
+        <text x="46" y="46" text-anchor="middle" fill="#C9D5CE" font-family="Inter, Segoe UI, sans-serif" font-size="12" font-weight="700">Sync</text>
+        <path d="M52 22a6 6 0 1 1-1.8-4.2M52 15v4h-4" stroke="#C9D5CE" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </g>
+    </g>
+  </g>
+
+  <!-- REUSABLE COLOR & COMPONENT TOKENS STRIP -->
+  <g id="Design_Tokens_Strip" transform="translate(36, 355)">
+    <rect x="0" y="0" width="884" height="190" rx="18" fill="#141A18" stroke="#26302B"/>
+    <text x="20" y="30" fill="#ECF2EE" font-family="Inter, Segoe UI, sans-serif" font-size="14" font-weight="700">Reusable Tokens &amp; Components (Colors matching android-companion/app/src/main/res/values-night/colors.xml)</text>
+
+    <g transform="translate(20, 52)">
+      <rect width="120" height="54" rx="12" fill="#171E1B" stroke="#28332E"/>
+      <text x="12" y="24" fill="#ECF2EE" font-family="Inter, Segoe UI, sans-serif" font-size="11" font-weight="700">Widget Card</text>
+      <text x="12" y="42" fill="#9AA8A1" font-family="Inter, Segoe UI, sans-serif" font-size="10.5">#171E1B</text>
+    </g>
+    <g transform="translate(154, 52)">
+      <rect width="120" height="54" rx="12" fill="#202925" stroke="#2C3833"/>
+      <text x="12" y="24" fill="#ECF2EE" font-family="Inter, Segoe UI, sans-serif" font-size="11" font-weight="700">Battery Subcard</text>
+      <text x="12" y="42" fill="#9AA8A1" font-family="Inter, Segoe UI, sans-serif" font-size="10.5">#202925</text>
+    </g>
+    <g transform="translate(288, 52)">
+      <rect width="120" height="54" rx="12" fill="#6BE3AF"/>
+      <text x="12" y="24" fill="#05291E" font-family="Inter, Segoe UI, sans-serif" font-size="11" font-weight="700">SoC Emerald</text>
+      <text x="12" y="42" fill="#05291E" font-family="Inter, Segoe UI, sans-serif" font-size="10.5">#6BE3AF</text>
+    </g>
+    <g transform="translate(422, 52)">
+      <rect width="120" height="54" rx="12" fill="#A9DFCE"/>
+      <text x="12" y="24" fill="#05291E" font-family="Inter, Segoe UI, sans-serif" font-size="11" font-weight="700">Lock Tile</text>
+      <text x="12" y="42" fill="#05291E" font-family="Inter, Segoe UI, sans-serif" font-size="10.5">#A9DFCE</text>
+    </g>
+    <g transform="translate(556, 52)">
+      <rect width="120" height="54" rx="12" fill="#CDE5FF"/>
+      <text x="12" y="24" fill="#06243E" font-family="Inter, Segoe UI, sans-serif" font-size="11" font-weight="700">Unlock Tile</text>
+      <text x="12" y="42" fill="#06243E" font-family="Inter, Segoe UI, sans-serif" font-size="10.5">#CDE5FF</text>
+    </g>
+    <g transform="translate(690, 52)">
+      <rect width="174" height="54" rx="12" fill="#184B3B" stroke="#2F7C61"/>
+      <text x="12" y="24" fill="#8CF7C7" font-family="Inter, Segoe UI, sans-serif" font-size="11" font-weight="700">Active AC / Emerald Pill</text>
+      <text x="12" y="42" fill="#8CF7C7" font-family="Inter, Segoe UI, sans-serif" font-size="10.5">#184B3B / #8CF7C7</text>
+    </g>
+
+    <text x="20" y="142" fill="#9AA8A1" font-family="Inter, Segoe UI, sans-serif" font-size="12">Tip: Drag this SVG straight into Figma or Penpot — every card, text label, icon, and tile stays editable &amp; can be turned into Figma Components.</text>
+    <text x="20" y="164" fill="#9AA8A1" font-family="Inter, Segoe UI, sans-serif" font-size="12">Want Light Mode + 2x2 + 4x1 + 4x3 + Phone Screen frames in one Figma kit? Enable the Figma plugin below or let me expand this SVG/HTML kit.</text>
+  </g>
+</svg>

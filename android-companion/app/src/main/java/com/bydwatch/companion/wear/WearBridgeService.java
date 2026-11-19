@@ -18,6 +18,7 @@ import androidx.core.app.NotificationCompat;
 
 import com.bydwatch.companion.BydWatchApp;
 import com.bydwatch.companion.R;
+import com.bydwatch.companion.data.BydRepository;
 import com.bydwatch.companion.ui.MainActivity;
 
 import java.util.List;
@@ -89,6 +90,8 @@ public class WearBridgeService extends Service {
     }
 
     private WearEngineBridge bridge;
+    private BydRepository observedRepo;
+    private BydRepository.StatusListener statusListener;
 
     @Override
     public void onCreate() {
@@ -112,6 +115,16 @@ public class WearBridgeService extends Service {
         BydWatchApp app = BydWatchApp.getInstance();
         if (app != null) {
             bridge = app.getWearEngineBridge();
+            observedRepo = bridge != null ? bridge.getRepository() : app.getRepository();
+            if (observedRepo != null) {
+                final BydRepository repoRef = observedRepo;
+                statusListener = status -> {
+                    boolean alertsOn = repoRef.getConfigStore() != null && repoRef.getConfigStore().isAlertsEnabled();
+                    VehicleAlertNotifier.evaluate(getApplicationContext(), status, alertsOn);
+                    com.bydwatch.companion.ui.VehicleWidgetProvider.refreshWidgets(getApplicationContext());
+                };
+                observedRepo.addStatusListener(statusListener);
+            }
         }
         setRunning(true);
         Log.i(TAG, "WearBridgeService created and started in foreground");
@@ -149,6 +162,9 @@ public class WearBridgeService extends Service {
 
     @Override
     public void onDestroy() {
+        if (observedRepo != null && statusListener != null) {
+            observedRepo.removeStatusListener(statusListener);
+        }
         stopBridge();
         setRunning(false);
         Log.i(TAG, "WearBridgeService destroyed");

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">BYD Open Remote</string>
+    <string name="header_title">BYD Open Remote</string>
+    <string name="header_subtitle">Control Remoto Cloud Open Source</string>
+    <string name="auth_notice">Aviso de Seguridad: Se recomienda usar una subcuenta de autorización secundaria (Alternate Vehicle Authorization) de la app oficial BYD. App independiente no oficial.</string>
+    <string name="card_account_title">Cuenta BYD y Región</string>
+    <string name="label_region">Región / Mercado Cloud</string>
+    <string name="helper_region">Coincide con el país de registro de tu cuenta BYD (incluye CN)</string>
+    <string name="label_active_vehicle">Vehículo Activo (Multi-Coche)</string>
+    <string name="btn_save_credentials">Guardar Credenciales</string>
+    <string name="btn_fetch_vin">Buscar Vehículos y Probar</string>
+
+    <string name="card_controls_title">Estado y Controles</string>
+    <string name="label_range">Autonomía</string>
+    <string name="label_doors">Puertas</string>
+    <string name="label_cabin_temp">Temp. Cabina</string>
+    <string name="label_last_updated">Actualizado</string>
+
+    <string name="btn_refresh">Actualizar</string>
+    <string name="btn_lock">Bloquear</string>
+    <string name="btn_unlock">Desbloquear</string>
+    <string name="btn_ac_on">Encender AC</string>
+    <string name="btn_ac_off">Apagar AC</string>
+    <string name="btn_lights">Luces</string>
+    <string name="btn_horn">Bocina</string>
+    <string name="btn_vent_windows">Ventilar</string>
+    <string name="btn_close_windows">Cerrar Vent.</string>
+    <string name="btn_bat_heat">Calef. Bat</string>
+    <string name="btn_seat_heat">Asiento</string>
+
+    <string name="label_vehicle_health">Estado del Vehículo y Presión (TPMS)</string>
+    <string name="label_units">Unidades</string>
+    <string name="label_alerts_toggle">Alertas Inteligentes (Abierto / Carga Lista)</string>
+    <string name="label_watch_edition">Edición del Reloj:</string>
+    <string name="btn_disclaimer">Aviso Legal</string>
+
+    <string name="card_bridge_title">Puente del Reloj y Registro</string>
+    <string name="btn_auth_health">Autorizar Huawei Health</string>
+    <string name="btn_start_service">Iniciar Servicio</string>
+    <string name="btn_stop_service">Detener Servicio</string>
+    <string name="btn_battery_opt">Desactivar Optimización Batería</string>
+</resources>

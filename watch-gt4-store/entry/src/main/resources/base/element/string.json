@@ -1,0 +1,12 @@
+{
+  "string": [
+    {
+      "name": "app_name",
+      "value": "EV Watch Link"
+    },
+    {
+      "name": "mainability_description",
+      "value": "Independent third-party EV watch remote companion"
+    }
+  ]
+}

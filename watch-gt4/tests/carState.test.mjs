@@ -3,8 +3,13 @@ import assert from 'node:assert/strict';
 import {
   createInitialState,
   stepTemp,
+  cycleAcDuration,
+  normalizeAcDuration,
   buildCommand,
-  applyResponse
+  applyResponse,
+  formatDistance,
+  formatTemp,
+  formatPressure
 } from '../entry/src/main/js/default/common/carState.js';
 import {
   P2pClient,
@@ -17,19 +22,22 @@ describe('carState module', () => {
   describe('createInitialState()', () => {
     it('returns exact initial state specified in design contract', () => {
       const state = createInitialState();
-      assert.deepStrictEqual(state, {
-        soc: null,
-        rangeKm: null,
-        locked: true,
-        acOn: false,
-        cabinTempC: null,
-        targetTempC: 17,
-        ts: null,
-        pending: false,
-        confirmUnlock: false,
-        phoneOnline: false,
-        banner: ''
-      });
+      assert.strictEqual(state.soc, null);
+      assert.strictEqual(state.rangeKm, null);
+      assert.strictEqual(state.locked, true);
+      assert.strictEqual(state.acOn, false);
+      assert.strictEqual(state.cabinTempC, null);
+      assert.strictEqual(state.targetTempC, 17);
+      assert.strictEqual(state.ts, null);
+      assert.strictEqual(state.pending, false);
+      assert.strictEqual(state.confirmUnlock, false);
+      assert.strictEqual(state.phoneOnline, false);
+      assert.strictEqual(state.banner, '');
+      assert.strictEqual(state.modelName, 'ATTO 1');
+      assert.strictEqual(state.distanceUnit, 'km');
+      assert.strictEqual(state.tempUnit, 'C');
+      assert.strictEqual(state.pressureUnit, 'kPa');
+      assert.deepStrictEqual(state.vehicles, []);
     });
 
     it('returns a fresh object copy on each invocation', () => {
@@ -302,6 +310,14 @@ describe('carState module', () => {
       const nextMismatched = applyResponse(baseState, stalePayload, 'cmd_expected_new');
       assert.strictEqual(nextMismatched.soc, null);
       assert.deepStrictEqual(nextMismatched, baseState);
+
+      const missingIdPayload = JSON.stringify({
+        ok: true,
+        state: { soc: 12 }
+      });
+      const nextMissingId = applyResponse(baseState, missingIdPayload, 'cmd_expected_new');
+      assert.strictEqual(nextMissingId.soc, null);
+      assert.deepStrictEqual(nextMissingId, baseState);
     });
 
     it('clears pending and confirmUnlock flags on response', () => {
@@ -494,6 +510,140 @@ describe('carState module', () => {
         }
       });
       assert.strictEqual(pinged, true);
+    });
+  });
+
+  describe('units and extended telemetry', () => {
+    it('formats distance, temperature, and tire pressures accurately', () => {
+      assert.strictEqual(formatDistance(100, 'km'), '100 km');
+      assert.strictEqual(formatDistance(100, 'mi'), '62 mi');
+      assert.strictEqual(formatTemp(20, 'C'), '20°C');
+      assert.strictEqual(formatTemp(20, 'F'), '68°F');
+      assert.strictEqual(formatPressure(250, 'kPa'), '250 kPa');
+      assert.strictEqual(formatPressure(250, 'PSI'), '36.3 PSI');
+      assert.strictEqual(formatPressure(250, 'bar'), '2.50 bar');
+    });
+
+    it('builds seat_heat and switch_car payloads and parses rich telemetry', () => {
+      const cmdSeat = JSON.parse(buildCommand('seat_heat', { driverSeatLevel: 1 }, { level: 2 }));
+      assert.strictEqual(cmdSeat.action, 'seat_heat');
+      assert.strictEqual(cmdSeat.level, 2);
+
+      const cmdCar = JSON.parse(buildCommand('switch_car', {}, { vin: 'VIN_SEAL_99' }));
+      assert.strictEqual(cmdCar.action, 'switch_car');
+      assert.strictEqual(cmdCar.vin, 'VIN_SEAL_99');
+
+      const next = applyResponse(createInitialState(), JSON.stringify({
+        ok: true,
+        action: 'status',
+        state: {
+          vin: 'VIN_SEAL_99',
+          modelName: 'SEAL U',
+          soc: 88,
+          rangeKm: 400,
+          chargingState: 1,
+          chgMin: 35,
+          tpmsLf: 250,
+          tpmsRf: 248,
+          tpmsLr: 240,
+          tpmsRr: 242,
+          uDist: 'mi',
+          uTemp: 'F',
+          uPres: 'PSI',
+          cars: [{ vin: 'VIN_1', model: 'ATTO 1' }, { vin: 'VIN_SEAL_99', model: 'SEAL U' }]
+        }
+      }));
+      assert.strictEqual(next.modelName, 'SEAL U');
+      assert.strictEqual(next.chargingState, 1);
+      assert.strictEqual(next.chargeRemainingMinutes, 35);
+      assert.strictEqual(next.tireLfKpa, 250);
+      assert.strictEqual(next.distanceUnit, 'mi');
+      assert.strictEqual(next.pressureUnit, 'PSI');
+      assert.strictEqual(next.vehicles.length, 2);
+    });
+
+    it('cycles acDurationMin, builds extended ac_on command, and parses exact VehicleStatus.toJson payload', () => {
+      let st = createInitialState();
+      assert.strictEqual(st.acDurationMin, 20);
+      st = cycleAcDuration(st);
+      assert.strictEqual(st.acDurationMin, 25);
+      st = cycleAcDuration(st);
+      assert.strictEqual(st.acDurationMin, 30);
+      st = cycleAcDuration(st);
+      assert.strictEqual(st.acDurationMin, 10);
+      assert.strictEqual(normalizeAcDuration(5), 10);
+      assert.strictEqual(normalizeAcDuration(45), 30);
+
+      const cmd = JSON.parse(buildCommand('ac_on', {
+        targetTempC: 21,
+        acDurationMin: 25,
+        manualAc: true,
+        targetTempGear: 6,
+        fanLevel: 4,
+        windMode: 2
+      }));
+      assert.strictEqual(cmd.action, 'ac_on');
+      assert.strictEqual(cmd.tempC, 21);
+      assert.strictEqual(cmd.acDurationMin, 25);
+      assert.strictEqual(cmd.tempGear, 6);
+      assert.strictEqual(cmd.fanLevel, 4);
+      assert.strictEqual(cmd.windMode, 2);
+
+      const parsed = applyResponse(createInitialState(), JSON.stringify({
+        ok: true,
+        action: 'status',
+        state: {
+          vin: 'LGXC76C49R0001234',
+          modelName: 'ATTO 3',
+          soc: 82,
+          rangeKm: 345,
+          locked: false,
+          acOn: true,
+          carOn: true,
+          charging: 1,
+          chgKw: 7.4,
+          chgMin: 28,
+          openDoors: 1,
+          openWins: 2,
+          trunkOpen: true,
+          odoKm: 15432,
+          outTempC: 31,
+          fuelPct: 0,
+          fuelKm: 0,
+          tpms: [248, 246, 238, 240],
+          batHeat: true,
+          seat: 2,
+          capWin: false,
+          capBatHeat: true,
+          capSeat: true,
+          manAc: true,
+          tempGear: 6,
+          fanLevel: 4,
+          windMode: 2,
+          lat: -6.2,
+          lng: 106.8,
+          gpsTs: 1700000200,
+          cars: [{ vin: 'LGXC76C49R0001234', name: 'ATTO 3' }]
+        }
+      }));
+      assert.strictEqual(parsed.carOn, true);
+      assert.strictEqual(parsed.chargingState, 1);
+      assert.strictEqual(parsed.chargingKw, 7.4);
+      assert.strictEqual(parsed.chargeRemainingMinutes, 28);
+      assert.strictEqual(parsed.doorsOpenCount, 1);
+      assert.strictEqual(parsed.windowsOpenCount, 2);
+      assert.strictEqual(parsed.tireLfKpa, 248);
+      assert.strictEqual(parsed.tireRrKpa, 240);
+      assert.strictEqual(parsed.batteryHeatOn, true);
+      assert.strictEqual(parsed.driverSeatLevel, 2);
+      assert.strictEqual(parsed.canWindows, false);
+      assert.strictEqual(parsed.canBatteryHeat, true);
+      assert.strictEqual(parsed.canSeatClimate, true);
+      assert.strictEqual(parsed.targetTempGear, 6);
+      assert.strictEqual(parsed.fanLevel, 4);
+      assert.strictEqual(parsed.windMode, 2);
+      assert.strictEqual(parsed.lat, -6.2);
+      assert.strictEqual(parsed.vehicles[0].name, 'ATTO 3');
     });
   });
 });

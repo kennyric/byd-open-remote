@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">BYD Open Remote</string>
+    <string name="header_title">BYD Open Remote</string>
+    <string name="header_subtitle">开源云端远程控制</string>
+    <string name="auth_notice">安全提示：强烈建议在官方比亚迪 App 中创建“车辆授权”子账号（Alternate Vehicle Authorization）登录，勿直接使用车主主账号。独立第三方非官方工具。</string>
+    <string name="card_account_title">比亚迪账号与区域</string>
+    <string name="label_region">云端服务区域 / 市场</string>
+    <string name="helper_region">需与您的比亚迪账号注册国家一致（含中国大陆 CN）</string>
+    <string name="label_country_code">可选国家代码 ISO（如 CN, SG, ID, DE）</string>
+    <string name="helper_country_code">留空则使用所选区域默认语言</string>
+    <string name="label_active_vehicle">当前车辆（多车切换）</string>
+    <string name="label_username">比亚迪账号（手机或邮箱）</string>
+    <string name="label_password">账号登录密码</string>
+    <string name="label_pin">6位远程控制 PIN 码</string>
+    <string name="label_vin">车架号 (VIN)</string>
+    <string name="btn_save_credentials">保存凭证</string>
+    <string name="btn_fetch_vin">获取车辆并测试登录</string>
+
+    <string name="card_controls_title">车辆状态与远程控制</string>
+    <string name="label_soc">电量</string>
+    <string name="label_range">续航</string>
+    <string name="label_doors">车门</string>
+    <string name="label_cabin_temp">车内温度</string>
+    <string name="label_ac_state">空调</string>
+    <string name="label_last_updated">更新时间</string>
+
+    <string name="btn_refresh">刷新</string>
+    <string name="btn_lock">锁车</string>
+    <string name="btn_unlock">解锁</string>
+    <string name="btn_ac_on">开空调</string>
+    <string name="btn_ac_off">关空调</string>
+    <string name="btn_lights">闪灯</string>
+    <string name="btn_horn">鸣笛</string>
+    <string name="btn_vent_windows">透气</string>
+    <string name="btn_close_windows">关窗</string>
+    <string name="btn_bat_heat">电池加热</string>
+    <string name="btn_seat_heat">座椅加热</string>
+
+    <string name="label_vehicle_health">车辆健康与胎压 (TPMS)</string>
+    <string name="label_units">单位设置</string>
+    <string name="widget_label">EV 手表状态小组件</string>
+    <string name="tile_label">EV 快捷锁车</string>
+    <string name="label_alerts_toggle">智能提醒（未锁车 / 门窗未关 / 充电完成）</string>
+    <string name="label_watch_edition">手表应用版本：</string>
+    <string name="btn_disclaimer">免责声明</string>
+
+    <string name="card_bridge_title">手表桥接与日志</string>
+    <string name="btn_auth_health">授权华为运动健康</string>
+    <string name="btn_start_service">启动桥接服务</string>
+    <string name="btn_stop_service">停止桥接服务</string>
+    <string name="btn_battery_opt">关闭电池优化</string>
+    <string name="service_status_running">桥接服务运行中（前台）</string>
+    <string name="service_status_stopped">桥接服务已停止</string>
+</resources>

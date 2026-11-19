@@ -1,6 +1,7 @@
 package com.bydwatch.companion.data;
 
 import com.bydwatch.companion.model.VehicleStatus;
+import com.bydwatch.companion.model.VehicleSummary;
 
 import org.json.JSONObject;
 import org.junit.After;
@@ -10,6 +11,10 @@ import org.junit.Test;
 import java.io.IOException;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
+
+import javax.net.ssl.SSLException;
+import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -77,6 +82,19 @@ public class BydRepositoryTest {
         assertEquals("PIN_INVALID", resp.getString("err"));
         assertEquals(1, fakeGateway.verifyPinCalls.get());
         assertEquals(0, fakeGateway.lockCalls.get());
+    }
+
+    @Test
+    public void mapsCode2003AccountUnboundWithoutMisclassifyingAsPinInvalid() throws Exception {
+        fakeGateway.transportError = new IOException(
+                "Control PIN verification failed: code=2003 Akun ini tidak terikat dengan kendaraan.");
+
+        JSONObject resp = executeCommand("{\"id\":\"2b\",\"action\":\"unlock\"}");
+
+        assertEquals("2b", resp.getString("id"));
+        assertFalse(resp.getBoolean("ok"));
+        assertEquals("ACCOUNT_UNBOUND", resp.getString("err"));
+        assertTrue(resp.getString("msg").contains("Fetch VIN"));
     }
 
     @Test
@@ -245,6 +263,76 @@ public class BydRepositoryTest {
         assertEquals(350, state.getInt("rangeKm"));
     }
 
+    @Test
+    public void manualAcUsesElectricClimateWithTempGearAndFanLevel() throws Exception {
+        configStore.setDetectedManualAc(true);
+        JSONObject resp = executeCommand(
+                "{\"id\":\"54\",\"action\":\"ac_on\",\"tempGear\":4,\"fanLevel\":6}");
+
+        assertTrue(resp.getBoolean("ok"));
+        assertEquals("ac_on", resp.getString("action"));
+        assertEquals(1, fakeGateway.startElectricClimateCalls.get());
+        assertEquals(0, fakeGateway.startClimateCalls.get());
+        assertEquals(4, fakeGateway.lastTempGear);
+        assertEquals(6, fakeGateway.lastWindLevel);
+        assertEquals(ConfigStore.WIND_MODE_BODY, fakeGateway.lastWindMode);
+        assertEquals(4, configStore.getDefaultTempGear());
+        assertEquals(6, configStore.getDefaultFanLevel());
+        assertEquals(ConfigStore.WIND_MODE_BODY, configStore.getDefaultWindMode());
+        assertTrue(resp.getJSONObject("state").optBoolean("manAc", false));
+
+        JSONObject resp2 = executeCommand(
+                "{\"id\":\"55\",\"action\":\"ac_on\",\"tempGear\":2,\"fanLevel\":5,\"windMode\":2}");
+        assertTrue(resp2.getBoolean("ok"));
+        assertEquals(ConfigStore.WIND_MODE_BODY_FEET, fakeGateway.lastWindMode);
+        assertEquals(ConfigStore.WIND_MODE_BODY_FEET, configStore.getDefaultWindMode());
+    }
+
+    @Test
+    public void mapsFlakyNetworkAndRawApiErrorsToGracefulMessages() throws Exception {
+        fakeGateway.transportError = new UnknownHostException(
+                "Unable to resolve host \"dilinkappoversea-id.byd.auto\": No address associated with hostname");
+        JSONObject dnsResp = executeCommand("{\"id\":\"56\",\"action\":\"status\"}");
+        assertFalse(dnsResp.getBoolean("ok"));
+        assertEquals("TIMEOUT", dnsResp.getString("err"));
+        String dnsMsg = dnsResp.getString("msg");
+        assertTrue(dnsMsg.contains("Unable to reach BYD Cloud"));
+        assertFalse(dnsMsg.contains("dilinkappoversea-id.byd.auto"));
+        assertFalse(dnsMsg.contains("No address associated"));
+
+        fakeGateway.transportError = new IOException("wrapped failure", new SSLException("Connection reset by peer"));
+        JSONObject tlsResp = executeCommand("{\"id\":\"57\",\"action\":\"status\"}");
+        assertFalse(tlsResp.getBoolean("ok"));
+        assertEquals("TIMEOUT", tlsResp.getString("err"));
+        assertTrue(tlsResp.getString("msg").contains("Unstable internet connection"));
+
+        fakeGateway.transportError = new SocketTimeoutException("Read timed out");
+        JSONObject toResp = executeCommand("{\"id\":\"58\",\"action\":\"status\"}");
+        assertFalse(toResp.getBoolean("ok"));
+        assertEquals("TIMEOUT", toResp.getString("err"));
+        assertTrue(toResp.getString("msg").contains("Sync timed out"));
+
+        fakeGateway.transportError = null;
+        fakeGateway.genericError = "Realtime request failed: HTTP 502 /vehicleInfo/vehicle/vehicleRealTimeRequest";
+        JSONObject apiResp = executeCommand("{\"id\":\"59\",\"action\":\"status\"}");
+        assertFalse(apiResp.getBoolean("ok"));
+        assertTrue(apiResp.getString("msg").contains("BYD Cloud is temporarily busy"));
+        assertFalse(apiResp.getString("msg").contains("502"));
+        assertFalse(apiResp.getString("msg").contains("/vehicleInfo"));
+
+        fakeGateway.genericError = null;
+        fakeGateway.transportError = new UnknownHostException(
+                "Unable to resolve host \"dilinkappoversea-id.byd.auto\": No address associated with hostname");
+        CompletableFuture<String> fetchErr = new CompletableFuture<>();
+        repository.fetchVehicles(new BydRepository.VehiclesCallback() {
+            @Override public void onSuccess(List<VehicleSummary> vehicles, VehicleSummary active) {}
+            @Override public void onError(String error) { fetchErr.complete(error); }
+        });
+        String fetchMsg = fetchErr.get(5, TimeUnit.SECONDS);
+        assertTrue(fetchMsg.contains("Unable to reach BYD Cloud"));
+        assertFalse(fetchMsg.contains("dilinkappoversea-id.byd.auto"));
+    }
+
     // ── Test Fakes ─────────────────────────────────────────────────────────
 
     public static class InMemoryConfigStore implements ConfigStore {
@@ -253,7 +341,40 @@ public class BydRepositoryTest {
         private String pin;
         private String vin;
         private String region = "id";
+        private String countryCode = "";
+        private String vehicleName = VehicleSummary.DEFAULT_MODEL_NAME;
+        private String customVehicleName = "";
+        private final java.util.Map<String, String> vehicleCustomNames = new java.util.HashMap<>();
+        private final java.util.Map<Integer, String> widgetVehicles = new java.util.HashMap<>();
+        private final java.util.Map<String, String> iconEmoji = new java.util.HashMap<>();
+        private final java.util.Map<String, String> iconPhoto = new java.util.HashMap<>();
+        private boolean swipeHintDismissed = false;
+        private List<VehicleSummary> vehicles = java.util.Collections.emptyList();
+        private long vehiclesFetchedAt = 0L;
+        private String distanceUnit = com.bydwatch.companion.model.UnitPreferences.DIST_KM;
+        private String tempUnit = com.bydwatch.companion.model.UnitPreferences.TEMP_C;
+        private String pressureUnit = com.bydwatch.companion.model.UnitPreferences.PRES_KPA;
+        private String watchTarget = "dev";
+        private boolean alertsEnabled = false;
+        private boolean disclaimerAccepted = false;
+        private int widgetSyncIntervalMinutes = DEFAULT_WIDGET_SYNC_MINUTES;
+        private boolean hideExtraControls = false;
+        private boolean verboseLogsEnabled = false;
+        private String widgetStatusJson = null;
+        private long widgetLastSyncMs = 0L;
         private int defaultTempC = 17;
+        private int defaultTempGear = DEFAULT_TEMP_GEAR;
+        private int defaultFanLevel = DEFAULT_FAN_LEVEL;
+        private int defaultWindMode = DEFAULT_WIND_MODE;
+        private int defaultAcDurationMinutes = DEFAULT_AC_DURATION_MINUTES;
+        private Boolean manualAcOverride = null;
+        private boolean detectedManualAc = false;
+        private boolean singleFlightActionEnabled = true;
+        private String biometricScope = DEFAULT_BIOMETRIC_SCOPE;
+        private int biometricGraceMinutes = DEFAULT_BIOMETRIC_GRACE_MINUTES;
+        private boolean biometricWidgetSyncRequired = false;
+        private long lastBiometricAuthElapsedMs = -1L;
+        private int lastBiometricAuthBootCount = -1;
 
         @Override public String getUsername() { return username; }
         @Override public void setUsername(String username) { this.username = username; }
@@ -270,8 +391,189 @@ public class BydRepositoryTest {
         @Override public String getRegion() { return region != null ? region : "id"; }
         @Override public void setRegion(String region) { this.region = region; }
 
+        @Override public String getCountryCode() { return countryCode != null ? countryCode : ""; }
+        @Override public void setCountryCode(String countryCode) { this.countryCode = countryCode != null ? countryCode : ""; }
+
+        @Override public String getVehicleName() { return vehicleName != null ? vehicleName : VehicleSummary.DEFAULT_MODEL_NAME; }
+        @Override public void setVehicleName(String vehicleName) { this.vehicleName = vehicleName != null ? vehicleName : VehicleSummary.DEFAULT_MODEL_NAME; }
+
+        @Override public String getCustomVehicleName() { return customVehicleName != null ? customVehicleName : ""; }
+        @Override public void setCustomVehicleName(String customVehicleName) { this.customVehicleName = customVehicleName != null ? customVehicleName.trim() : ""; }
+        @Override public String getVehicleIconEmoji(String vin) {
+            String v = iconEmoji.get(vin);
+            return v != null ? v : "";
+        }
+        @Override public void setVehicleIconEmoji(String vin, String emoji) {
+            if (vin == null) return;
+            if (emoji == null || emoji.trim().isEmpty()) iconEmoji.remove(vin);
+            else iconEmoji.put(vin, emoji);
+        }
+        @Override public String getVehicleIconPhoto(String vin) {
+            String v = iconPhoto.get(vin);
+            return v != null ? v : "";
+        }
+        @Override public void setVehicleIconPhoto(String vin, String path) {
+            if (vin == null) return;
+            if (path == null || path.trim().isEmpty()) iconPhoto.remove(vin);
+            else iconPhoto.put(vin, path);
+        }
+        @Override public boolean isVehicleSwipeHintDismissed() { return swipeHintDismissed; }
+        @Override public void setVehicleSwipeHintDismissed(boolean dismissed) { swipeHintDismissed = dismissed; }
+
+        @Override public String getWidgetVehicle(int appWidgetId) {
+            String vin = widgetVehicles.get(appWidgetId);
+            return vin != null ? vin : "";
+        }
+        @Override public void setWidgetVehicle(int appWidgetId, String vin) {
+            if (vin == null || vin.trim().isEmpty()) widgetVehicles.remove(appWidgetId);
+            else widgetVehicles.put(appWidgetId, vin.trim());
+        }
+
+        @Override public String getVehicleCustomName(String vin) {
+            String name = vehicleCustomNames.get(vin);
+            return name != null ? name : "";
+        }
+        @Override public void setVehicleCustomName(String vin, String customName) {
+            if (vin == null || vin.trim().isEmpty()) return;
+            String val = customName != null ? customName.trim() : "";
+            if (val.isEmpty()) vehicleCustomNames.remove(vin.trim());
+            else vehicleCustomNames.put(vin.trim(), val);
+        }
+
+        @Override public List<VehicleSummary> getVehicles() { return vehicles != null ? vehicles : java.util.Collections.emptyList(); }
+        @Override public void setVehicles(List<VehicleSummary> vehicles) {
+            this.vehicles = vehicles != null ? vehicles : java.util.Collections.emptyList();
+            this.vehiclesFetchedAt = System.currentTimeMillis();
+        }
+        @Override public long getVehiclesFetchedAt() { return vehiclesFetchedAt; }
+        @Override public void setVehiclesFetchedAt(long epochMillis) { this.vehiclesFetchedAt = epochMillis; }
+
+        @Override public String getDistanceUnit() { return distanceUnit; }
+        @Override public void setDistanceUnit(String unit) { this.distanceUnit = com.bydwatch.companion.model.UnitPreferences.normalizeDistanceUnit(unit); }
+
+        @Override public String getTempUnit() { return tempUnit; }
+        @Override public void setTempUnit(String unit) { this.tempUnit = com.bydwatch.companion.model.UnitPreferences.normalizeTempUnit(unit); }
+
+        @Override public String getPressureUnit() { return pressureUnit; }
+        @Override public void setPressureUnit(String unit) { this.pressureUnit = com.bydwatch.companion.model.UnitPreferences.normalizePressureUnit(unit); }
+
+        @Override public String getWatchTarget() { return watchTarget; }
+        @Override public void setWatchTarget(String target) { this.watchTarget = "store".equalsIgnoreCase(target) ? "store" : "dev"; }
+
+        @Override public boolean isAlertsEnabled() { return alertsEnabled; }
+        @Override public void setAlertsEnabled(boolean enabled) { this.alertsEnabled = enabled; }
+
+        @Override public boolean isDisclaimerAccepted() { return disclaimerAccepted; }
+        @Override public void setDisclaimerAccepted(boolean accepted) { this.disclaimerAccepted = accepted; }
+
+        @Override public int getWidgetSyncIntervalMinutes() { return widgetSyncIntervalMinutes; }
+        @Override public void setWidgetSyncIntervalMinutes(int minutes) {
+            this.widgetSyncIntervalMinutes = Math.max(
+                    MIN_WIDGET_SYNC_MINUTES, Math.min(MAX_WIDGET_SYNC_MINUTES, minutes));
+        }
+
+        private int widgetStyle = DEFAULT_WIDGET_STYLE;
+        @Override public int getWidgetStyle() { return widgetStyle; }
+        @Override public void setWidgetStyle(int style) {
+            this.widgetStyle = ConfigStore.normalizeWidgetStyle(style);
+        }
+
+        private String appLanguage = DEFAULT_APP_LANGUAGE;
+        @Override public String getAppLanguage() { return appLanguage; }
+        @Override public void setAppLanguage(String language) {
+            this.appLanguage = ConfigStore.normalizeAppLanguage(language);
+        }
+
+        @Override public boolean isHideExtraControls() { return hideExtraControls; }
+        @Override public void setHideExtraControls(boolean hide) { this.hideExtraControls = hide; }
+
+        @Override public boolean isVerboseLogsEnabled() { return verboseLogsEnabled; }
+        @Override public void setVerboseLogsEnabled(boolean enabled) { this.verboseLogsEnabled = enabled; }
+
+        @Override public String getWidgetStatusJson() { return widgetStatusJson; }
+        @Override public void setWidgetStatusJson(String json) { this.widgetStatusJson = json; }
+
+        @Override public long getWidgetLastSyncMs() { return widgetLastSyncMs; }
+        @Override public void setWidgetLastSyncMs(long syncMs) { this.widgetLastSyncMs = Math.max(0L, syncMs); }
+
         @Override public int getDefaultTempC() { return defaultTempC; }
         @Override public void setDefaultTempC(int defaultTempC) { this.defaultTempC = defaultTempC; }
+
+        @Override public int getDefaultTempGear() { return defaultTempGear; }
+        @Override public void setDefaultTempGear(int gear) {
+            this.defaultTempGear = Math.max(MIN_TEMP_GEAR, Math.min(MAX_TEMP_GEAR, gear));
+        }
+
+        @Override public int getDefaultFanLevel() { return defaultFanLevel; }
+        @Override public void setDefaultFanLevel(int level) {
+            this.defaultFanLevel = Math.max(MIN_FAN_LEVEL, Math.min(MAX_FAN_LEVEL, level));
+        }
+
+        @Override public int getDefaultWindMode() { return defaultWindMode; }
+        @Override public void setDefaultWindMode(int windMode) {
+            this.defaultWindMode = (windMode == WIND_MODE_BODY || windMode == WIND_MODE_BODY_FEET
+                    || windMode == WIND_MODE_FEET) ? windMode : DEFAULT_WIND_MODE;
+        }
+
+        @Override public int getDefaultAcDurationMinutes() { return defaultAcDurationMinutes; }
+        @Override public void setDefaultAcDurationMinutes(int minutes) {
+            this.defaultAcDurationMinutes = ConfigStore.normalizeAcDurationMinutes(minutes);
+        }
+
+        @Override public boolean isManualAcMode() {
+            return manualAcOverride != null ? manualAcOverride.booleanValue() : detectedManualAc;
+        }
+        @Override public void setManualAcMode(boolean manual) { this.manualAcOverride = Boolean.valueOf(manual); }
+        @Override public Boolean getManualAcOverride() { return manualAcOverride; }
+        @Override public boolean isDetectedManualAc() { return detectedManualAc; }
+        @Override public void setDetectedManualAc(boolean detected) { this.detectedManualAc = detected; }
+
+        private String actionCombosJson = null;
+        private String widgetSlotsJson = null;
+        private String homeCustomButtonsJson = null;
+        private boolean showHomeClimate = true;
+        private boolean showHomeAlerts = true;
+        private boolean showHomeLocation = true;
+        private boolean showHomeHealth = true;
+        private long lastUpdateCheckMs = 0L;
+        private boolean supportCardDismissed = false;
+
+        @Override public String getActionCombosJson() { return actionCombosJson; }
+        @Override public void setActionCombosJson(String json) { this.actionCombosJson = json; }
+        @Override public String getWidgetSlotsJson() { return widgetSlotsJson; }
+        @Override public void setWidgetSlotsJson(String json) { this.widgetSlotsJson = json; }
+        @Override public String getHomeCustomButtonsJson() { return homeCustomButtonsJson; }
+        @Override public void setHomeCustomButtonsJson(String json) { this.homeCustomButtonsJson = json; }
+        @Override public boolean isShowHomeClimate() { return showHomeClimate; }
+        @Override public void setShowHomeClimate(boolean show) { this.showHomeClimate = show; }
+        @Override public boolean isShowHomeAlerts() { return showHomeAlerts; }
+        @Override public void setShowHomeAlerts(boolean show) { this.showHomeAlerts = show; }
+        @Override public boolean isShowHomeLocation() { return showHomeLocation; }
+        @Override public void setShowHomeLocation(boolean show) { this.showHomeLocation = show; }
+        @Override public boolean isShowHomeHealth() { return showHomeHealth; }
+        @Override public void setShowHomeHealth(boolean show) { this.showHomeHealth = show; }
+        @Override public long getLastUpdateCheckMs() { return lastUpdateCheckMs; }
+        @Override public void setLastUpdateCheckMs(long checkMs) { this.lastUpdateCheckMs = Math.max(0L, checkMs); }
+        @Override public boolean isSupportCardDismissed() { return supportCardDismissed; }
+        @Override public void setSupportCardDismissed(boolean dismissed) { this.supportCardDismissed = dismissed; }
+
+        @Override public boolean isSingleFlightActionEnabled() { return singleFlightActionEnabled; }
+        @Override public void setSingleFlightActionEnabled(boolean enabled) { this.singleFlightActionEnabled = enabled; }
+
+        @Override public String getBiometricScope() { return biometricScope; }
+        @Override public void setBiometricScope(String scope) { this.biometricScope = ConfigStore.normalizeBiometricScope(scope); }
+
+        @Override public int getBiometricGraceMinutes() { return biometricGraceMinutes; }
+        @Override public void setBiometricGraceMinutes(int minutes) { this.biometricGraceMinutes = ConfigStore.normalizeBiometricGraceMinutes(minutes); }
+
+        @Override public boolean isBiometricWidgetSyncRequired() { return biometricWidgetSyncRequired; }
+        @Override public void setBiometricWidgetSyncRequired(boolean required) { this.biometricWidgetSyncRequired = required; }
+
+        @Override public long getLastBiometricAuthElapsedMs() { return lastBiometricAuthElapsedMs; }
+        @Override public void setLastBiometricAuthElapsedMs(long elapsedMs) { this.lastBiometricAuthElapsedMs = elapsedMs; }
+
+        @Override public int getLastBiometricAuthBootCount() { return lastBiometricAuthBootCount; }
+        @Override public void setLastBiometricAuthBootCount(int bootCount) { this.lastBiometricAuthBootCount = bootCount; }
 
         @Override
         public boolean isConfigured() {
@@ -289,6 +591,18 @@ public class BydRepositoryTest {
             vin = null;
             region = "id";
             defaultTempC = 17;
+            defaultTempGear = DEFAULT_TEMP_GEAR;
+            defaultFanLevel = DEFAULT_FAN_LEVEL;
+            defaultWindMode = DEFAULT_WIND_MODE;
+            manualAcOverride = null;
+            detectedManualAc = false;
+            actionCombosJson = null;
+            widgetSlotsJson = null;
+            homeCustomButtonsJson = null;
+            showHomeClimate = true;
+            showHomeAlerts = true;
+            showHomeLocation = true;
+            showHomeHealth = true;
         }
     }
 
@@ -299,9 +613,16 @@ public class BydRepositoryTest {
         public final AtomicInteger lockCalls = new AtomicInteger();
         public final AtomicInteger unlockCalls = new AtomicInteger();
         public final AtomicInteger startClimateCalls = new AtomicInteger();
+        public final AtomicInteger startElectricClimateCalls = new AtomicInteger();
         public final AtomicInteger stopClimateCalls = new AtomicInteger();
+        public volatile double lastTempCelsius = -1;
+        public volatile int lastTempGear = -1;
+        public volatile int lastWindLevel = -1;
+        public volatile int lastWindMode = -1;
+        public volatile int lastAcDurationMinutes = -1;
         public final AtomicInteger flashLightsCalls = new AtomicInteger();
         public final AtomicInteger findCarCalls = new AtomicInteger();
+        public final AtomicInteger fetchGpsCalls = new AtomicInteger();
 
         public final AtomicInteger activeConcurrentOperations = new AtomicInteger();
         public final AtomicInteger maxObservedConcurrency = new AtomicInteger();
@@ -318,6 +639,22 @@ public class BydRepositoryTest {
 
         public volatile VehicleStatus currentStatus =
                 new VehicleStatus(80, 300, false, false, 25, 17, 1700000000L);
+        public volatile VehicleLocation currentLocation = null;
+
+        @Override
+        public VehicleLocation fetchGpsInfo(String vin) throws Exception {
+            enterOp();
+            try {
+                fetchGpsCalls.incrementAndGet();
+                if (transportError != null) throw transportError;
+                if (!authValid) {
+                    throw new IOException("Login failed: code=1001 unauthorized");
+                }
+                return currentLocation;
+            } finally {
+                exitOp();
+            }
+        }
 
         private void enterOp() {
             int active = activeConcurrentOperations.incrementAndGet();
@@ -422,11 +759,54 @@ public class BydRepositoryTest {
 
         @Override
         public boolean startClimate(String vin, double tempCelsius) throws Exception {
+            return startClimate(vin, tempCelsius, ConfigStore.DEFAULT_AC_DURATION_MINUTES);
+        }
+
+        @Override
+        public boolean startClimate(String vin, double tempCelsius, int durationMinutes) throws Exception {
             enterOp();
             try {
                 startClimateCalls.incrementAndGet();
-                currentStatus = new VehicleStatus(currentStatus.soc, currentStatus.rangeKm,
-                        currentStatus.locked, true, currentStatus.cabinTempC, (int) Math.round(tempCelsius), System.currentTimeMillis());
+                lastTempCelsius = tempCelsius;
+                lastAcDurationMinutes = durationMinutes;
+                currentStatus = new VehicleStatus.Builder(
+                        currentStatus.soc, currentStatus.rangeKm, currentStatus.locked,
+                        true, currentStatus.cabinTempC, (int) Math.round(tempCelsius),
+                        System.currentTimeMillis())
+                        .manualAc(currentStatus.manualAc)
+                        .build();
+                return true;
+            } finally {
+                exitOp();
+            }
+        }
+
+        @Override
+        public boolean startElectricClimate(String vin, int tempGear, int windLevel) throws Exception {
+            return startElectricClimate(vin, tempGear, windLevel, ConfigStore.DEFAULT_WIND_MODE);
+        }
+
+        @Override
+        public boolean startElectricClimate(String vin, int tempGear, int windLevel, int windMode) throws Exception {
+            return startElectricClimate(vin, tempGear, windLevel, windMode, ConfigStore.DEFAULT_AC_DURATION_MINUTES);
+        }
+
+        @Override
+        public boolean startElectricClimate(
+                String vin, int tempGear, int windLevel, int windMode, int durationMinutes) throws Exception {
+            enterOp();
+            try {
+                startElectricClimateCalls.incrementAndGet();
+                lastTempGear = tempGear;
+                lastWindLevel = windLevel;
+                lastWindMode = windMode;
+                lastAcDurationMinutes = durationMinutes;
+                currentStatus = new VehicleStatus.Builder(
+                        currentStatus.soc, currentStatus.rangeKm, currentStatus.locked,
+                        true, currentStatus.cabinTempC, currentStatus.targetTempC,
+                        System.currentTimeMillis())
+                        .manualAc(true)
+                        .build();
                 return true;
             } finally {
                 exitOp();
@@ -467,5 +847,150 @@ public class BydRepositoryTest {
                 exitOp();
             }
         }
+
+        public final AtomicInteger ventCalls = new AtomicInteger();
+        public final AtomicInteger batHeatCalls = new AtomicInteger();
+        public final AtomicInteger seatHeatCalls = new AtomicInteger();
+        public int lastSeatLevel = -1;
+
+        @Override
+        public boolean ventAllWindows(String vin) {
+            ventCalls.incrementAndGet();
+            return true;
+        }
+
+        @Override
+        public boolean closeAllWindows(String vin) {
+            return true;
+        }
+
+        @Override
+        public boolean setBatteryHeat(String vin, boolean enable) {
+            batHeatCalls.incrementAndGet();
+            return true;
+        }
+
+        @Override
+        public boolean setDriverSeatHeat(String vin, int level) {
+            seatHeatCalls.incrementAndGet();
+            lastSeatLevel = level;
+            return true;
+        }
+
+        public volatile List<VehicleSummary> customVehicles = null;
+
+        @Override
+        public List<VehicleSummary> fetchVehicles() throws Exception {
+            if (customVehicles != null) {
+                return customVehicles;
+            }
+            return BydGateway.super.fetchVehicles();
+        }
+    }
+
+    @Test
+    public void comfortCommandsAndSwitchCarUpdateConfigAndState() throws Exception {
+        fakeGateway.customVehicles = Arrays.asList(
+                new VehicleSummary("LC0TESTVIN1234567", "Atto 1", "B1", "EV"),
+                new VehicleSummary("LC0SECONDVIN99999", "Seal U", "B2", "EV")
+        );
+        configStore.setVehicles(fakeGateway.customVehicles);
+        JSONObject vent = executeCommand("{\"id\":\"c1\",\"action\":\"vent_windows\"}");
+        assertTrue(vent.getBoolean("ok"));
+        assertEquals(1, fakeGateway.ventCalls.get());
+
+        JSONObject bat = executeCommand("{\"id\":\"c2\",\"action\":\"bat_heat_on\"}");
+        assertTrue(bat.getBoolean("ok"));
+        assertEquals(1, fakeGateway.batHeatCalls.get());
+
+        JSONObject seat = executeCommand("{\"id\":\"c3\",\"action\":\"seat_heat\",\"level\":2}");
+        assertTrue(seat.getBoolean("ok"));
+        assertEquals(2, fakeGateway.lastSeatLevel);
+
+        JSONObject sw = executeCommand("{\"id\":\"c4\",\"action\":\"switch_car\",\"vin\":\"LC0SECONDVIN99999\"}");
+        assertTrue(sw.getBoolean("ok"));
+        assertEquals("LC0SECONDVIN99999", configStore.getVin());
+        assertEquals("Seal U", configStore.getVehicleName());
+        assertEquals("SEAL U", sw.getJSONObject("state").getString("modelName"));
+
+        JSONObject replay = executeCommand("{\"id\":\"c4\",\"action\":\"switch_car\",\"vin\":\"LC0SECONDVIN99999\"}");
+        assertFalse(replay.getBoolean("ok"));
+        assertEquals("BAD_REQUEST", replay.getString("err"));
+
+        JSONObject unknownVin = executeCommand("{\"id\":\"c5\",\"action\":\"switch_car\",\"vin\":\"UNKNOWN_VIN_999\"}");
+        assertFalse(unknownVin.getBoolean("ok"));
+        assertEquals("BAD_REQUEST", unknownVin.getString("err"));
+        assertEquals("LC0SECONDVIN99999", configStore.getVin());
+    }
+
+    @Test
+    public void acOnHonorsPerStepAcModeOverrideAndModelJsonRoundTrip() throws Exception {
+        // Global Manual AC enabled, but command asks for explicit Auto mode & 15m timer
+        configStore.setManualAcMode(true);
+        configStore.setDefaultAcDurationMinutes(25);
+        JSONObject autoOverride = executeCommand(
+                "{\"id\":\"ac_auto_1\",\"action\":\"ac_on\",\"acMode\":\"auto\",\"tempC\":21,\"acDurationMin\":15}");
+        assertTrue(autoOverride.getBoolean("ok"));
+        assertEquals(1, fakeGateway.startClimateCalls.get());
+        assertEquals(0, fakeGateway.startElectricClimateCalls.get());
+        assertEquals(21.0, fakeGateway.lastTempCelsius, 0.01);
+        assertEquals(15, fakeGateway.lastAcDurationMinutes);
+
+        // Global Auto AC enabled, but command asks for explicit Manual preset (falls back to saved 25m timer)
+        configStore.setManualAcMode(false);
+        JSONObject manualOverride = executeCommand(
+                "{\"id\":\"ac_man_1\",\"action\":\"ac_on\",\"acMode\":\"manual\",\"tempGear\":5,\"fanLevel\":6,\"windMode\":2}");
+        assertTrue(manualOverride.getBoolean("ok"));
+        assertEquals(1, fakeGateway.startElectricClimateCalls.get());
+        assertEquals(5, fakeGateway.lastTempGear);
+        assertEquals(6, fakeGateway.lastWindLevel);
+        assertEquals(2, fakeGateway.lastWindMode);
+        assertEquals(25, fakeGateway.lastAcDurationMinutes);
+
+        // Model JSON serialization round-trips including acDurationMinutes
+        com.bydwatch.companion.model.CustomActionCombo combo =
+                new com.bydwatch.companion.model.CustomActionCombo(
+                        "cmb_test",
+                        "Cool Ride",
+                        com.bydwatch.companion.model.CustomActionCombo.ICON_FROST,
+                        com.bydwatch.companion.model.CustomActionCombo.TONE_CYAN,
+                        Arrays.asList(
+                                new com.bydwatch.companion.model.CustomActionCombo.ComboStep(
+                                        com.bydwatch.companion.protocol.WatchProtocol.ACTION_UNLOCK),
+                                new com.bydwatch.companion.model.CustomActionCombo.ComboStep(
+                                        com.bydwatch.companion.protocol.WatchProtocol.ACTION_AC_ON,
+                                        true, true, 19, 6, 5, 2, -1, 30)
+                        )
+                );
+        configStore.setActionCombos(java.util.Collections.singletonList(combo));
+        java.util.List<com.bydwatch.companion.model.CustomActionCombo> restoredCombos =
+                configStore.getActionCombos();
+        assertEquals(1, restoredCombos.size());
+        assertEquals("Cool Ride", restoredCombos.get(0).name);
+        assertEquals("frost", restoredCombos.get(0).iconKey);
+        assertEquals("cyan", restoredCombos.get(0).tone);
+        assertEquals(2, restoredCombos.get(0).steps.size());
+        assertTrue(restoredCombos.get(0).steps.get(1).manualAc);
+        assertEquals(6, restoredCombos.get(0).steps.get(1).tempGear);
+        assertEquals(30, restoredCombos.get(0).steps.get(1).acDurationMinutes);
+
+        configStore.setWidgetSlots(Arrays.asList(
+                com.bydwatch.companion.model.WidgetSlotConfig.combo("cmb_test", "Chill"),
+                com.bydwatch.companion.model.WidgetSlotConfig.single(
+                        com.bydwatch.companion.model.WidgetSlotConfig.SINGLE_LIGHTS),
+                com.bydwatch.companion.model.WidgetSlotConfig.single(
+                        com.bydwatch.companion.model.WidgetSlotConfig.SINGLE_VENT_WINDOWS),
+                com.bydwatch.companion.model.WidgetSlotConfig.single(
+                        com.bydwatch.companion.model.WidgetSlotConfig.SINGLE_LOCATION)
+        ));
+        java.util.List<com.bydwatch.companion.model.WidgetSlotConfig> restoredSlots =
+                configStore.getWidgetSlots();
+        assertEquals(4, restoredSlots.size());
+        assertTrue(restoredSlots.get(0).isCombo());
+        assertEquals("cmb_test", restoredSlots.get(0).targetId);
+        assertEquals("Chill", restoredSlots.get(0).customLabel);
+        assertEquals("lights", restoredSlots.get(1).targetId);
+        assertEquals("vent_windows", restoredSlots.get(2).targetId);
+        assertEquals("location", restoredSlots.get(3).targetId);
     }
 }

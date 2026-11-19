@@ -8,31 +8,172 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+
+    <queries>
+        <package android:name="com.huawei.health" />
+        <package android:name="com.huawei.hwid" />
+    </queries>
+
+    <!-- Read-only vehicle telemetry for external consumers (the patched Google Maps). Normal level:
+         the consumer is re-signed, so a signature permission could never be granted. -->
+    <permission
+        android:name="${applicationId}.permission.READ_VEHICLE"
+        android:protectionLevel="normal" />
 
     <application
         android:name=".BydWatchApp"
         android:allowBackup="false"
-        android:icon="@android:drawable/sym_def_app_icon"
+        android:icon="@mipmap/ic_ev_watch_launcher"
         android:label="@string/app_name"
-        android:roundIcon="@android:drawable/sym_def_app_icon"
+        android:localeConfig="@xml/locales_config"
+        android:roundIcon="@mipmap/ic_ev_watch_launcher"
         android:supportsRtl="true"
-        android:theme="@style/Theme.MaterialComponents.Light.NoActionBar">
+        android:theme="@style/Theme.BydWatch">
+
+        <meta-data
+            android:name="com.huawei.hms.client.appid"
+            android:value="appid=${HUAWEI_APP_ID}" />
+        <meta-data
+            android:name="com.huawei.hms.client.cpid"
+            android:value="cpid=${HUAWEI_CP_ID}" />
 
         <activity
-            android:name=".ui.MainActivity"
-            android:exported="true">
+            android:name=".ui.SplashActivity"
+            android:exported="true"
+            android:label="${DEMO_SPLASH_LABEL}">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".ui.MainActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize|stateHidden" />
+
+        <activity
+            android:name=".lab.LabActivity"
+            android:exported="false"
+            android:label="@string/lab_title" />
+
+        <activity
+            android:name=".ui.NavigationPromptActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:noHistory="true"
+            android:theme="@style/Theme.BydWatch.TranslucentDialog" />
+
+        <activity
+            android:name=".ui.WidgetVehiclePickerActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:noHistory="true"
+            android:theme="@style/Theme.BydWatch.TranslucentDialog" />
+
+        <activity
+            android:name=".ui.WidgetAuthActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:launchMode="singleInstance"
+            android:noHistory="true"
+            android:taskAffinity=""
+            android:theme="@style/Theme.BydWatch.TranslucentDialog" />
+
         <service
             android:name=".wear.WearBridgeService"
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="connectedDevice" />
+
+        <service
+            android:name=".ui.QuickControlTileService"
+            android:exported="true"
+            android:icon="@drawable/ic_byd_lock"
+            android:label="@string/tile_label"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
+        <!-- Demo build only: lets screenshot automation add the widgets without pinning them by hand. -->
+        <service
+            android:name=".ui.DemoSetupTileService"
+            android:enabled="${DEMO_SETUP_TILE}"
+            android:exported="true"
+            android:icon="@drawable/ic_byd_lock"
+            android:label="@string/demo_tile_label"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
+        <service
+            android:name=".ui.WidgetSyncJobService"
+            android:exported="false"
+            android:permission="android.permission.BIND_JOB_SERVICE" />
+
+        <receiver
+            android:name=".ui.WidgetActionReceiver"
+            android:exported="false" />
+
+        <receiver
+            android:name=".ui.VehicleWidgetProvider"
+            android:exported="true"
+            android:label="@string/widget_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/vehicle_widget_info" />
+        </receiver>
+
+        <receiver
+            android:name=".ui.LocationWidgetProvider"
+            android:exported="true"
+            android:label="@string/location_widget_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/location_widget_info" />
+        </receiver>
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
+        <!-- One read-only row of charge/range for the patched Google Maps. Exported because the
+             consumer is a different package; guarded by the normal-level READ_VEHICLE permission. -->
+        <provider
+            android:name="com.bydwatch.companion.data.VehicleStatusProvider"
+            android:authorities="${applicationId}.vehicle"
+            android:exported="true"
+            android:grantUriPermissions="true"
+            android:readPermission="${applicationId}.permission.READ_VEHICLE" />
+
+        <!-- A consumer may ask for fresher data; the repository debounces the request itself. -->
+        <receiver
+            android:name="com.bydwatch.companion.data.VehicleRefreshRequestReceiver"
+            android:exported="true"
+            android:permission="${applicationId}.permission.READ_VEHICLE">
+            <intent-filter>
+                <action android:name="${applicationId}.action.REQUEST_REFRESH" />
+            </intent-filter>
+        </receiver>
 
     </application>
 

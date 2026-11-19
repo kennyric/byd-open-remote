@@ -1,0 +1,277 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="860" viewBox="0 0 1280 860" fill="none">
+  <title>No.1 (BYD Open Remote) — Live Widget Preview, Custom Combos &amp; 4-Slot Customizer (Figma / Penpot Editable Vector)</title>
+
+  <!-- Figma Canvas Background -->
+  <rect width="1280" height="860" rx="24" fill="#0B100E" />
+  <text x="32" y="38" fill="#ECF2EE" font-family="Inter, Roboto, sans-serif" font-size="18" font-weight="700">No.1 · Live Widget Preview + Custom Action Combos + 4 Changeable Widget Slots</text>
+  <text x="32" y="58" fill="#87938C" font-family="Inter, Roboto, sans-serif" font-size="12">Layered Figma / Penpot vector artboards — every screen frame &amp; slot component is grouped for editing.</text>
+
+  <!-- ==================== FRAME 1: PREFERENCES + LIVE PREVIEW ==================== -->
+  <g id="frame-1-preferences-live-preview" transform="translate(32, 82)">
+    <text x="0" y="14" fill="#6DDBAC" font-family="Inter, Roboto, sans-serif" font-size="12" font-weight="700"># Frame 1 · Preferences → Live 4×3 Widget Preview &amp; 4 Slot Configurator</text>
+    <rect x="0" y="24" width="380" height="730" rx="28" fill="#0E1412" stroke="#2C3833" stroke-width="2" />
+
+    <!-- Header -->
+    <text x="20" y="56" fill="#6DDBAC" font-family="Inter, Roboto, sans-serif" font-size="11" font-weight="700">PREFERENCES</text>
+    <text x="20" y="76" fill="#ECF2EE" font-family="Inter, Roboto, sans-serif" font-size="17" font-weight="800">Widget &amp; Controls</text>
+
+    <!-- Style Selector Card + Live Preview -->
+    <rect x="16" y="92" width="348" height="398" rx="20" fill="#171E1B" stroke="#28332E" />
+    <text x="30" y="116" fill="#E1E8E3" font-family="Inter, Roboto, sans-serif" font-size="13" font-weight="700">4×3 Widget Style</text>
+    <text x="350" y="116" text-anchor="end" fill="#87938C" font-family="Inter, Roboto, sans-serif" font-size="11">Balanced Dual Metric</text>
+
+    <!-- Style Segmented Pills -->
+    <rect x="30" y="126" width="320" height="34" rx="11" fill="#0E1412" stroke="#24302B" />
+    <rect x="34" y="130" width="76" height="26" rx="8" fill="#9FF2CE" />
+    <text x="72" y="147" text-anchor="middle" fill="#002114" font-family="Inter, Roboto, sans-serif" font-size="11.5" font-weight="700">Capsule</text>
+    <text x="150" y="147" text-anchor="middle" fill="#B8C3BC" font-family="Inter, Roboto, sans-serif" font-size="11.5" font-weight="700">Ring</text>
+    <text x="230" y="147" text-anchor="middle" fill="#B8C3BC" font-family="Inter, Roboto, sans-serif" font-size="11.5" font-weight="700">Bento</text>
+    <text x="310" y="147" text-anchor="middle" fill="#B8C3BC" font-family="Inter, Roboto, sans-serif" font-size="11.5" font-weight="700">Tank</text>
+
+    <!-- Dashed Live Preview Container -->
+    <rect x="30" y="170" width="320" height="306" rx="18" fill="#0B100E" stroke="#34483F" stroke-dasharray="5 4" />
+    <text x="42" y="188" fill="#6DDBAC" font-family="Inter, Roboto, sans-serif" font-size="11" font-weight="700">Live Preview (Tap a button to edit slot)</text>
+
+    <!-- Inner 4x3 Widget Card -->
+    <rect x="40" y="198" width="300" height="266" rx="20" fill="#171E1B" stroke="#28332E" />
+    <text x="54" y="220" fill="#ECF2EE" font-family="Inter, Roboto, sans-serif" font-size="12" font-weight="700">Atto 1</text>
+    <rect x="220" y="206" width="52" height="20" rx="10" fill="#222B27" />
+    <text x="246" y="219.5" text-anchor="middle" fill="#B8C3BC" font-family="Inter, Roboto, sans-serif" font-size="10.5" font-weight="700">Locked</text>
+    <rect x="276" y="206" width="50" height="20" rx="10" fill="#222B27" />
+    <text x="301" y="219.5" text-anchor="middle" fill="#B8C3BC" font-family="Inter, Roboto, sans-serif" font-size="10.5" font-weight="700">AC Off</text>
+
+    <!-- Capsule Battery Block -->
+    <rect x="52" y="232" width="276" height="94" rx="15" fill="#202925" stroke="#2C3833" />
+    <text x="66" y="266" fill="#6DDBAC" font-family="Inter, Roboto, sans-serif" font-size="28" font-weight="800">46%</text>
+    <text x="314" y="250" text-anchor="end" fill="#87938C" font-family="Inter, Roboto, sans-serif" font-size="10">RANGE</text>
+    <text x="314" y="267" text-anchor="end" fill="#E1E8E3" font-family="Inter, Roboto, sans-serif" font-size="15" font-weight="700">138 km</text>
+    <rect x="66" y="278" width="248" height="9" rx="4.5" fill="#2F3B36" />
+    <rect x="66" y="278" width="114" height="9" rx="4.5" fill="#6DDBAC" />
+    <text x="66" y="309" fill="#B8C3BC" font-family="Inter, Roboto, sans-serif" font-size="10.5">24,111 km · Closed</text>
+    <text x="314" y="309" text-anchor="end" fill="#87938C" font-family="Inter, Roboto, sans-serif" font-size="10.5">20:14</text>
+
+    <!-- 1-Row Location -->
+    <rect x="52" y="334" width="276" height="38" rx="13" fill="#202925" stroke="#2C3833" />
+    <rect x="60" y="341" width="24" height="24" rx="7" fill="#005138" />
+    <circle cx="72" cy="353" r="4" fill="#9FF2CE" />
+    <text x="92" y="357" fill="#E1E8E3" font-family="Inter, Roboto, sans-serif" font-size="11.5" font-weight="700">Jl. W. R. Supratman, Pes...</text>
+
+    <!-- 4 Dynamic Preview Slots -->
+    <rect x="52" y="380" width="64" height="68" rx="15" fill="#9FF2CE" />
+    <text x="84" y="427" text-anchor="middle" fill="#002114" font-family="Inter, Roboto, sans-serif" font-size="11" font-weight="700">Lock</text>
+    <rect x="122" y="380" width="64" height="68" rx="15" fill="#CBE6FF" />
+    <text x="154" y="427" text-anchor="middle" fill="#001E30" font-family="Inter, Roboto, sans-serif" font-size="11" font-weight="700">Unlock</text>
+    <rect x="192" y="380" width="64" height="68" rx="15" fill="#FFE0B2" stroke="#FFFFFF" stroke-width="2" />
+    <text x="224" y="427" text-anchor="middle" fill="#2B1700" font-family="Inter, Roboto, sans-serif" font-size="11" font-weight="700">Cool &amp; Go</text>
+    <rect x="262" y="380" width="66" height="68" rx="15" fill="#222B27" stroke="#303B36" />
+    <text x="295" y="427" text-anchor="middle" fill="#C9D5CE" font-family="Inter, Roboto, sans-serif" font-size="11" font-weight="700">Sync</text>
+
+    <!-- Widget Buttons Config Card -->
+    <rect x="16" y="502" width="348" height="102" rx="18" fill="#171E1B" stroke="#28332E" />
+    <text x="30" y="524" fill="#E1E8E3" font-family="Inter, Roboto, sans-serif" font-size="12.5" font-weight="700">Widget Buttons</text>
+    <text x="350" y="524" text-anchor="end" fill="#6DDBAC" font-family="Inter, Roboto, sans-serif" font-size="11" font-weight="700">Reset</text>
+    <rect x="30" y="538" width="76" height="52" rx="11" fill="#0E1412" stroke="#2C3833" />
+    <text x="40" y="556" fill="#87938C" font-family="Inter, Roboto, sans-serif" font-size="10" font-weight="700">S1</text>
+    <text x="40" y="576" fill="#ECF2EE" font-family="Inter, Roboto, sans-serif" font-size="11.5" font-weight="700">Lock</text>
+    <rect x="112" y="538" width="76" height="52" rx="11" fill="#0E1412" stroke="#2C3833" />
+    <text x="122" y="556" fill="#87938C" font-family="Inter, Roboto, sans-serif" font-size="10" font-weight="700">S2</text>
+    <text x="122" y="576" fill="#ECF2EE" font-family="Inter, Roboto, sans-serif" font-size="11.5" font-weight="700">Unlock</text>
+    <rect x="194" y="538" width="76" height="52" rx="11" fill="#1D2B24" stroke="#6DDBAC" stroke-width="1.5" />
+    <text x="204" y="556" fill="#6DDBAC" font-family="Inter, Roboto, sans-serif" font-size="10" font-weight="700">S3 · 3×</text>
+    <text x="204" y="576" fill="#ECF2EE" font-family="Inter, Roboto, sans-serif" font-size="11" font-weight="700">Cool &amp; Go</text>
+    <rect x="276" y="538" width="74" height="52" rx="11" fill="#0E1412" stroke="#2C3833" />
+    <text x="286" y="556" fill="#87938C" font-family="Inter, Roboto, sans-serif" font-size="10" font-weight="700">S4</text>
+    <text x="286" y="576" fill="#ECF2EE" font-family="Inter, Roboto, sans-serif" font-size="11.5" font-weight="700">Sync</text>
+
+    <!-- Custom Action Combos Shelf -->
+    <rect x="16" y="616" width="348" height="122" rx="18" fill="#171E1B" stroke="#28332E" />
+    <text x="30" y="640" fill="#E1E8E3" font-family="Inter, Roboto, sans-serif" font-size="12.5" font-weight="700">Action Combos</text>
+    <rect x="292" y="622" width="58" height="24" rx="10" fill="#9FF2CE" />
+    <text x="321" y="638" text-anchor="middle" fill="#002114" font-family="Inter, Roboto, sans-serif" font-size="11" font-weight="700">+ New</text>
+    <rect x="30" y="654" width="320" height="58" rx="12" fill="#0E1412" stroke="#2C3833" />
+    <text x="42" y="675" fill="#ECF2EE" font-family="Inter, Roboto, sans-serif" font-size="12" font-weight="700">Cool &amp; Go (3 steps)</text>
+    <text x="42" y="695" fill="#87938C" font-family="Inter, Roboto, sans-serif" font-size="10.5">Unlock → AC Lvl 2 · Fan 5 · Face+Feet → Lights</text>
+  </g>
+
+  <!-- Prototype Connector 1 -> 2 -->
+  <path d="M416 560 C436 560, 428 290, 448 290" stroke="#7ED0FF" stroke-width="2" stroke-dasharray="4 3" />
+  <circle cx="448" cy="290" r="4" fill="#7ED0FF" />
+
+  <!-- ==================== FRAME 2: SLOT PICKER BOTTOM SHEET ==================== -->
+  <g id="frame-2-slot-picker" transform="translate(452, 82)">
+    <text x="0" y="14" fill="#7ED0FF" font-family="Inter, Roboto, sans-serif" font-size="12" font-weight="700"># Frame 2 · Bottom Sheet → Assign Widget Button Slot</text>
+    <rect x="0" y="24" width="380" height="460" rx="28" fill="#0E1412" stroke="#2C3833" stroke-width="2" />
+
+    <rect x="166" y="38" width="48" height="4" rx="2" fill="#3A4741" />
+    <text x="20" y="62" fill="#7ED0FF" font-family="Inter, Roboto, sans-serif" font-size="11" font-weight="700">BUTTON 3 OF 4</text>
+    <text x="20" y="83" fill="#ECF2EE" font-family="Inter, Roboto, sans-serif" font-size="17" font-weight="800">Choose Action</text>
+    <rect x="266" y="56" width="96" height="32" rx="11" fill="#FFE0B2" />
+    <text x="314" y="76" text-anchor="middle" fill="#2B1700" font-family="Inter, Roboto, sans-serif" font-size="12" font-weight="700">Cool &amp; Go</text>
+
+    <!-- Short Label Input -->
+    <rect x="18" y="100" width="344" height="40" rx="12" fill="#171E1B" stroke="#28332E" />
+    <text x="30" y="124" fill="#B8C3BC" font-family="Inter, Roboto, sans-serif" font-size="11.5" font-weight="600">Label</text>
+    <rect x="220" y="106" width="132" height="28" rx="8" fill="#0E1412" stroke="#6DDBAC" />
+    <text x="342" y="124" text-anchor="end" fill="#ECF2EE" font-family="Inter, Roboto, sans-serif" font-size="11.5" font-weight="700">Cool &amp; Go</text>
+
+    <!-- Custom Combos List -->
+    <text x="20" y="162" fill="#FFE0B2" font-family="Inter, Roboto, sans-serif" font-size="12" font-weight="700">Your Combos</text>
+    <rect x="18" y="172" width="344" height="54" rx="12" fill="#192A22" stroke="#6DDBAC" />
+    <text x="30" y="194" fill="#ECF2EE" font-family="Inter, Roboto, sans-serif" font-size="12" font-weight="700">Cool &amp; Go</text>
+    <text x="30" y="212" fill="#87938C" font-family="Inter, Roboto, sans-serif" font-size="10.5">Unlock → Start AC (Lvl 2, Fan 5) → Flash Lights</text>
+    <rect x="292" y="186" width="58" height="22" rx="11" fill="#9FF2CE" />
+    <text x="321" y="201" text-anchor="middle" fill="#002114" font-family="Inter, Roboto, sans-serif" font-size="10.5" font-weight="700">Active</text>
+
+    <rect x="18" y="232" width="344" height="48" rx="12" fill="#171E1B" stroke="#28332E" />
+    <text x="30" y="253" fill="#ECF2EE" font-family="Inter, Roboto, sans-serif" font-size="12" font-weight="700">Quick Leave</text>
+    <text x="30" y="269" fill="#87938C" font-family="Inter, Roboto, sans-serif" font-size="10.5">Close Windows → AC Off → Lock</text>
+
+    <!-- Single Actions Grid -->
+    <text x="20" y="302" fill="#B8C3BC" font-family="Inter, Roboto, sans-serif" font-size="12" font-weight="700">Single Actions</text>
+    <g transform="translate(18, 312)">
+      <rect x="0" y="0" width="110" height="36" rx="10" fill="#171E1B" stroke="#28332E" />
+      <text x="55" y="22" text-anchor="middle" fill="#E1E8E3" font-family="Inter, Roboto, sans-serif" font-size="11.5" font-weight="700">Lock</text>
+      <rect x="117" y="0" width="110" height="36" rx="10" fill="#171E1B" stroke="#28332E" />
+      <text x="172" y="22" text-anchor="middle" fill="#E1E8E3" font-family="Inter, Roboto, sans-serif" font-size="11.5" font-weight="700">Unlock</text>
+      <rect x="234" y="0" width="110" height="36" rx="10" fill="#171E1B" stroke="#28332E" />
+      <text x="289" y="22" text-anchor="middle" fill="#E1E8E3" font-family="Inter, Roboto, sans-serif" font-size="11.5" font-weight="700">AC Toggle</text>
+
+      <rect x="0" y="42" width="110" height="36" rx="10" fill="#171E1B" stroke="#28332E" />
+      <text x="55" y="64" text-anchor="middle" fill="#E1E8E3" font-family="Inter, Roboto, sans-serif" font-size="11.5" font-weight="700">Sync</text>
+      <rect x="117" y="42" width="110" height="36" rx="10" fill="#171E1B" stroke="#28332E" />
+      <text x="172" y="64" text-anchor="middle" fill="#E1E8E3" font-family="Inter, Roboto, sans-serif" font-size="11.5" font-weight="700">Flash Lights</text>
+      <rect x="234" y="42" width="110" height="36" rx="10" fill="#171E1B" stroke="#28332E" />
+      <text x="289" y="64" text-anchor="middle" fill="#E1E8E3" font-family="Inter, Roboto, sans-serif" font-size="11.5" font-weight="700">Sound Horn</text>
+
+      <rect x="0" y="84" width="110" height="36" rx="10" fill="#171E1B" stroke="#28332E" />
+      <text x="55" y="106" text-anchor="middle" fill="#E1E8E3" font-family="Inter, Roboto, sans-serif" font-size="11.5" font-weight="700">Vent Win</text>
+      <rect x="117" y="84" width="110" height="36" rx="10" fill="#171E1B" stroke="#28332E" />
+      <text x="172" y="106" text-anchor="middle" fill="#E1E8E3" font-family="Inter, Roboto, sans-serif" font-size="11.5" font-weight="700">Close Win</text>
+      <rect x="234" y="84" width="110" height="36" rx="10" fill="#171E1B" stroke="#28332E" />
+      <text x="289" y="106" text-anchor="middle" fill="#E1E8E3" font-family="Inter, Roboto, sans-serif" font-size="11.5" font-weight="700">Seat / Bat Heat</text>
+    </g>
+  </g>
+
+  <!-- ==================== FRAME 4: HOME SCREEN SIZES (BOTTOM CENTER) ==================== -->
+  <g id="frame-4-widget-sizes" transform="translate(452, 588)">
+    <text x="0" y="14" fill="#D0BCFF" font-family="Inter, Roboto, sans-serif" font-size="12" font-weight="700"># Frame 4 · Home-Screen Output (4×2 / 4×1 / 2×2 — Always 4 Buttons)</text>
+    <rect x="0" y="24" width="380" height="224" rx="22" fill="#0E1412" stroke="#2C3833" stroke-width="2" />
+
+    <!-- 4x2 Mini -->
+    <rect x="14" y="38" width="352" height="90" rx="18" fill="#171E1B" stroke="#28332E" />
+    <text x="26" y="58" fill="#6DDBAC" font-family="Inter, Roboto, sans-serif" font-size="13" font-weight="800">46%</text>
+    <text x="62" y="58" fill="#E1E8E3" font-family="Inter, Roboto, sans-serif" font-size="11.5" font-weight="600">138 km · Atto 1</text>
+    <text x="354" y="58" text-anchor="end" fill="#FFE0B2" font-family="Inter, Roboto, sans-serif" font-size="10.5" font-weight="700">Step 2/3 Starting AC…</text>
+    <rect x="24" y="68" width="78" height="48" rx="12" fill="#9FF2CE" />
+    <text x="63" y="96" text-anchor="middle" fill="#002114" font-family="Inter, Roboto, sans-serif" font-size="11" font-weight="700">Lock</text>
+    <rect x="108" y="68" width="78" height="48" rx="12" fill="#CBE6FF" />
+    <text x="147" y="96" text-anchor="middle" fill="#001E30" font-family="Inter, Roboto, sans-serif" font-size="11" font-weight="700">Unlock</text>
+    <rect x="192" y="68" width="78" height="48" rx="12" fill="#FFE0B2" />
+    <text x="231" y="96" text-anchor="middle" fill="#2B1700" font-family="Inter, Roboto, sans-serif" font-size="11" font-weight="700">Cool &amp; Go</text>
+    <rect x="276" y="68" width="78" height="48" rx="12" fill="#222B27" />
+    <text x="315" y="96" text-anchor="middle" fill="#C9D5CE" font-family="Inter, Roboto, sans-serif" font-size="11" font-weight="700">Sync</text>
+
+    <!-- 4x1 Mini -->
+    <rect x="14" y="140" width="352" height="58" rx="16" fill="#171E1B" stroke="#28332E" />
+    <text x="28" y="166" fill="#6DDBAC" font-family="Inter, Roboto, sans-serif" font-size="12.5" font-weight="800">46%</text>
+    <text x="28" y="182" fill="#87938C" font-family="Inter, Roboto, sans-serif" font-size="10">138 km</text>
+    <rect x="86" y="149" width="64" height="40" rx="10" fill="#9FF2CE" />
+    <text x="118" y="173" text-anchor="middle" fill="#002114" font-family="Inter, Roboto, sans-serif" font-size="10.5" font-weight="700">Lock</text>
+    <rect x="155" y="149" width="64" height="40" rx="10" fill="#CBE6FF" />
+    <text x="187" y="173" text-anchor="middle" fill="#001E30" font-family="Inter, Roboto, sans-serif" font-size="10.5" font-weight="700">Unlock</text>
+    <rect x="224" y="149" width="68" height="40" rx="10" fill="#FFE0B2" />
+    <text x="258" y="173" text-anchor="middle" fill="#2B1700" font-family="Inter, Roboto, sans-serif" font-size="10.5" font-weight="700">Cool &amp; Go</text>
+    <rect x="297" y="149" width="60" height="40" rx="10" fill="#222B27" />
+    <text x="327" y="173" text-anchor="middle" fill="#C9D5CE" font-family="Inter, Roboto, sans-serif" font-size="10.5" font-weight="700">Sync</text>
+
+    <text x="190" y="226" text-anchor="middle" fill="#87938C" font-family="Inter, Roboto, sans-serif" font-size="11">2×2 Grid also binds exact Slots 1–4 in a 2×2 tile layout</text>
+  </g>
+
+  <!-- ==================== FRAME 3: CUSTOM ACTION COMBO BUILDER ==================== -->
+  <g id="frame-3-combo-builder" transform="translate(868, 82)">
+    <text x="0" y="14" fill="#FFE0B2" font-family="Inter, Roboto, sans-serif" font-size="12" font-weight="700"># Frame 3 · Custom Action Combo Builder</text>
+    <rect x="0" y="24" width="380" height="730" rx="28" fill="#0E1412" stroke="#2C3833" stroke-width="2" />
+
+    <text x="20" y="56" fill="#FFE0B2" font-family="Inter, Roboto, sans-serif" font-size="11" font-weight="700">ACTION COMBO</text>
+    <text x="20" y="78" fill="#ECF2EE" font-family="Inter, Roboto, sans-serif" font-size="17" font-weight="800">Cool &amp; Go</text>
+    <rect x="272" y="52" width="90" height="32" rx="11" fill="#9FF2CE" />
+    <text x="317" y="72" text-anchor="middle" fill="#002114" font-family="Inter, Roboto, sans-serif" font-size="12" font-weight="700">Save</text>
+
+    <!-- Combo Name, Color & Icon Picker -->
+    <rect x="18" y="96" width="344" height="122" rx="16" fill="#171E1B" stroke="#28332E" />
+    <text x="30" y="114" fill="#87938C" font-family="Inter, Roboto, sans-serif" font-size="10.5" font-weight="600">Name &amp; Color</text>
+    <rect x="30" y="122" width="166" height="30" rx="9" fill="#0E1412" stroke="#2C3833" />
+    <text x="40" y="141" fill="#ECF2EE" font-family="Inter, Roboto, sans-serif" font-size="12" font-weight="700">Cool &amp; Go</text>
+    <rect x="206" y="122" width="34" height="30" rx="8" fill="#9FF2CE" />
+    <rect x="245" y="122" width="34" height="30" rx="8" fill="#CBE6FF" />
+    <rect x="284" y="122" width="34" height="30" rx="8" fill="#FFE0B2" stroke="#FFFFFF" stroke-width="2" />
+    <rect x="323" y="122" width="30" height="30" rx="8" fill="#FFDAD6" />
+    <text x="30" y="170" fill="#87938C" font-family="Inter, Roboto, sans-serif" font-size="10.5" font-weight="600">Icon</text>
+    <rect x="30" y="178" width="36" height="30" rx="8" fill="#192A22" stroke="#6DDBAC" stroke-width="1.5" />
+    <path d="M49 185L43 194h4l-1 6 6-9h-4l1-6z" stroke="#9FF2CE" stroke-width="1.5" stroke-linejoin="round" fill="none" />
+    <rect x="72" y="178" width="36" height="30" rx="8" fill="#0E1412" stroke="#2C3833" />
+    <path d="M90 185v16M85 188l10 10M95 188l-10 10" stroke="#B8C3BC" stroke-width="1.4" stroke-linecap="round" />
+    <rect x="114" y="178" width="36" height="30" rx="8" fill="#0E1412" stroke="#2C3833" />
+    <circle cx="132" cy="193" r="4" stroke="#B8C3BC" stroke-width="1.5" fill="none" />
+    <rect x="156" y="178" width="36" height="30" rx="8" fill="#0E1412" stroke="#2C3833" />
+    <path d="M174 185l6 2.5v4.5c0 3.8-2.6 6.8-6 8-3.4-1.2-6-4.2-6-8v-4.5z" stroke="#B8C3BC" stroke-width="1.4" fill="none" />
+    <rect x="198" y="178" width="36" height="30" rx="8" fill="#0E1412" stroke="#2C3833" />
+    <rect x="240" y="178" width="36" height="30" rx="8" fill="#0E1412" stroke="#2C3833" />
+    <rect x="282" y="178" width="36" height="30" rx="8" fill="#0E1412" stroke="#2C3833" />
+    <rect x="324" y="178" width="28" height="30" rx="8" fill="#0E1412" stroke="#2C3833" />
+
+    <!-- Steps Sequence Card -->
+    <rect x="18" y="230" width="344" height="456" rx="18" fill="#171E1B" stroke="#28332E" />
+    <text x="30" y="254" fill="#E1E8E3" font-family="Inter, Roboto, sans-serif" font-size="12.5" font-weight="700">Steps</text>
+    <text x="350" y="254" text-anchor="end" fill="#6DDBAC" font-family="Inter, Roboto, sans-serif" font-size="11">3 steps</text>
+
+    <!-- Step 1 -->
+    <rect x="30" y="268" width="320" height="46" rx="13" fill="#0E1412" stroke="#2C3833" />
+    <circle cx="50" cy="291" r="11" fill="#202925" />
+    <text x="50" y="295" text-anchor="middle" fill="#6DDBAC" font-family="Inter, Roboto, sans-serif" font-size="11" font-weight="700">1</text>
+    <text x="72" y="295" fill="#ECF2EE" font-family="Inter, Roboto, sans-serif" font-size="12.5" font-weight="700">Unlock Doors</text>
+
+    <!-- Step 2: Inline AC Preset -->
+    <rect x="30" y="324" width="320" height="216" rx="15" fill="#0E1412" stroke="#6DDBAC" stroke-width="1.5" />
+    <circle cx="50" cy="348" r="11" fill="#202925" />
+    <text x="50" y="352" text-anchor="middle" fill="#6DDBAC" font-family="Inter, Roboto, sans-serif" font-size="11" font-weight="700">2</text>
+    <text x="72" y="352" fill="#ECF2EE" font-family="Inter, Roboto, sans-serif" font-size="12.5" font-weight="700">Start AC</text>
+
+    <!-- AC Mode Toggle -->
+    <text x="44" y="382" fill="#7ED0FF" font-family="Inter, Roboto, sans-serif" font-size="11" font-weight="700">AC Mode</text>
+    <rect x="208" y="366" width="128" height="26" rx="8" fill="#171E1B" stroke="#28332E" />
+    <text x="240" y="383" text-anchor="middle" fill="#87938C" font-family="Inter, Roboto, sans-serif" font-size="11" font-weight="700">Auto °C</text>
+    <rect x="272" y="368" width="62" height="22" rx="6" fill="#CBE6FF" />
+    <text x="303" y="383" text-anchor="middle" fill="#001E30" font-family="Inter, Roboto, sans-serif" font-size="11" font-weight="700">Manual</text>
+
+    <!-- Temp Gear + Fan Speed -->
+    <rect x="44" y="404" width="140" height="46" rx="10" fill="#171E1B" stroke="#28332E" />
+    <text x="54" y="423" fill="#87938C" font-family="Inter, Roboto, sans-serif" font-size="10.5">Temp Gear (1–9)</text>
+    <text x="54" y="441" fill="#ECF2EE" font-family="Inter, Roboto, sans-serif" font-size="13" font-weight="800">Level 2</text>
+
+    <rect x="194" y="404" width="142" height="46" rx="10" fill="#171E1B" stroke="#28332E" />
+    <text x="204" y="423" fill="#87938C" font-family="Inter, Roboto, sans-serif" font-size="10.5">Fan Speed (1–7)</text>
+    <text x="204" y="441" fill="#ECF2EE" font-family="Inter, Roboto, sans-serif" font-size="13" font-weight="800">Fan 5</text>
+
+    <!-- Wind Direction Pills -->
+    <text x="44" y="474" fill="#87938C" font-family="Inter, Roboto, sans-serif" font-size="10.5" font-weight="600">Airflow</text>
+    <rect x="44" y="484" width="66" height="28" rx="8" fill="#171E1B" stroke="#28332E" />
+    <text x="77" y="502" text-anchor="middle" fill="#87938C" font-family="Inter, Roboto, sans-serif" font-size="11" font-weight="600">Face</text>
+    <rect x="116" y="484" width="82" height="28" rx="8" fill="#233741" stroke="#314E5B" />
+    <text x="157" y="502" text-anchor="middle" fill="#C7E7FF" font-family="Inter, Roboto, sans-serif" font-size="11" font-weight="700">Face+Feet</text>
+    <rect x="204" y="484" width="62" height="28" rx="8" fill="#171E1B" stroke="#28332E" />
+    <text x="235" y="502" text-anchor="middle" fill="#87938C" font-family="Inter, Roboto, sans-serif" font-size="11" font-weight="600">Feet</text>
+    <rect x="272" y="484" width="64" height="28" rx="8" fill="#171E1B" stroke="#28332E" />
+    <text x="304" y="502" text-anchor="middle" fill="#87938C" font-family="Inter, Roboto, sans-serif" font-size="11" font-weight="600">Defrost</text>
+
+    <!-- Step 3 -->
+    <rect x="30" y="552" width="320" height="46" rx="13" fill="#0E1412" stroke="#2C3833" />
+    <circle cx="50" cy="575" r="11" fill="#202925" />
+    <text x="50" y="579" text-anchor="middle" fill="#6DDBAC" font-family="Inter, Roboto, sans-serif" font-size="11" font-weight="700">3</text>
+    <text x="72" y="579" fill="#ECF2EE" font-family="Inter, Roboto, sans-serif" font-size="12.5" font-weight="700">Flash Lights</text>
+
+    <!-- Add Step Button -->
+    <rect x="30" y="612" width="320" height="40" rx="12" fill="#233741" stroke="#314E5B" />
+    <text x="190" y="636" text-anchor="middle" fill="#C7E7FF" font-family="Inter, Roboto, sans-serif" font-size="12" font-weight="700">+ Add Action</text>
+  </g>
+</svg>
