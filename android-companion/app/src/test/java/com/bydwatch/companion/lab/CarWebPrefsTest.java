@@ -30,7 +30,7 @@ public class CarWebPrefsTest {
         assertFalse(CarWebPrefs.showOverdrive(context));
         assertTrue(CarWebPrefs.hideUrlBar(context));
         assertEquals("", CarWebPrefs.baseUrl(context));
-        assertEquals("/", CarWebPrefs.defaultPage(context));
+        assertEquals("/vehicle-control.html", CarWebPrefs.defaultPage(context));
     }
 
     @Test

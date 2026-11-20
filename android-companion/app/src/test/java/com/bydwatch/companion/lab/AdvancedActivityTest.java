@@ -73,4 +73,17 @@ public class AdvancedActivityTest {
         activity.findViewById(com.bydwatch.companion.R.id.btnAdvLoadAll).performClick();
         assertEquals(android.view.View.VISIBLE, more.getVisibility());
     }
+
+    @Test
+    public void resetSelectsVehicleControl() {
+        CarWebPrefs.setDefaultPage(context, "/events.html");
+        AdvancedActivity activity = Robolectric.buildActivity(AdvancedActivity.class)
+                .setup().get();
+
+        activity.findViewById(com.bydwatch.companion.R.id.btnAdvReset).performClick();
+
+        android.widget.RadioButton vehicle = activity.findViewById(
+                com.bydwatch.companion.R.id.rbAdvVehicleControl);
+        assertTrue(vehicle.isChecked());
+    }
 }

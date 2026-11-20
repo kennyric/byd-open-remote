@@ -174,6 +174,7 @@ public class AdvancedActivity extends AppCompatActivity {
         rgTop.clearCheck();
         rgMore.clearCheck();
         etManual.setText("");
+        rgTop.check(R.id.rbAdvVehicleControl);
         binding = false;
         updatePreview();
     }
@@ -206,7 +207,7 @@ public class AdvancedActivity extends AppCompatActivity {
             String path = morePaths.get(moreId);
             if (path != null) return path;
         }
-        return "/";
+        return "/vehicle-control.html";
     }
 
     private void updatePreview() {

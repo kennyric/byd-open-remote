@@ -39,7 +39,7 @@ public final class CarWebPrefs {
     }
 
     public static String defaultPage(Context context) {
-        return prefs(context).getString(KEY_PAGE, "/");
+        return prefs(context).getString(KEY_PAGE, "/vehicle-control.html");
     }
 
     public static void setDefaultPage(Context context, String page) {

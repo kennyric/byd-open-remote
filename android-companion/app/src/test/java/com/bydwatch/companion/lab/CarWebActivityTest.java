@@ -72,4 +72,17 @@ public class CarWebActivityTest {
         assertTrue("loaded=" + loaded,
                 loaded != null && loaded.contains("192.168.1.50:8080/events.html"));
     }
+
+    @Test
+    public void defaultPageLoadsVehicleControl() {
+        CarWebPrefs.reset(context);
+        CarWebPrefs.setBaseUrl(context, "http://192.168.1.50:8080");
+
+        CarWebActivity activity = Robolectric.buildActivity(CarWebActivity.class)
+                .setup().get();
+        WebView webView = activity.findViewById(com.bydwatch.companion.R.id.webCar);
+        String loaded = Shadows.shadowOf(webView).getLastLoadedUrl();
+        assertTrue("loaded=" + loaded,
+                loaded != null && loaded.contains("192.168.1.50:8080/vehicle-control.html"));
+    }
 }
