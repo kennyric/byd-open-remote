@@ -86,9 +86,13 @@ No access-code field is needed for this phase.
   `CookieManager.getCookie(baseUrl)` and send the same session cookie. Only if
   that proves unreliable should Advanced gain an optional access-token field.
 
-### Main Controls card
+### Separate Overdrive card
 
-Add `cardOverdriveShortcuts` to `activity_main.xml`, shown only when:
+Add a separate `cardOverdriveShortcuts` **after** `cardControls` in
+`activity_main.xml` — outside the main Controls card, below the Vehicle
+Health & TPMS box. Do not nest it inside `cardControls`.
+
+Shown only when:
 
 - `!BuildConfig.DEMO_BUILD`
 - `CarWebPrefs.overdriveShortcutsEnabled`

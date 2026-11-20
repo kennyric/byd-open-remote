@@ -381,7 +381,10 @@ Expected: FAIL — card/IDs missing.
 - [ ] **Step 3: Implement**
 
 `activity_main.xml`:
-- Add `cardOverdriveShortcuts` after `cardControls`, hidden by default.
+- Add `cardOverdriveShortcuts` **after** `cardControls` (a separate sibling,
+  below the TPMS box), style `@style/Widget.BydWatch.Card`,
+  `layout_marginBottom="16dp"`, hidden by default. Do not nest it inside
+  `cardControls`.
 - Title **Overdrive**, status `tvOverdriveShortcutStatus`.
 - Buttons `btnOverdriveSchedule`, `btnOverdriveCurrent`, `btnOverdriveManage`.
 - Use existing card styling/tokens.

@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BYD Open Remote — Overdrive separate container</title>
+<style>
+  :root{
+    --bg:#070A08; --screen:#0B0F0D; --card:#151C18; --card2:#101613; --inner:#1A221D;
+    --line:#27312B; --line2:#35443B; --text:#EAF2ED; --muted:#8C9A92;
+    --green:#6DDBAC; --green-dim:#2E5B4B; --lav:#D8C7F0; --blue:#AFC4E8;
+    --slate:#252E3C; --amber:#F0B35E; --rose:#F08A8A;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:
+    radial-gradient(1100px 700px at 85% -10%, rgba(109,219,172,.09), transparent 60%),
+    radial-gradient(900px 600px at 0% 25%, rgba(140,200,255,.05), transparent 55%),
+    var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  body{padding:34px 28px 64px}
+  header{max-width:1320px;margin:0 auto 26px}
+  .kicker{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--green);font-weight:800}
+  h1{font-size:30px;line-height:1.15;margin:8px 0 8px;letter-spacing:-.02em}
+  .sub{color:var(--muted);font-size:14px;line-height:1.6;max-width:980px}
+  .legend{display:flex;gap:9px;flex-wrap:wrap;margin-top:16px}
+  .tag{font-size:11px;font-weight:700;padding:6px 10px;border-radius:999px;border:1px solid var(--line2);color:var(--muted);background:#0B100D}
+  .tag.on{color:#082017;background:var(--green);border-color:var(--green)}
+  .tag.info{color:var(--blue);border-color:#27455B;background:#0B1520}
+  .grid{max-width:1320px;margin:0 auto;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:30px 28px;justify-items:center}
+  .frame{width:100%;max-width:420px;display:flex;flex-direction:column;gap:10px}
+  .caption{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:750}
+  .caption .n{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:7px;background:var(--green);color:#062017;font-size:11px;flex:none}
+  .caption .hint{font-weight:500;color:var(--muted)}
+  .phone{width:100%;max-width:400px;height:880px;border-radius:38px;padding:9px;background:linear-gradient(180deg,#1A211D,#0A0E0C);box-shadow:0 30px 70px rgba(0,0,0,.6), inset 0 0 0 1px #2A3530;overflow:hidden;margin:0 auto}
+  .screen{position:relative;height:100%;border-radius:30px;background:var(--screen);overflow:hidden;display:flex;flex-direction:column}
+  .status{height:26px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;color:#C4D1C9;font-size:10px;font-weight:650;flex:none}
+  .appbar{display:flex;align-items:center;gap:10px;padding:9px 14px 8px;flex:none}
+  .hamb{width:38px;height:38px;border-radius:50%;background:#1A211D;border:1px solid #2A3530;display:grid;place-items:center;color:var(--text);font-size:17px;flex:none}
+  .caricon{width:46px;height:46px;border-radius:14px;background:linear-gradient(145deg,#2D3A5A,#1B2238);display:grid;place-items:center;color:#9FB6FF;font-size:22px;flex:none;border:1px solid #3C4D78}
+  .appbar .t1{font-size:17px;font-weight:850;letter-spacing:-.01em}
+  .appbar .t2{font-size:10.5px;color:var(--muted);margin-top:1px}
+  .appbar .grow{flex:1;min-width:0}
+  .scroll{flex:1;min-height:0;overflow-y:auto;padding:2px 12px 18px;scrollbar-width:none}
+  .scroll::-webkit-scrollbar{display:none}
+  .maincard{background:var(--card);border:1px solid var(--line);border-radius:26px;padding:13px 12px 14px}
+  .titlerow{display:flex;align-items:center;gap:8px;padding:2px 2px 10px}
+  .titlerow .name{font-size:15px;font-weight:850;flex:1}
+  .pill{font-size:9.5px;font-weight:750;padding:5px 8px;border-radius:999px;background:#1E2822;border:1px solid #2E3B33;color:#C9D6CF}
+  .pill.dark{background:#141B18;color:#A9B7AF}
+  .battery{background:var(--card2);border:1px solid #202A24;border-radius:20px;padding:14px 13px 12px;margin-bottom:9px}
+  .battery .top{display:flex;align-items:flex-end;gap:10px}
+  .soc{font-size:46px;line-height:.92;font-weight:900;letter-spacing:-.05em;color:var(--green);flex:1}
+  .soc small{font-size:16px;font-weight:700;letter-spacing:0}
+  .range{text-align:right;color:var(--muted);font-size:9.5px}
+  .range b{display:block;color:var(--text);font-size:24px;letter-spacing:-.03em;margin-top:2px}
+  .bar{height:7px;border-radius:99px;background:#25302A;margin:12px 0 9px;overflow:hidden}
+  .bar i{display:block;height:100%;width:78%;border-radius:99px;background:var(--green)}
+  .bchips{display:flex;gap:5px;flex-wrap:wrap}
+  .bchip{font-size:9px;font-weight:750;padding:5px 8px;border-radius:999px;background:#13231D;border:1px solid #2A4A3C;color:#9FE9C6}
+  .bchip.gray{background:#131A17;border-color:#2A3530;color:#9AA8A1}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin:1px 0 9px}
+  .stat{background:var(--card2);border:1px solid #202A24;border-radius:14px;padding:9px 10px}
+  .stat .k{font-size:8.5px;color:var(--muted);letter-spacing:.02em}
+  .stat .v{font-size:13px;font-weight:850;margin-top:3px}
+  .stat .v.g{color:var(--green)}
+  .actions{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+  .action{border-radius:14px;padding:11px 8px;text-align:center;font-size:11.5px;font-weight:800;border:1px solid transparent}
+  .action.refresh{background:var(--slate);color:#DCE4F4;display:flex;align-items:center;justify-content:center;gap:6px}
+  .action.lock{background:var(--blue);color:#172238;display:flex;align-items:center;justify-content:center;gap:6px}
+  .action.unlock{background:var(--lav);color:#2A2036;display:flex;align-items:center;justify-content:center;gap:6px}
+  .acrow{display:grid;grid-template-columns:1.7fr 1fr;gap:6px;margin-top:6px}
+  .acmain{background:#2B3550;border:1px solid #5A75A8;border-radius:14px;padding:10px 11px;display:flex;align-items:center;gap:8px}
+  .acmain .ico{font-size:17px;color:#D8E5FF}
+  .acmain .a{font-size:11.5px;font-weight:850;color:#EAF1FF}
+  .acmain .b{font-size:9px;color:#B8C7E5;margin-top:2px}
+  .acadj{background:var(--card2);border:1px solid #2A3530;border-radius:14px;display:flex;align-items:center;justify-content:center;gap:5px;font-size:11px;font-weight:800;color:#D9E5DE}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px}
+  .tile{border-radius:14px;padding:11px 8px;text-align:center;font-size:11.5px;font-weight:800;border:1px solid #2A3530;background:var(--card2);color:#D9E5DE}
+  .tile.solid{background:#27313D;border-color:#27313D;color:#DCE4F4}
+  .tile.darkblue{background:#202A36;border-color:#202A36;color:#DCE4F4}
+  .loc{display:flex;align-items:center;gap:8px;background:#101613;border:1px solid #202A24;border-radius:15px;padding:9px 10px;margin-top:8px}
+  .loc .pin{color:var(--green);font-size:15px}
+  .loc .a{font-size:10.5px;font-weight:750}
+  .loc .b{font-size:9px;color:var(--muted);margin-top:1px}
+  .gps{margin-left:auto;font-size:9px;font-weight:800;background:#2A3446;color:#C9D8FF;border-radius:999px;padding:6px 8px}
+  .health{background:#101613;border:1px solid #202A24;border-radius:15px;padding:9px 10px;margin-top:8px}
+  .health .h{display:flex;justify-content:space-between;font-size:9.5px;color:var(--muted)}
+  .health .h b{color:var(--text)}
+  .tpms{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:7px;font-size:9px;color:#D9E5DE}
+  .units{display:flex;gap:5px;margin-top:7px}
+  .unit{flex:1;text-align:center;font-size:8.5px;color:#C9D6CF;border:1px solid #2A3530;border-radius:999px;padding:4px 0}
+
+  /* Overdrive additions */
+  .odcard{background:linear-gradient(180deg,#12231C,#101916);border:1px solid var(--green-dim);border-radius:18px;padding:11px;margin-top:9px;box-shadow:0 0 0 2px rgba(109,219,172,.14)}
+  .odhead{display:flex;align-items:center;gap:7px}
+  .odhead .t{font-size:13px;font-weight:850;flex:1}
+  .odhead .dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 0 3px rgba(109,219,172,.13)}
+  .odhead .s{font-size:9px;font-weight:850;color:var(--green)}
+  .odsub{font-size:9.5px;color:var(--muted);margin:2px 0 8px;font-family:ui-monospace,Consolas,monospace}
+  .odbtn{display:flex;align-items:center;gap:8px;background:#0B100D;border:1px solid #2A4A3C;border-radius:12px;padding:9px 9px;margin-top:6px}
+  .odbtn .i{width:28px;height:28px;border-radius:9px;background:#16241E;display:grid;place-items:center;color:var(--green);font-size:13px;flex:none}
+  .odbtn .a{flex:1;min-width:0}
+  .odbtn .a .x{font-size:11px;font-weight:850}
+  .odbtn .a .y{font-size:8.5px;color:var(--muted);margin-top:1px}
+  .odbtn .arrow{color:var(--green);font-size:14px}
+  .odmanage{text-align:right;font-size:9.5px;font-weight:800;color:var(--green);margin-top:6px}
+  .odinline{display:flex;gap:5px;margin-top:8px;align-items:center}
+  .odinline .lbl{font-size:8px;font-weight:850;color:var(--green);letter-spacing:.07em;text-transform:uppercase;margin-right:1px}
+  .odpill{flex:1;text-align:center;font-size:9px;font-weight:800;border:1px solid #2A4A3C;background:#0B100D;color:#BFE9D6;border-radius:999px;padding:6px 5px}
+  .odtiles{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px}
+  .odtile{background:#12231C;border:1px solid var(--green-dim);border-radius:14px;padding:10px 8px;text-align:left}
+  .odtile .x{font-size:10.5px;font-weight:850;color:#DDF7EA}
+  .odtile .y{font-size:8.5px;color:#9FE9C6;margin-top:2px}
+  .odtile .i{font-size:14px;color:var(--green);margin-bottom:4px}
+  .odbadge{font-size:7.5px;font-weight:900;color:var(--green);letter-spacing:.08em;text-transform:uppercase;margin-bottom:5px}
+  .topicon{width:38px;height:38px;border-radius:50%;background:#13231D;border:1px solid var(--green-dim);display:grid;place-items:center;color:var(--green);font-size:15px;flex:none;margin-left:2px}
+  .sheet{position:absolute;left:0;right:0;bottom:0;background:#111713;border-top:1px solid #2E3B33;border-radius:24px 24px 0 0;padding:12px 14px 18px;z-index:3;box-shadow:0 -20px 50px rgba(0,0,0,.5)}
+  .sheet .handle{width:36px;height:4px;border-radius:99px;background:#3A4A42;margin:0 auto 10px}
+  .sheet .st{font-size:13px;font-weight:850;margin-bottom:2px}
+  .sheet .ss{font-size:9.5px;color:var(--muted);margin-bottom:8px}
+  .dim{position:absolute;inset:0;background:rgba(0,0,0,.45);z-index:2}
+  .callout{display:inline-flex;align-items:center;gap:6px;font-size:9.5px;font-weight:800;color:var(--green);background:#13231D;border:1px solid var(--green-dim);border-radius:999px;padding:4px 8px;margin-top:6px}
+  .annot{font-size:11.5px;color:var(--muted);line-height:1.5;padding:0 2px;min-height:38px}
+  .annot b{color:var(--text)}
+  .compare{max-width:1320px;margin:38px auto 0}
+  .compare h2{font-size:22px;margin:0 0 6px;letter-spacing:-.02em}
+  .compare .lead{font-size:13px;color:var(--muted);line-height:1.55;margin:0 0 16px;max-width:900px}
+  table{width:100%;border-collapse:separate;border-spacing:0;background:var(--card);border:1px solid var(--line);border-radius:18px;overflow:hidden}
+  th,td{padding:12px 14px;text-align:left;font-size:12px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);background:#101613;font-weight:850}
+  tr:last-child td{border-bottom:0}
+  td.opt{font-weight:850;color:var(--text);white-space:nowrap}
+  td.opt .mini{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:6px;background:#1C2A23;color:var(--green);font-size:10px;margin-right:7px}
+  .good{color:var(--green);font-weight:800}
+  .mid{color:var(--amber);font-weight:800}
+  .bad{color:var(--rose);font-weight:800}
+  .rec{display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:850;color:#062017;background:var(--green);border-radius:999px;padding:5px 8px}
+  @media (max-width:860px){body{padding:22px 14px 50px}h1{font-size:24px}.grid{grid-template-columns:1fr}.frame{max-width:400px}.compare{overflow-x:auto}table{min-width:720px}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="kicker">BYD Open Remote · controls page</div>
+  <h1>Overdrive as its own container</h1>
+  <p class="sub">The separate card sits <b>below the Vehicle Health &amp; TPMS box</b>, outside the main Controls card. Same Overdrive style as option A, but it reads as a peer card instead of being buried inside the vehicle controls.</p>
+  <div class="legend"><span class="tag on">Separate card</span><span class="tag info">Below TPMS</span><span class="tag">Only when reachable</span></div>
+</header>
+
+<div style="max-width:1320px;margin:0 auto;display:flex;justify-content:center">
+  <div class="frame" style="max-width:440px">
+    <div class="caption"><span class="n">A</span> Separate Overdrive container <span class="hint">below TPMS</span></div>
+    <div class="phone" style="height:1060px">
+      <div class="screen">
+        <div class="status"><span>8:23</span><span>▮▮▮ ◔ ▰</span></div>
+        <div class="appbar"><div class="hamb">☰</div><div class="caricon">🚗</div><div class="grow"><div class="t1">BYD Atto 1</div><div class="t2">Indonesia (ID)</div></div></div>
+        <div class="scroll">
+          <div class="maincard">
+            <div class="titlerow"><div class="name">BYD Atto 1 Controls</div><span class="pill">☷ Edit</span><span class="pill dark">08:23:37</span></div>
+            <div class="battery">
+              <div class="top"><div class="soc">78<small>%</small></div><div class="range">Range<b>268 km</b></div></div>
+              <div class="bar"><i></i></div>
+              <div class="bchips"><span class="bchip">⚡ Charging · 7.2 kW · 1h 35m left</span><span class="bchip gray">All Closed</span></div>
+            </div>
+            <div class="stats"><div class="stat"><div class="k">Doors</div><div class="v g">Locked</div></div><div class="stat"><div class="k">Cabin Temp</div><div class="v">23°C</div></div><div class="stat"><div class="k">AC</div><div class="v">AC On</div></div></div>
+            <div class="actions"><div class="action refresh">⟳ Refresh</div><div class="action lock">⚿ Lock</div><div class="action unlock">⚿ Unlock</div></div>
+            <div class="acrow"><div class="acmain"><span class="ico">❄</span><div><div class="a">AC On · Tap to Stop</div><div class="b">Lvl 2 · Fan 4 · Body+Feet · 20m</div></div></div><div class="acadj">☷ Adjust</div></div>
+            <div class="row2"><div class="tile">💡 Flash Lights</div><div class="tile">📯 Horn</div></div>
+            <div class="row2"><div class="tile solid">Vent Win</div><div class="tile solid">Close Win</div></div>
+            <div class="row2"><div class="tile">Bat Heat</div><div class="tile">Seat Heat</div></div>
+            <div class="loc"><span class="pin">⌖</span><div><div class="a">Jl. M. H. Thamrin, Jakarta</div><div class="b">Tap to open in navigation app</div></div><span class="gps">GPS</span></div>
+            <div class="health"><div class="h"><b>Vehicle Health &amp; TPMS</b><span>Odo 12450 km · Out 31°C</span></div><div class="tpms"><span>LF 245</span><span>RF 245</span><span>LR 240</span><span>RR 240</span></div><div class="units"><span class="unit">km</span><span class="unit">°C</span><span class="unit">kPa</span></div></div>
+          </div>
+
+          <div class="odcard" style="margin-top:14px">
+            <div class="odhead"><div class="t">Overdrive</div><span class="dot"></span><span class="s">Connected</span><span class="pill" style="font-size:8px">EXP</span></div>
+            <div class="odsub">192.168.1.50:8080</div>
+            <div class="odbtn"><div class="i">◷</div><div class="a"><div class="x">Charging schedule</div><div class="y">Window &amp; repeat</div></div><span class="arrow">›</span></div>
+            <div class="odbtn"><div class="i">ϟ</div><div class="a"><div class="x">AC current limit</div><div class="y">6 A · 8 A · 10 A · 16 A · Max</div></div><span class="arrow">›</span></div>
+            <div class="odmanage">Manage</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="annot"><b>Separate container.</b> The Overdrive card is outside the main Controls card, after TPMS. It keeps the vehicle controls visually focused and gives Overdrive its own space.</div>
+  </div>
+</div>
+
+<section class="compare" style="max-width:900px">
+  <h2>Why this placement</h2>
+  <p class="lead">It keeps option A’s clear grouping but removes the “buried inside the car controls” feel. The main card stays about the car; Overdrive is a distinct box underneath. It can be hidden on its own and has room for a third shortcut later.</p>
+</section>
+
+</body>
+</html>
