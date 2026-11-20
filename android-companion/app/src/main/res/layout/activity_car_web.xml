@@ -32,7 +32,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="@string/car_web_title"
+            android:text="@string/overdrive_title"
             android:textColor="?attr/colorOnSurface"
             android:textSize="20sp"
             android:textStyle="bold" />
@@ -51,6 +51,7 @@
     </LinearLayout>
 
     <LinearLayout
+        android:id="@+id/rowCarWebUrl"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
@@ -87,6 +88,33 @@
         android:layout_height="2dp"
         android:indeterminate="true"
         android:visibility="gone" />
+
+    <LinearLayout
+        android:id="@+id/layoutOverdriveEmpty"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:padding="28dp"
+        android:visibility="gone">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:text="@string/overdrive_set_address"
+            android:textColor="@color/text_muted"
+            android:textSize="13sp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnOverdriveAdvanced"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:text="@string/overdrive_open_advanced"
+            android:textAllCaps="false" />
+    </LinearLayout>
 
     <WebView
         android:id="@+id/webCar"

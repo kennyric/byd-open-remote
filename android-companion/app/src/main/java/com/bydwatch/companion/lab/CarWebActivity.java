@@ -1,11 +1,5 @@
 package com.bydwatch.companion.lab;
 
-import android.content.Context;
-import android.content.SharedPreferences;
-import android.net.ConnectivityManager;
-import android.net.LinkProperties;
-import android.net.Network;
-import android.net.RouteInfo;
 import android.os.Bundle;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
@@ -25,22 +19,20 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.bydwatch.companion.BuildConfig;
 import com.bydwatch.companion.R;
 
-import java.net.Inet4Address;
-
 /**
- * Trial-only WebView that opens the car's Overdrive server on port 8080.
+ * WebView bridge to the car's Overdrive server.
  *
- * <p>If the phone is on the car's hotspot, the default gateway is used as the
- * car IP. On any other network the user can type the car's IP; it is remembered.
+ * <p>The page comes from Advanced (car address + default page). A blank address
+ * leaves the screen closed; the URL bar is hidden by default and is only a
+ * temporary override when shown.
  */
 public class CarWebActivity extends AppCompatActivity {
-
-    private static final String PREFS = "car_web";
-    private static final String PREF_URL = "car_web_url";
 
     private WebView webView;
     private EditText etUrl;
     private ProgressBar progress;
+    private View rowUrl;
+    private View emptyState;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,6 +47,8 @@ public class CarWebActivity extends AppCompatActivity {
         webView = findViewById(R.id.webCar);
         etUrl = findViewById(R.id.etCarWebUrl);
         progress = findViewById(R.id.pbCarWeb);
+        rowUrl = findViewById(R.id.rowCarWebUrl);
+        emptyState = findViewById(R.id.layoutOverdriveEmpty);
 
         ImageButton back = findViewById(R.id.btnCarWebBack);
         if (back != null) back.setOnClickListener(v -> finish());
@@ -64,6 +58,9 @@ public class CarWebActivity extends AppCompatActivity {
         });
         View open = findViewById(R.id.btnCarWebLoad);
         if (open != null) open.setOnClickListener(v -> loadFromField());
+        View advanced = findViewById(R.id.btnOverdriveAdvanced);
+        if (advanced != null) advanced.setOnClickListener(v ->
+                startActivity(new android.content.Intent(this, AdvancedActivity.class)));
         if (etUrl != null) {
             etUrl.setOnEditorActionListener((v, actionId, event) -> {
                 if (actionId == EditorInfo.IME_ACTION_GO) {
@@ -75,7 +72,7 @@ public class CarWebActivity extends AppCompatActivity {
         }
 
         configureWebView();
-        autoLoad();
+        openDefaultPage();
     }
 
     private void configureWebView() {
@@ -112,7 +109,7 @@ public class CarWebActivity extends AppCompatActivity {
                 if (progress != null) progress.setVisibility(View.GONE);
                 if (request != null && request.isForMainFrame()) {
                     Toast.makeText(CarWebActivity.this,
-                            R.string.car_web_error, Toast.LENGTH_LONG).show();
+                            R.string.overdrive_error, Toast.LENGTH_LONG).show();
                 }
             }
 
@@ -124,57 +121,37 @@ public class CarWebActivity extends AppCompatActivity {
         });
     }
 
-    private void autoLoad() {
-        String saved = prefs().getString(PREF_URL, "");
-        String url = CarWebUrl.normalize(saved);
+    private void openDefaultPage() {
+        boolean hideBar = CarWebPrefs.hideUrlBar(this);
+        if (rowUrl != null) rowUrl.setVisibility(hideBar ? View.GONE : View.VISIBLE);
+
+        String url = CarWebUrl.resolve(
+                CarWebPrefs.baseUrl(this), CarWebPrefs.defaultPage(this));
         if (url.isEmpty()) {
-            url = CarWebUrl.fromGateway(findGateway());
-        }
-        if (url.isEmpty()) {
-            if (etUrl != null) etUrl.requestFocus();
-            Toast.makeText(this, R.string.car_web_no_url, Toast.LENGTH_LONG).show();
+            if (webView != null) webView.setVisibility(View.GONE);
+            if (emptyState != null) emptyState.setVisibility(View.VISIBLE);
+            if (etUrl != null && !hideBar) etUrl.setText("");
             return;
         }
+
+        if (emptyState != null) emptyState.setVisibility(View.GONE);
+        if (webView != null) webView.setVisibility(View.VISIBLE);
         if (etUrl != null) etUrl.setText(url);
-        load(url, false);
+        load(url);
     }
 
     private void loadFromField() {
         String raw = etUrl != null ? etUrl.getText().toString() : "";
-        load(CarWebUrl.normalize(raw), true);
+        load(CarWebUrl.normalize(raw));
     }
 
-    private void load(String url, boolean save) {
-        if (url.isEmpty()) {
+    private void load(String url) {
+        if (url == null || url.isEmpty()) {
             Toast.makeText(this, R.string.car_web_no_url, Toast.LENGTH_SHORT).show();
             return;
         }
         if (etUrl != null) etUrl.setText(url);
-        if (save) prefs().edit().putString(PREF_URL, url).apply();
         if (webView != null) webView.loadUrl(url);
-    }
-
-    private String findGateway() {
-        try {
-            ConnectivityManager manager =
-                    (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-            if (manager == null) return "";
-            Network network = manager.getActiveNetwork();
-            if (network == null) return "";
-            LinkProperties properties = manager.getLinkProperties(network);
-            if (properties == null) return "";
-            for (RouteInfo route : properties.getRoutes()) {
-                if (route.isDefaultRoute() && route.getGateway() instanceof Inet4Address) {
-                    return route.getGateway().getHostAddress();
-                }
-            }
-        } catch (Exception ignored) {
-        }
-        return "";
-    }
-
-    private SharedPreferences prefs() {
-        return getSharedPreferences(PREFS, MODE_PRIVATE);
     }
 
     @Override

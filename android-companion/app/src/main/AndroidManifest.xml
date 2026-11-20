@@ -58,7 +58,7 @@
         <activity
             android:name=".lab.CarWebActivity"
             android:exported="false"
-            android:label="@string/car_web_title"
+            android:label="@string/overdrive_title"
             android:windowSoftInputMode="adjustResize" />
 
         <activity
