@@ -36,4 +36,32 @@ public final class CarWebUrl {
         if (gateway == null || gateway.trim().isEmpty()) return "";
         return normalize(gateway.trim() + ":" + DEFAULT_PORT);
     }
+
+    /**
+     * Resolve a preset path against the configured car address.
+     * An absolute page URL wins; a relative page with no base resolves to nothing.
+     */
+    public static String resolve(String base, String page) {
+        String rawPage = page != null ? page.trim() : "";
+        if (rawPage.startsWith("http://") || rawPage.startsWith("https://")) {
+            return normalize(rawPage);
+        }
+        String normalizedBase = normalize(base);
+        if (normalizedBase.isEmpty()) return "";
+        try {
+            URI baseUri = new URI(normalizedBase);
+            String path = rawPage;
+            while (path.startsWith("/")) path = path.substring(1);
+            String query = null;
+            int queryAt = path.indexOf('?');
+            if (queryAt >= 0) {
+                query = path.substring(queryAt + 1);
+                path = path.substring(0, queryAt);
+            }
+            return new URI(baseUri.getScheme(), null, baseUri.getHost(), baseUri.getPort(),
+                    "/" + path, query, null).toString();
+        } catch (Exception e) {
+            return "";
+        }
+    }
 }
