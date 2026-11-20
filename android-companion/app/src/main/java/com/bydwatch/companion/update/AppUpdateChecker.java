@@ -239,6 +239,7 @@ public class AppUpdateChecker {
         String bestUrl = "";
         long bestSize = 0L;
         String bestSha256 = "";
+        int bestRank = -1;
 
         JSONArray assets = root.optJSONArray("assets");
         if (assets != null) {
@@ -247,20 +248,24 @@ public class AppUpdateChecker {
                 if (asset == null) continue;
                 String name = asset.optString("name", "").trim();
                 String url = asset.optString("browser_download_url", "").trim();
-                if (!name.toLowerCase(Locale.US).endsWith(".apk") || !isTrustedDownloadUrl(url)) {
+                String lower = name.toLowerCase(Locale.US);
+                // The demo flavor is a screenshots build with its own package; it must never
+                // be offered as an update, whatever order GitHub lists the assets in.
+                if (!lower.endsWith(".apk") || lower.contains("demo")
+                        || !isTrustedDownloadUrl(url)) {
                     continue;
                 }
                 long size = Math.max(0L, asset.optLong("size", 0L));
                 String sha256 = extractSha256Digest(asset.optString("digest", ""));
-                boolean isPreferredName = name.toLowerCase(Locale.US).startsWith("byd-open-remote");
-                if (bestUrl.isEmpty() || isPreferredName) {
+                int rank = lower.equals("byd-open-remote.apk") ? 2
+                        : lower.startsWith("byd-open-remote") ? 1 : 0;
+                if (rank > bestRank) {
+                    bestRank = rank;
                     bestName = name;
                     bestUrl = url;
                     bestSize = size;
                     bestSha256 = sha256;
-                    if (isPreferredName) {
-                        break;
-                    }
+                    if (rank == 2) break;
                 }
             }
         }

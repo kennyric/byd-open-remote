@@ -67,6 +67,40 @@ public class AppUpdateCheckerTest {
     }
 
     @Test
+    public void demoAssetIsNeverChosenEvenWhenListedFirst() throws Exception {
+        String json = "{"
+                + "\"tag_name\": \"v1.3.0\","
+                + "\"name\": \"v1.3.0\","
+                + "\"body\": \"\","
+                + "\"draft\": false,"
+                + "\"assets\": ["
+                + "  {\"name\": \"BYD-Open-Remote-Demo.apk\", \"browser_download_url\": \"https://github.com/kennyric/byd-open-remote/releases/download/v1.3.0/BYD-Open-Remote-Demo.apk\", \"size\": 3244437},"
+                + "  {\"name\": \"BYD-Open-Remote.apk\", \"browser_download_url\": \"https://github.com/kennyric/byd-open-remote/releases/download/v1.3.0/BYD-Open-Remote.apk\", \"size\": 3247201}"
+                + "]"
+                + "}";
+
+        AppUpdateInfo info = AppUpdateChecker.parseReleaseJson(json);
+        assertEquals("BYD-Open-Remote.apk", info.apkName);
+        assertEquals(3247201L, info.apkSizeBytes);
+    }
+
+    @Test
+    public void demoOnlyReleaseOffersNoCompanionApk() throws Exception {
+        String json = "{"
+                + "\"tag_name\": \"v1.3.0\","
+                + "\"name\": \"v1.3.0\","
+                + "\"body\": \"\","
+                + "\"draft\": false,"
+                + "\"assets\": ["
+                + "  {\"name\": \"BYD-Open-Remote-Demo.apk\", \"browser_download_url\": \"https://github.com/kennyric/byd-open-remote/releases/download/v1.3.0/BYD-Open-Remote-Demo.apk\", \"size\": 3244437}"
+                + "]"
+                + "}";
+
+        AppUpdateInfo info = AppUpdateChecker.parseReleaseJson(json);
+        assertFalse(info.hasApkAsset());
+    }
+
+    @Test
     public void downloadUrlValidationAcceptsOnlyGitHubHttps() {
         assertTrue(AppUpdateChecker.isTrustedDownloadUrl(
                 "https://github.com/kennyric/byd-open-remote/releases/download/v1.0.3/app.apk"));

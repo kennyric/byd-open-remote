@@ -64,7 +64,10 @@ adb install -r BYD-Open-Remote.apk     # must print Success
 ## 5. Publish
 
 Asset name must stay `BYD-Open-Remote.apk` — the in-app updater picks assets by name and
-trusts the release URL.
+trusts the release URL. Do **not** upload the demo APK to a release: it shares the
+`BYD-Open-Remote` prefix and has historically been picked first when GitHub lists it
+ahead of the companion (the updater now skips any asset containing `demo`, but keeping it
+out of releases is the real guarantee).
 
 ```bash
 gh release create vX.Y.Z path/to/BYD-Open-Remote.apk \
