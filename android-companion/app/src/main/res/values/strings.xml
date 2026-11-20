@@ -499,9 +499,15 @@
     <string name="advanced_overdrive_login_needed">Login needed</string>
     <string name="advanced_overdrive_unreachable">Not reachable</string>
     <string name="advanced_overdrive_login_button">Open Overdrive login</string>
+    <string name="advanced_overdrive_retry">Retry</string>
+    <string name="advanced_overdrive_visibility">Overdrive controls on the main page</string>
+    <string name="advanced_overdrive_visibility_always">Always show</string>
+    <string name="advanced_overdrive_visibility_connected">Only when connected</string>
+    <string name="advanced_overdrive_visibility_hidden">Always hide</string>
     <string name="overdrive_controls_card_title">Overdrive</string>
     <string name="overdrive_controls_card_checking">Checking…</string>
     <string name="overdrive_controls_card_connected">Connected</string>
+    <string name="overdrive_controls_card_offline">Not connected</string>
     <string name="overdrive_controls_summary_current">Current</string>
     <string name="overdrive_controls_summary_schedule">Schedule</string>
     <string name="overdrive_controls_summary_unknown">—</string>

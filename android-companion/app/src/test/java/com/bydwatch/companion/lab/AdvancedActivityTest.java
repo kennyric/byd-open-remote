@@ -101,16 +101,43 @@ public class AdvancedActivityTest {
     }
 
     @Test
-    public void controlsTogglePersists() {
+    public void visibilityChoicePersists() {
         AdvancedActivity activity = Robolectric.buildActivity(AdvancedActivity.class)
                 .setup().get();
 
-        com.google.android.material.switchmaterial.SwitchMaterial controls =
-                activity.findViewById(com.bydwatch.companion.R.id.switchAdvOverdriveShortcuts);
-        controls.setChecked(true);
+        android.widget.RadioButton always = activity.findViewById(
+                com.bydwatch.companion.R.id.rbAdvControlsAlways);
+        always.setChecked(true);
         activity.findViewById(com.bydwatch.companion.R.id.btnAdvSave).performClick();
 
-        assertTrue(CarWebPrefs.overdriveControlsEnabled(context));
+        assertEquals(CarWebPrefs.CONTROLS_ALWAYS,
+                CarWebPrefs.overdriveControlsVisibility(context));
+    }
+
+    @Test
+    public void savedVisibilityChoiceIsRestored() {
+        CarWebPrefs.setOverdriveControlsVisibility(context, CarWebPrefs.CONTROLS_CONNECTED);
+        AdvancedActivity activity = Robolectric.buildActivity(AdvancedActivity.class)
+                .setup().get();
+
+        android.widget.RadioGroup group = activity.findViewById(
+                com.bydwatch.companion.R.id.rgAdvControlsVisibility);
+        assertEquals(com.bydwatch.companion.R.id.rbAdvControlsConnected,
+                group.getCheckedRadioButtonId());
+    }
+
+    @Test
+    public void resetHidesOverdriveControls() {
+        CarWebPrefs.setOverdriveControlsVisibility(context, CarWebPrefs.CONTROLS_ALWAYS);
+        AdvancedActivity activity = Robolectric.buildActivity(AdvancedActivity.class)
+                .setup().get();
+
+        activity.findViewById(com.bydwatch.companion.R.id.btnAdvReset).performClick();
+
+        android.widget.RadioGroup group = activity.findViewById(
+                com.bydwatch.companion.R.id.rgAdvControlsVisibility);
+        assertEquals(com.bydwatch.companion.R.id.rbAdvControlsHidden,
+                group.getCheckedRadioButtonId());
     }
 
     @Test
@@ -141,6 +168,57 @@ public class AdvancedActivityTest {
                 com.bydwatch.companion.R.id.tvAdvOverdriveStatus);
         assertEquals("Not reachable", status.getText().toString());
         assertEquals(android.view.View.GONE,
+                activity.findViewById(com.bydwatch.companion.R.id.btnAdvOverdriveLogin)
+                        .getVisibility());
+    }
+
+    @Test
+    public void unreachableCarOffersRetry() {
+        CarWebPrefs.setBaseUrl(context, "192.168.1.50:8080");
+        RecordingTransport transport = withTransport(false);
+
+        AdvancedActivity activity = Robolectric.buildActivity(AdvancedActivity.class)
+                .setup().get();
+
+        assertEquals(android.view.View.VISIBLE,
+                activity.findViewById(com.bydwatch.companion.R.id.btnAdvOverdriveRetry)
+                        .getVisibility());
+
+        // The car wakes up (or the Wi-Fi reconnects): the button must probe again.
+        transport.reachable = true;
+        activity.findViewById(com.bydwatch.companion.R.id.btnAdvOverdriveRetry).performClick();
+
+        assertEquals("Login needed",
+                ((android.widget.TextView) activity.findViewById(
+                        com.bydwatch.companion.R.id.tvAdvOverdriveStatus)).getText().toString());
+    }
+
+    @Test
+    public void connectedSessionHidesRetry() {
+        CarWebPrefs.setBaseUrl(context, "192.168.1.50:8080");
+        OverdriveSession.setJwt(context, "jwt-1", 3600L, System.currentTimeMillis());
+        withTransport(true);
+
+        AdvancedActivity activity = Robolectric.buildActivity(AdvancedActivity.class)
+                .setup().get();
+
+        assertEquals(android.view.View.GONE,
+                activity.findViewById(com.bydwatch.companion.R.id.btnAdvOverdriveRetry)
+                        .getVisibility());
+    }
+
+    @Test
+    public void loginNeededStillOffersRetry() {
+        CarWebPrefs.setBaseUrl(context, "192.168.1.50:8080");
+        withTransport(true);
+
+        AdvancedActivity activity = Robolectric.buildActivity(AdvancedActivity.class)
+                .setup().get();
+
+        assertEquals(android.view.View.VISIBLE,
+                activity.findViewById(com.bydwatch.companion.R.id.btnAdvOverdriveRetry)
+                        .getVisibility());
+        assertEquals(android.view.View.VISIBLE,
                 activity.findViewById(com.bydwatch.companion.R.id.btnAdvOverdriveLogin)
                         .getVisibility());
     }

@@ -19,6 +19,7 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import com.bydwatch.companion.BydWatchApp;
 import com.bydwatch.companion.R;
+import com.bydwatch.companion.lab.CarWebPrefs;
 import com.bydwatch.companion.data.BydRepository;
 import com.bydwatch.companion.data.BydRepositoryTest;
 import com.bydwatch.companion.data.ConfigStore;
@@ -1851,6 +1852,51 @@ public class MainActivityTest {
         controller.pause().stop().start().resume();
         awaitAsyncWork();
         assertEquals(0, fakeGateway.fetchRealtimeCalls.get());
+    }
+
+    @Test
+    public void overdriveControlsCardIsHiddenByDefault() {
+        CarWebPrefs.reset(activity);
+
+        goToControlsPage();
+
+        assertEquals(View.GONE,
+                activity.findViewById(R.id.cardOverdriveControls).getVisibility());
+    }
+
+    @Test
+    public void alwaysShowOverdriveControlsCardIgnoresConnection() {
+        CarWebPrefs.reset(activity);
+        CarWebPrefs.setOverdriveControlsVisibility(activity, CarWebPrefs.CONTROLS_ALWAYS);
+
+        controller.pause().stop().start().resume();
+        ShadowLooper.idleMainLooper();
+        goToControlsPage();
+
+        assertEquals(View.VISIBLE,
+                activity.findViewById(R.id.cardOverdriveControls).getVisibility());
+        TextView status = activity.findViewById(R.id.tvOverdriveControlsStatus);
+        assertEquals("Not connected", status.getText().toString());
+    }
+
+    @Test
+    public void onlyWhenConnectedKeepsCardHiddenWithoutACar() {
+        CarWebPrefs.reset(activity);
+        CarWebPrefs.setOverdriveControlsVisibility(activity, CarWebPrefs.CONTROLS_CONNECTED);
+
+        controller.pause().stop().start().resume();
+        ShadowLooper.idleMainLooper();
+        goToControlsPage();
+
+        assertEquals(View.GONE,
+                activity.findViewById(R.id.cardOverdriveControls).getVisibility());
+    }
+
+    private void goToControlsPage() {
+        com.google.android.material.navigation.NavigationView navView =
+                activity.findViewById(R.id.navView);
+        navView.getMenu().performIdentifierAction(R.id.nav_controls, 0);
+        ShadowLooper.idleMainLooper();
     }
 
     @Test

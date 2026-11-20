@@ -47,16 +47,34 @@ public class CarWebPrefsTest {
     }
 
     @Test
-    public void controlsDefaultOffAndPersist() {
+    public void controlsVisibilityDefaultsToHidden() {
+        assertEquals(CarWebPrefs.CONTROLS_HIDDEN,
+                CarWebPrefs.overdriveControlsVisibility(context));
         assertFalse(CarWebPrefs.overdriveControlsEnabled(context));
-        CarWebPrefs.setOverdriveControlsEnabled(context, true);
+    }
+
+    @Test
+    public void controlsVisibilityPersistsEveryChoice() {
+        for (String mode : new String[]{CarWebPrefs.CONTROLS_ALWAYS,
+                CarWebPrefs.CONTROLS_CONNECTED, CarWebPrefs.CONTROLS_HIDDEN}) {
+            CarWebPrefs.setOverdriveControlsVisibility(context, mode);
+            assertEquals(mode, CarWebPrefs.overdriveControlsVisibility(context));
+        }
+        assertFalse(CarWebPrefs.overdriveControlsEnabled(context));
+        CarWebPrefs.setOverdriveControlsVisibility(context, CarWebPrefs.CONTROLS_ALWAYS);
         assertTrue(CarWebPrefs.overdriveControlsEnabled(context));
     }
 
     @Test
-    public void controlsSettingSurvivesFromTheOldShortcutName() {
+    public void oldOnOffToggleIsReadAsOnlyWhenConnected() {
         context.getSharedPreferences("car_web", android.content.Context.MODE_PRIVATE)
                 .edit().putBoolean("overdrive_shortcuts_enabled", true).commit();
-        assertTrue(CarWebPrefs.overdriveControlsEnabled(context));
+        assertEquals(CarWebPrefs.CONTROLS_CONNECTED,
+                CarWebPrefs.overdriveControlsVisibility(context));
+
+        context.getSharedPreferences("car_web", android.content.Context.MODE_PRIVATE)
+                .edit().putBoolean("overdrive_shortcuts_enabled", false).commit();
+        assertEquals(CarWebPrefs.CONTROLS_HIDDEN,
+                CarWebPrefs.overdriveControlsVisibility(context));
     }
 }

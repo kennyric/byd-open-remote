@@ -459,17 +459,32 @@ public class MainActivity extends AppCompatActivity {
 
     /**
      * The card below TPMS: a native summary of the car's current limit and
-     * charging schedule. Hidden unless Overdrive controls are enabled, an
-     * address is set, the car answers, and the phone holds a session.
+     * charging schedule. Visible according to the Advanced setting: always,
+     * only when the car answers and the phone holds a session, or never.
      */
     private void refreshOverdriveControlsCard() {
         if (cardOverdriveControls == null) return;
         overdriveControlsReachable = false;
         applyOverdriveControlsVisibility();
         if (com.bydwatch.companion.BuildConfig.DEMO_BUILD) return;
-        if (!CarWebPrefs.overdriveControlsEnabled(this)) return;
+        final String visibility = CarWebPrefs.overdriveControlsVisibility(this);
+        if (CarWebPrefs.CONTROLS_HIDDEN.equals(visibility)) return;
+        final boolean always = CarWebPrefs.CONTROLS_ALWAYS.equals(visibility);
         final String base = CarWebPrefs.baseUrl(this);
-        if (base.trim().isEmpty()) return;
+        if (base.trim().isEmpty()) {
+            if (always && tvOverdriveControlsStatus != null) {
+                tvOverdriveControlsStatus.setText(R.string.overdrive_controls_card_offline);
+                tvOverdriveControlsStatus.setTextColor(
+                        ContextCompat.getColor(this, R.color.text_muted));
+                if (tvOverdriveCurrentSummary != null) {
+                    tvOverdriveCurrentSummary.setText(R.string.overdrive_controls_summary_unknown);
+                }
+                if (tvOverdriveScheduleSummary != null) {
+                    tvOverdriveScheduleSummary.setText(R.string.overdrive_controls_summary_unknown);
+                }
+            }
+            return;
+        }
 
         final int generation = ++overdriveProbeGeneration;
         if (tvOverdriveControlsStatus != null) {
@@ -501,6 +516,13 @@ public class MainActivity extends AppCompatActivity {
                 if (tvOverdriveControlsStatus != null) {
                     if (overdriveControlsReachable) {
                         tvOverdriveControlsStatus.setText(R.string.overdrive_controls_card_connected);
+                        tvOverdriveControlsStatus.setTextColor(
+                                ContextCompat.getColor(MainActivity.this,
+                                        R.color.accent_emerald));
+                    } else if (always) {
+                        tvOverdriveControlsStatus.setText(R.string.overdrive_controls_card_offline);
+                        tvOverdriveControlsStatus.setTextColor(
+                                ContextCompat.getColor(MainActivity.this, R.color.text_muted));
                     } else {
                         tvOverdriveControlsStatus.setText("");
                     }
@@ -538,11 +560,13 @@ public class MainActivity extends AppCompatActivity {
 
     private void applyOverdriveControlsVisibility() {
         if (cardOverdriveControls == null) return;
+        String visibility = CarWebPrefs.overdriveControlsVisibility(this);
         boolean show = !com.bydwatch.companion.BuildConfig.DEMO_BUILD
                 && currentPageId == R.id.nav_controls
-                && CarWebPrefs.overdriveControlsEnabled(this)
-                && !CarWebPrefs.baseUrl(this).trim().isEmpty()
-                && overdriveControlsReachable;
+                && !CarWebPrefs.CONTROLS_HIDDEN.equals(visibility)
+                && (CarWebPrefs.CONTROLS_ALWAYS.equals(visibility)
+                        || (!CarWebPrefs.baseUrl(this).trim().isEmpty()
+                                && overdriveControlsReachable));
         cardOverdriveControls.setVisibility(show ? View.VISIBLE : View.GONE);
     }
 

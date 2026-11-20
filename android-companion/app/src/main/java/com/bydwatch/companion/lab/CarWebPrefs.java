@@ -13,6 +13,12 @@ public final class CarWebPrefs {
     private static final String KEY_PAGE = "default_page";
     // Kept as the old key name so an existing toggle survives the rename.
     private static final String KEY_CONTROLS = "overdrive_shortcuts_enabled";
+    private static final String KEY_CONTROLS_VISIBILITY = "overdrive_controls_visibility";
+
+    /** Main-page Overdrive controls: always visible, only while connected, or never. */
+    public static final String CONTROLS_ALWAYS = "always";
+    public static final String CONTROLS_CONNECTED = "connected";
+    public static final String CONTROLS_HIDDEN = "hidden";
 
     private CarWebPrefs() {}
 
@@ -49,11 +55,38 @@ public final class CarWebPrefs {
     }
 
     public static boolean overdriveControlsEnabled(Context context) {
-        return prefs(context).getBoolean(KEY_CONTROLS, false);
+        return !CONTROLS_HIDDEN.equals(overdriveControlsVisibility(context));
     }
 
     public static void setOverdriveControlsEnabled(Context context, boolean enabled) {
-        prefs(context).edit().putBoolean(KEY_CONTROLS, enabled).apply();
+        setOverdriveControlsVisibility(context,
+                enabled ? CONTROLS_CONNECTED : CONTROLS_HIDDEN);
+    }
+
+    /**
+     * Three-way main-page visibility. The old on/off toggle is read as a fallback so
+     * existing installs keep showing the card the way they did before.
+     */
+    public static String overdriveControlsVisibility(Context context) {
+        SharedPreferences prefs = prefs(context);
+        String stored = prefs.getString(KEY_CONTROLS_VISIBILITY, null);
+        if (stored == null) {
+            return prefs.getBoolean(KEY_CONTROLS, false) ? CONTROLS_CONNECTED : CONTROLS_HIDDEN;
+        }
+        return normalizeControlsVisibility(stored);
+    }
+
+    public static void setOverdriveControlsVisibility(Context context, String visibility) {
+        prefs(context).edit()
+                .putString(KEY_CONTROLS_VISIBILITY,
+                        normalizeControlsVisibility(visibility))
+                .apply();
+    }
+
+    static String normalizeControlsVisibility(String visibility) {
+        if (CONTROLS_ALWAYS.equals(visibility)) return CONTROLS_ALWAYS;
+        if (CONTROLS_CONNECTED.equals(visibility)) return CONTROLS_CONNECTED;
+        return CONTROLS_HIDDEN;
     }
 
     public static void reset(Context context) {
@@ -63,6 +96,7 @@ public final class CarWebPrefs {
                 .remove(KEY_BASE)
                 .remove(KEY_PAGE)
                 .remove(KEY_CONTROLS)
+                .remove(KEY_CONTROLS_VISIBILITY)
                 .apply();
         OverdriveSession.clear(context);
     }

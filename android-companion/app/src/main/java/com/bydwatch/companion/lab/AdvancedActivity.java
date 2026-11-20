@@ -29,7 +29,7 @@ public class AdvancedActivity extends AppCompatActivity {
 
     private SwitchMaterial switchShow;
     private SwitchMaterial switchHideUrl;
-    private SwitchMaterial switchShortcuts;
+    private RadioGroup rgControlsVisibility;
     private EditText etBase;
     private RadioGroup rgTop;
     private RadioGroup rgMore;
@@ -39,6 +39,7 @@ public class AdvancedActivity extends AppCompatActivity {
     private TextView tvPreview;
     private TextView tvOverdriveStatus;
     private View btnOverdriveLogin;
+    private View btnOverdriveRetry;
     private TextView tvAccessDetail;
     private EditText etAccessCode;
     private MaterialButton btnAccessConnect;
@@ -60,7 +61,7 @@ public class AdvancedActivity extends AppCompatActivity {
 
         switchShow = findViewById(R.id.switchAdvShowOverdrive);
         switchHideUrl = findViewById(R.id.switchAdvHideUrlBar);
-        switchShortcuts = findViewById(R.id.switchAdvOverdriveShortcuts);
+        rgControlsVisibility = findViewById(R.id.rgAdvControlsVisibility);
         etBase = findViewById(R.id.etAdvBaseUrl);
         rgTop = findViewById(R.id.rgAdvTopPages);
         rgMore = findViewById(R.id.rgAdvMorePages);
@@ -70,6 +71,10 @@ public class AdvancedActivity extends AppCompatActivity {
         tvPreview = findViewById(R.id.tvAdvPreview);
         tvOverdriveStatus = findViewById(R.id.tvAdvOverdriveStatus);
         btnOverdriveLogin = findViewById(R.id.btnAdvOverdriveLogin);
+        btnOverdriveRetry = findViewById(R.id.btnAdvOverdriveRetry);
+        if (btnOverdriveRetry != null) {
+            btnOverdriveRetry.setOnClickListener(v -> refreshOverdriveStatus());
+        }
 
         ImageButton back = findViewById(R.id.btnAdvBack);
         if (back != null) back.setOnClickListener(v -> finish());
@@ -112,6 +117,7 @@ public class AdvancedActivity extends AppCompatActivity {
             tvOverdriveStatus.setTextColor(ContextCompat.getColor(this, R.color.text_muted));
         }
         if (btnOverdriveLogin != null) btnOverdriveLogin.setVisibility(View.GONE);
+        if (btnOverdriveRetry != null) btnOverdriveRetry.setVisibility(View.GONE);
         renderAccessDetail();
 
         final Context app = getApplicationContext();
@@ -132,17 +138,20 @@ public class AdvancedActivity extends AppCompatActivity {
             tvOverdriveStatus.setText(R.string.advanced_overdrive_unreachable);
             tvOverdriveStatus.setTextColor(ContextCompat.getColor(this, R.color.accent_rose));
             if (btnOverdriveLogin != null) btnOverdriveLogin.setVisibility(View.GONE);
+            if (btnOverdriveRetry != null) btnOverdriveRetry.setVisibility(View.VISIBLE);
             return;
         }
         if (hasSession) {
             tvOverdriveStatus.setText(R.string.advanced_overdrive_connected);
             tvOverdriveStatus.setTextColor(ContextCompat.getColor(this, R.color.accent_emerald));
             if (btnOverdriveLogin != null) btnOverdriveLogin.setVisibility(View.GONE);
+            if (btnOverdriveRetry != null) btnOverdriveRetry.setVisibility(View.GONE);
             return;
         }
         tvOverdriveStatus.setText(R.string.advanced_overdrive_login_needed);
         tvOverdriveStatus.setTextColor(ContextCompat.getColor(this, R.color.accent_amber));
         if (btnOverdriveLogin != null) btnOverdriveLogin.setVisibility(View.VISIBLE);
+        if (btnOverdriveRetry != null) btnOverdriveRetry.setVisibility(View.VISIBLE);
     }
 
     private void renderAccessDetail() {
@@ -301,7 +310,7 @@ public class AdvancedActivity extends AppCompatActivity {
         binding = true;
         switchShow.setChecked(CarWebPrefs.showOverdrive(this));
         switchHideUrl.setChecked(CarWebPrefs.hideUrlBar(this));
-        switchShortcuts.setChecked(CarWebPrefs.overdriveControlsEnabled(this));
+        checkControlsVisibility(CarWebPrefs.overdriveControlsVisibility(this));
         etBase.setText(CarWebPrefs.baseUrl(this));
         rgTop.clearCheck();
         rgMore.clearCheck();
@@ -334,7 +343,7 @@ public class AdvancedActivity extends AppCompatActivity {
         binding = true;
         switchShow.setChecked(false);
         switchHideUrl.setChecked(true);
-        switchShortcuts.setChecked(false);
+        checkControlsVisibility(CarWebPrefs.CONTROLS_HIDDEN);
         etBase.setText("");
         rgTop.clearCheck();
         rgMore.clearCheck();
@@ -354,10 +363,31 @@ public class AdvancedActivity extends AppCompatActivity {
         String page = selectedPage();
         CarWebPrefs.setShowOverdrive(this, switchShow.isChecked());
         CarWebPrefs.setHideUrlBar(this, switchHideUrl.isChecked());
-        CarWebPrefs.setOverdriveControlsEnabled(this, switchShortcuts.isChecked());
+        CarWebPrefs.setOverdriveControlsVisibility(this, selectedControlsVisibility());
         CarWebPrefs.setBaseUrl(this, base);
         CarWebPrefs.setDefaultPage(this, page);
         finish();
+    }
+
+    private void checkControlsVisibility(String visibility) {
+        if (rgControlsVisibility == null) return;
+        int id;
+        if (CarWebPrefs.CONTROLS_ALWAYS.equals(visibility)) {
+            id = R.id.rbAdvControlsAlways;
+        } else if (CarWebPrefs.CONTROLS_CONNECTED.equals(visibility)) {
+            id = R.id.rbAdvControlsConnected;
+        } else {
+            id = R.id.rbAdvControlsHidden;
+        }
+        rgControlsVisibility.check(id);
+    }
+
+    private String selectedControlsVisibility() {
+        if (rgControlsVisibility == null) return CarWebPrefs.CONTROLS_HIDDEN;
+        int id = rgControlsVisibility.getCheckedRadioButtonId();
+        if (id == R.id.rbAdvControlsAlways) return CarWebPrefs.CONTROLS_ALWAYS;
+        if (id == R.id.rbAdvControlsConnected) return CarWebPrefs.CONTROLS_CONNECTED;
+        return CarWebPrefs.CONTROLS_HIDDEN;
     }
 
     private String selectedPage() {
