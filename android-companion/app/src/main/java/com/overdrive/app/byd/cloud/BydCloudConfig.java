@@ -38,6 +38,8 @@ public final class BydCloudConfig {
     public String appVersion = "3.2.3";
     public boolean cloudDataMerge = false;
     public String energyType = "";
+    /** How long login tokens are reused before a fresh login (Advanced setting). */
+    public long sessionTtlMs = BydCloudSession.DEFAULT_TTL_MS;
 
     public BydCloudConfig() {
         this("id", "ID", "en");

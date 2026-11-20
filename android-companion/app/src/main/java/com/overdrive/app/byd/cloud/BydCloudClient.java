@@ -132,7 +132,8 @@ public class BydCloudClient {
             throw new IOException("Login response missing token fields");
         }
 
-        session = new BydCloudSession(userId, signToken, encryToken, superId);
+        session = new BydCloudSession(userId, signToken, encryToken, superId,
+                config.sessionTtlMs);
         // The cloud binds control-PIN verification to the session token.
         commandsVerified = false;
         logger.info("Login succeeded: userId=***" + userId.substring(Math.max(0, userId.length() - 4)));
@@ -147,6 +148,11 @@ public class BydCloudClient {
      */
     public synchronized BydCloudSession ensureSession() throws IOException {
         throwIfInterrupted();
+        if (session != null && config.sessionTtlMs > 0
+                && session.ttlMs() != config.sessionTtlMs) {
+            // The Advanced setting changed: reuse the existing tokens under the new window.
+            session.setTtlMs(config.sessionTtlMs);
+        }
         if (session == null || session.isExpired()) {
             try {
                 login();

@@ -145,6 +145,18 @@ public interface ConfigStore {
     int MIN_WIDGET_SYNC_MINUTES = 1;
     int MAX_WIDGET_SYNC_MINUTES = 1440;
 
+    /** How long a BYD Cloud login is reused before fresh tokens are fetched. */
+    int DEFAULT_SESSION_TTL_MINUTES = 30;
+    int MIN_SESSION_TTL_MINUTES = 5;
+    int MAX_SESSION_TTL_MINUTES = 1440;
+
+    default int getSessionTtlMinutes() { return DEFAULT_SESSION_TTL_MINUTES; }
+    default void setSessionTtlMinutes(int minutes) {}
+
+    static int normalizeSessionTtlMinutes(int minutes) {
+        return Math.max(MIN_SESSION_TTL_MINUTES, Math.min(MAX_SESSION_TTL_MINUTES, minutes));
+    }
+
     int WIDGET_STYLE_CAPSULE = 1;
     int WIDGET_STYLE_RING = 2;
     int WIDGET_STYLE_BENTO = 3;

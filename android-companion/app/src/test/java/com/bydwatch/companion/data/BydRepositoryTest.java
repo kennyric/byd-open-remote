@@ -358,6 +358,7 @@ public class BydRepositoryTest {
         private boolean alertsEnabled = false;
         private boolean disclaimerAccepted = false;
         private int widgetSyncIntervalMinutes = DEFAULT_WIDGET_SYNC_MINUTES;
+        private int sessionTtlMinutes = DEFAULT_SESSION_TTL_MINUTES;
         private boolean hideExtraControls = false;
         private boolean verboseLogsEnabled = false;
         private String widgetStatusJson = null;
@@ -470,6 +471,11 @@ public class BydRepositoryTest {
         @Override public void setWidgetSyncIntervalMinutes(int minutes) {
             this.widgetSyncIntervalMinutes = Math.max(
                     MIN_WIDGET_SYNC_MINUTES, Math.min(MAX_WIDGET_SYNC_MINUTES, minutes));
+        }
+
+        @Override public int getSessionTtlMinutes() { return sessionTtlMinutes; }
+        @Override public void setSessionTtlMinutes(int minutes) {
+            this.sessionTtlMinutes = ConfigStore.normalizeSessionTtlMinutes(minutes);
         }
 
         private int widgetStyle = DEFAULT_WIDGET_STYLE;

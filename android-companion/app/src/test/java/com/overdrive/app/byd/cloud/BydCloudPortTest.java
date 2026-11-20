@@ -136,6 +136,26 @@ public class BydCloudPortTest {
     }
 
     @Test
+    public void sessionTtlCanBeReconfiguredWithoutLosingTokens() {
+        BydCloudSession session = new BydCloudSession("123456",
+                "0123456789abcdef0123456789abcdef",
+                "0123456789abcdef0123456789abcdef", "", 5 * 60_000L);
+        assertEquals(5 * 60_000L, session.ttlMs());
+        assertEquals("123456", session.userId);
+
+        session.setTtlMs(2 * 60 * 60_000L);
+        assertEquals(2 * 60 * 60_000L, session.ttlMs());
+
+        session.setTtlMs(0);
+        assertEquals(2 * 60 * 60_000L, session.ttlMs());
+    }
+
+    @Test
+    public void configCarriesDefaultSessionTtl() {
+        assertEquals(BydCloudSession.DEFAULT_TTL_MS, new BydCloudConfig().sessionTtlMs);
+    }
+
+    @Test
     public void tokenEnvelopeSignsUserTypeOnlyWhenProvided() throws Exception {
         BydCloudConfig config = new BydCloudConfig("id", "ID", "en");
         config.setUsername("guest@example.com");

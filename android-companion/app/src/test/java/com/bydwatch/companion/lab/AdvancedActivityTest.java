@@ -3,6 +3,8 @@ package com.bydwatch.companion.lab;
 import android.content.Context;
 import android.content.Intent;
 
+import com.bydwatch.companion.BydWatchApp;
+import com.bydwatch.companion.data.BydRepositoryTest;
 import com.google.android.material.switchmaterial.SwitchMaterial;
 
 import org.junit.After;
@@ -27,17 +29,21 @@ import static org.junit.Assert.assertTrue;
 public class AdvancedActivityTest {
 
     private Context context;
+    private BydRepositoryTest.InMemoryConfigStore configStore;
 
     @Before
     public void setUp() {
         context = RuntimeEnvironment.getApplication();
         CarWebPrefs.reset(context);
+        configStore = new BydRepositoryTest.InMemoryConfigStore();
+        BydWatchApp.setTestDependencies(configStore, null, null);
     }
 
     @After
     public void tearDown() {
         OverdriveClient.setTransportForTesting(null);
         OverdriveWork.setExecutorForTesting(null);
+        BydWatchApp.resetForTesting();
     }
 
     @Test
@@ -323,6 +329,35 @@ public class AdvancedActivityTest {
 
         assertNull(OverdriveSession.jwt(context));
         assertFalse(OverdriveSession.hasAccessCode(context));
+    }
+
+    @Test
+    public void sessionTtlDefaultsToThirtyAndPersists() {
+        AdvancedActivity activity = Robolectric.buildActivity(AdvancedActivity.class)
+                .setup().get();
+
+        android.widget.EditText ttl = activity.findViewById(
+                com.bydwatch.companion.R.id.etAdvSessionTtl);
+        assertEquals("30", ttl.getText().toString());
+
+        ttl.setText("90");
+        activity.findViewById(com.bydwatch.companion.R.id.btnAdvSave).performClick();
+
+        assertEquals(90, configStore.getSessionTtlMinutes());
+    }
+
+    @Test
+    public void invalidSessionTtlKeepsTheFormOpen() {
+        AdvancedActivity activity = Robolectric.buildActivity(AdvancedActivity.class)
+                .setup().get();
+
+        android.widget.EditText ttl = activity.findViewById(
+                com.bydwatch.companion.R.id.etAdvSessionTtl);
+        ttl.setText("1");
+        activity.findViewById(com.bydwatch.companion.R.id.btnAdvSave).performClick();
+
+        assertEquals(30, configStore.getSessionTtlMinutes());
+        assertFalse(activity.isFinishing());
     }
 
     /** Fake car: /auth/status answers, the token endpoint mints a JWT. */

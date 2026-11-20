@@ -504,6 +504,11 @@
     <string name="advanced_overdrive_visibility_always">Always show</string>
     <string name="advanced_overdrive_visibility_connected">Only when connected</string>
     <string name="advanced_overdrive_visibility_hidden">Always hide</string>
+    <string name="advanced_session_section">BYD Cloud session</string>
+    <string name="advanced_session_help">How long the app reuses a login before fetching new tokens from BYD Cloud. Longer means fewer logins.</string>
+    <string name="advanced_session_ttl_hint">Minutes (5–1440)</string>
+    <string name="advanced_session_ttl_helper">Default 30 minutes. Applies to the next BYD Cloud request.</string>
+    <string name="advanced_session_ttl_invalid">Token refresh must be between 5 and 1440 minutes</string>
     <string name="overdrive_controls_card_title">Overdrive</string>
     <string name="overdrive_controls_card_checking">Checking…</string>
     <string name="overdrive_controls_card_connected">Connected</string>

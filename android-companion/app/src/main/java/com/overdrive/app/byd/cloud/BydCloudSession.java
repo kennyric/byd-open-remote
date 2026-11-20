@@ -11,7 +11,11 @@ import com.overdrive.app.byd.cloud.crypto.BydCryptoUtils;
  */
 public final class BydCloudSession {
 
-    private static final long DEFAULT_TTL_MS = 30 * 60 * 1000; // 30 minutes
+    public static final long DEFAULT_TTL_MS = 30 * 60 * 1000; // 30 minutes
+    /** Shortest accepted TTL: below this the app would re-login on almost every request. */
+    public static final long MIN_TTL_MS = 60 * 1000L;
+    /** Longest accepted TTL: BYD's server may drop a token long before this. */
+    public static final long MAX_TTL_MS = 24 * 60 * 60 * 1000L;
 
     public final String userId;
     public final String signToken;
@@ -19,7 +23,7 @@ public final class BydCloudSession {
     /** CN superId (empty for overseas). Used for MQTT + CN outer identifier. */
     public final String superId;
     private final long loginTimeMs;
-    private final long ttlMs;
+    private long ttlMs;
 
     public BydCloudSession(String userId, String signToken, String encryToken) {
         this(userId, signToken, encryToken, "", DEFAULT_TTL_MS);
@@ -65,6 +69,21 @@ public final class BydCloudSession {
     /** Check if session has expired. */
     public boolean isExpired() {
         return (System.currentTimeMillis() - loginTimeMs) > ttlMs;
+    }
+
+    /** Current reuse window for these tokens. */
+    public long ttlMs() {
+        return ttlMs;
+    }
+
+    /**
+     * Change the reuse window without discarding the tokens. A shorter window can expire the
+     * session immediately; the next request then logs in again.
+     */
+    public void setTtlMs(long ttlMs) {
+        if (ttlMs > 0) {
+            this.ttlMs = ttlMs;
+        }
     }
 
     /** Check if session is valid (has tokens and not expired). */

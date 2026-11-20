@@ -415,4 +415,9 @@
     <string name="advanced_overdrive_visibility_always">Selalu tampilkan</string>
     <string name="advanced_overdrive_visibility_connected">Hanya saat terhubung</string>
     <string name="advanced_overdrive_visibility_hidden">Selalu sembunyikan</string>
+    <string name="advanced_session_section">Sesi BYD Cloud</string>
+    <string name="advanced_session_help">Berapa lama aplikasi memakai ulang login sebelum mengambil token baru dari BYD Cloud. Lebih lama berarti lebih sedikit login.</string>
+    <string name="advanced_session_ttl_hint">Menit (5–1440)</string>
+    <string name="advanced_session_ttl_helper">Default 30 menit. Berlaku pada permintaan BYD Cloud berikutnya.</string>
+    <string name="advanced_session_ttl_invalid">Interval token harus antara 5 dan 1440 menit</string>
 </resources>

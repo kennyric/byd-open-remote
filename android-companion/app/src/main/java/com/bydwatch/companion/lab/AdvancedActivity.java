@@ -16,7 +16,9 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 
 import com.bydwatch.companion.BuildConfig;
+import com.bydwatch.companion.BydWatchApp;
 import com.bydwatch.companion.R;
+import com.bydwatch.companion.data.ConfigStore;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.color.MaterialColors;
 import com.google.android.material.switchmaterial.SwitchMaterial;
@@ -44,6 +46,8 @@ public class AdvancedActivity extends AppCompatActivity {
     private EditText etAccessCode;
     private MaterialButton btnAccessConnect;
     private MaterialButton btnAccessDisconnect;
+    private EditText etSessionTtl;
+    private ConfigStore configStore;
     private int statusGeneration;
 
     private final Map<Integer, String> morePaths = new HashMap<>();
@@ -96,6 +100,9 @@ public class AdvancedActivity extends AppCompatActivity {
         if (btnAccessDisconnect != null) {
             btnAccessDisconnect.setOnClickListener(v -> disconnectAccess());
         }
+
+        etSessionTtl = findViewById(R.id.etAdvSessionTtl);
+        configStore = resolveConfigStore();
 
         populateMorePages();
         bindListeners();
@@ -311,6 +318,11 @@ public class AdvancedActivity extends AppCompatActivity {
         switchShow.setChecked(CarWebPrefs.showOverdrive(this));
         switchHideUrl.setChecked(CarWebPrefs.hideUrlBar(this));
         checkControlsVisibility(CarWebPrefs.overdriveControlsVisibility(this));
+        if (etSessionTtl != null) {
+            etSessionTtl.setText(String.valueOf(configStore != null
+                    ? configStore.getSessionTtlMinutes()
+                    : ConfigStore.DEFAULT_SESSION_TTL_MINUTES));
+        }
         etBase.setText(CarWebPrefs.baseUrl(this));
         rgTop.clearCheck();
         rgMore.clearCheck();
@@ -344,6 +356,9 @@ public class AdvancedActivity extends AppCompatActivity {
         switchShow.setChecked(false);
         switchHideUrl.setChecked(true);
         checkControlsVisibility(CarWebPrefs.CONTROLS_HIDDEN);
+        if (etSessionTtl != null) {
+            etSessionTtl.setText(String.valueOf(ConfigStore.DEFAULT_SESSION_TTL_MINUTES));
+        }
         etBase.setText("");
         rgTop.clearCheck();
         rgMore.clearCheck();
@@ -361,12 +376,34 @@ public class AdvancedActivity extends AppCompatActivity {
             return;
         }
         String page = selectedPage();
+        int ttlMinutes;
+        try {
+            ttlMinutes = Integer.parseInt(etSessionTtl != null
+                    ? etSessionTtl.getText().toString().trim() : "");
+        } catch (NumberFormatException invalid) {
+            ttlMinutes = -1;
+        }
+        if (ttlMinutes < ConfigStore.MIN_SESSION_TTL_MINUTES
+                || ttlMinutes > ConfigStore.MAX_SESSION_TTL_MINUTES) {
+            Toast.makeText(this, R.string.advanced_session_ttl_invalid, Toast.LENGTH_SHORT).show();
+            return;
+        }
         CarWebPrefs.setShowOverdrive(this, switchShow.isChecked());
         CarWebPrefs.setHideUrlBar(this, switchHideUrl.isChecked());
         CarWebPrefs.setOverdriveControlsVisibility(this, selectedControlsVisibility());
+        if (configStore != null) configStore.setSessionTtlMinutes(ttlMinutes);
         CarWebPrefs.setBaseUrl(this, base);
         CarWebPrefs.setDefaultPage(this, page);
         finish();
+    }
+
+    private ConfigStore resolveConfigStore() {
+        try {
+            BydWatchApp app = BydWatchApp.getInstance();
+            return app != null ? app.getConfigStore() : null;
+        } catch (RuntimeException unavailable) {
+            return null;
+        }
     }
 
     private void checkControlsVisibility(String visibility) {

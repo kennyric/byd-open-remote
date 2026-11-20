@@ -52,6 +52,7 @@ public class SecureConfigStore implements ConfigStore {
     private static final String PREF_ALERTS_ENABLED = "byd_alerts_enabled";
     private static final String PREF_DISCLAIMER_ACCEPTED = "byd_disclaimer_accepted";
     private static final String PREF_WIDGET_SYNC_MINUTES = "byd_widget_sync_minutes";
+    private static final String PREF_SESSION_TTL_MINUTES = "byd_session_ttl_minutes";
     private static final String PREF_BATTERY_CAPACITY_KWH = "byd_battery_capacity_kwh";
     private static final String PREF_WIDGET_STYLE = "byd_widget_style";
     private static final String PREF_HIDE_EXTRA_CONTROLS = "byd_hide_extra_controls";
@@ -519,6 +520,18 @@ public class SecureConfigStore implements ConfigStore {
     public void setWidgetSyncIntervalMinutes(int minutes) {
         int clamped = Math.max(MIN_WIDGET_SYNC_MINUTES, Math.min(MAX_WIDGET_SYNC_MINUTES, minutes));
         prefs.edit().putInt(PREF_WIDGET_SYNC_MINUTES, clamped).apply();
+    }
+
+    @Override
+    public int getSessionTtlMinutes() {
+        return ConfigStore.normalizeSessionTtlMinutes(
+                prefs.getInt(PREF_SESSION_TTL_MINUTES, DEFAULT_SESSION_TTL_MINUTES));
+    }
+
+    @Override
+    public void setSessionTtlMinutes(int minutes) {
+        prefs.edit().putInt(PREF_SESSION_TTL_MINUTES,
+                ConfigStore.normalizeSessionTtlMinutes(minutes)).apply();
     }
 
     @Override

@@ -575,6 +575,12 @@ public class CloudBydGateway implements BydGateway {
                 config.setVin(currentVin);
             }
         }
+
+        // Token reuse window is a plain setting, so it applies without rebuilding the client.
+        if (this.config != null) {
+            this.config.sessionTtlMs = ConfigStore.normalizeSessionTtlMinutes(
+                    configStore.getSessionTtlMinutes()) * 60_000L;
+        }
     }
 
     private void snapshotCredentials() {
