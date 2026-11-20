@@ -1,12 +1,12 @@
-# Overdrive Web + Advanced Options — Implementation Plan
+# Overdrive Web + Advanced Options — Implementation Plan (v2)
 
-> **Execution window:** Do not start before **2026-11-20 11:01 GMT+7**. This plan is written for execution outside peak hours.
+> **Execution window:** Do not start before **2026-11-20 11:01 GMT+7**.
 >
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans (native) or superpowers:subagent-driven-development. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Rename the trial Car Web screen to **Overdrive**, hide its URL bar by default, and add an **Advanced** drawer screen that controls the Overdrive entry, URL bar visibility, car address, and default page from a curated Overdrive page list.
+**Goal:** Remove the Lab trial mode, rename the WebView to **Overdrive**, hide its URL bar by default, and add an **Advanced** drawer screen that controls the Overdrive entry, car address, and default page from a top-5 preset list with "Load all" and manual URL entry.
 
-**Architecture:** A new `AdvancedActivity` edits `SharedPreferences` through a small `CarWebPrefs` wrapper. `OverdrivePages` supplies the curated path/label list, `CarWebUrl.resolve` joins a base origin with a page path, and `CarWebActivity` reads the preferences to decide whether to show the URL row and which page to load. `MainActivity` re-applies drawer visibility in `onResume()` so changes take effect immediately.
+**Architecture:** A new `AdvancedActivity` edits `SharedPreferences` through `CarWebPrefs`. `OverdrivePages` exposes a top-5 list plus the rest, `CarWebUrl.resolve` joins a base origin with a page path (no gateway fallback), and `CarWebActivity` decides whether to show the URL row or an empty state. `MainActivity` re-applies drawer visibility in `onResume()`.
 
 **Tech Stack:** Java 17, Android SDK 34, `minSdk 26`, JUnit 4, Robolectric 4.13, Material 1.12, existing `SharedPreferences`/`WebView`.
 
@@ -14,13 +14,14 @@
 
 ## Global Constraints
 
-- Trial gate stays `BuildConfig.DEBUG && !BuildConfig.DEMO_BUILD`; release and demo must not show Advanced or Overdrive.
-- Cleartext HTTP remains allowed only through `app/src/debug/AndroidManifest.xml`.
+- Lab mode is deleted completely: no `LabActivity`, `nav_lab`, `LabGate`, lab cloud helpers, lab tests, or `lab_*` strings.
+- Advanced and Overdrive are visible when `!BuildConfig.DEMO_BUILD`; demo hides both.
+- Default `show_overdrive_entry` is **false**.
+- Default `hide_url_bar` is **true**.
+- Blank car address means **no auto-load**; no Wi-Fi gateway detection.
 - No new dependencies.
 - Do not change `applicationId` or signing configuration.
-- No BYD-cloud calls in this change; this is only the Overdrive WebView bridge.
-- Work on `feat/byd-charging-lab` (the current branch). Do not merge.
-- Existing `CarWebActivity` class name may stay; all user-facing strings become "Overdrive".
+- Work on `feat/byd-charging-lab`; do not merge.
 
 ## Shared Preferences
 
@@ -28,20 +29,93 @@ Name: `car_web`
 
 | Key | Type | Default |
 |---|---|---|
-| `show_overdrive_entry` | boolean | `true` |
+| `show_overdrive_entry` | boolean | `false` |
 | `hide_url_bar` | boolean | `true` |
 | `car_base_url` | string | `""` |
 | `default_page` | string | `"/"` |
 
-The old `car_web_url` key is not migrated; the new default page is `/`.
-
 ## Review Focus
 
-- Turning "Show Overdrive in menu" off must hide **Overdrive** but keep **Advanced** reachable; turning it back on restores it without an app restart — Task 4 tests this.
-- "Hide URL bar" defaults to true and the URL row must actually be `GONE`; when false it is visible — Task 5 tests this.
-- A preset path must resolve against the car address or Wi-Fi gateway; an absolute custom URL must override both — Task 1 tests resolution.
-- Fresh installs must get show=true, hide=true, base empty, page `/` — Task 2 tests defaults.
-- Release/demo must not expose Advanced or Overdrive — Task 3/4 tests the gate.
+- Lab is truly gone: no `nav_lab`, `LabGate`, lab screen, lab strings, or lab tests; full suite green — Task 0.
+- Fresh install: Overdrive hidden, Advanced visible; enabling it restores Overdrive without restart — Tasks 2/4.
+- Blank car address + relative page does nothing (empty state, no gateway auto-load) — Task 5.
+- Top 5 presets, "Load all" expansion, and manual URL override all resolve correctly — Tasks 1/3.
+- Demo build hides Advanced and Overdrive; standard build shows them — Tasks 3/4.
+
+---
+
+### Task 0: Remove Lab trial mode
+
+**Files:**
+- Delete:
+  - `android-companion/app/src/main/java/com/bydwatch/companion/lab/LabActivity.java`
+  - `android-companion/app/src/main/java/com/bydwatch/companion/lab/LabConsole.java`
+  - `android-companion/app/src/main/java/com/bydwatch/companion/lab/LabVerdict.java`
+  - `android-companion/app/src/main/java/com/bydwatch/companion/lab/LabRetryPolicy.java`
+  - `android-companion/app/src/main/java/com/bydwatch/companion/lab/LabGate.java`
+  - `android-companion/app/src/main/java/com/bydwatch/companion/lab/LabContext.java`
+  - `android-companion/app/src/main/res/layout/activity_lab.xml`
+  - `android-companion/app/src/main/java/com/overdrive/app/byd/cloud/AcCurrentLimit.java`
+  - `android-companion/app/src/main/java/com/overdrive/app/byd/cloud/ChargeLimitValues.java`
+  - `android-companion/app/src/main/java/com/overdrive/app/byd/cloud/CloudCallTrace.java`
+  - `android-companion/app/src/main/java/com/overdrive/app/byd/cloud/LabEndpointPolicy.java`
+  - `android-companion/app/src/test/java/com/overdrive/app/byd/cloud/AcCurrentLimitTest.java`
+  - `android-companion/app/src/test/java/com/overdrive/app/byd/cloud/BydCloudClientAcCurrentLimitTest.java`
+  - `android-companion/app/src/test/java/com/overdrive/app/byd/cloud/CloudCallTraceTest.java`
+  - `android-companion/app/src/test/java/com/overdrive/app/byd/cloud/LabEndpointPolicyTest.java`
+  - `android-companion/app/src/test/java/com/bydwatch/companion/lab/LabConsoleTest.java`
+  - `android-companion/app/src/test/java/com/bydwatch/companion/lab/LabVerdictTest.java`
+  - `android-companion/app/src/test/java/com/bydwatch/companion/lab/LabReadTest.java`
+  - `android-companion/app/src/test/java/com/bydwatch/companion/lab/LabWriteTest.java`
+  - `android-companion/app/src/test/java/com/bydwatch/companion/lab/LabRawRunnerTest.java`
+  - `android-companion/app/src/test/java/com/bydwatch/companion/lab/LabGateTest.java`
+  - `android-companion/app/src/test/java/com/bydwatch/companion/lab/LabContextTest.java`
+- Modify: `BydCloudClient.java`, `MainActivity.java`, `drawer_menu.xml`, `AndroidManifest.xml`, `strings.xml`, `values-in/strings.xml`, `CarWebActivity.java`
+- Rename: `android-companion/app/src/test/java/com/bydwatch/companion/ui/LabEntryTest.java` → `AdvancedEntryTest.java` (class name too)
+
+**Interfaces:**
+- Consumes: existing `CarWebActivity`.
+- Produces: no Lab symbols; `CarWebActivity` gated by `!BuildConfig.DEMO_BUILD`.
+
+- [ ] **Step 1: Delete the Lab files and tests**
+
+Use `git rm` for the files listed above. Remove the Lab block from `BydCloudClient` (`AcCurrentLimitResult`, `callControlEndpoint`, `readAcCurrentLimit`, `writeAcCurrentLimit`, `copyJson`) and any now-unused imports. Remove `nav_lab` from the drawer and `MainActivity`, and delete the `LabActivity` manifest entry.
+
+- [ ] **Step 2: Replace the gate**
+
+In `CarWebActivity.onCreate`, replace `LabGate.isEnabled(...)` with:
+```java
+if (BuildConfig.DEMO_BUILD) {
+    super.onCreate(savedInstanceState);
+    finish();
+    return;
+}
+```
+In `MainActivity`, set `nav_car_web` visibility to `!BuildConfig.DEMO_BUILD` for now (Task 4 will add the preference).
+
+Remove all `lab_*` and `nav_lab` string resources from both language files.
+
+- [ ] **Step 3: Keep the drawer tests for Car Web**
+
+Rename `LabEntryTest` to `AdvancedEntryTest`; delete the Lab test method; keep
+`drawerShowsCarWebAndOpensActivity` and rename it to Overdrive terminology.
+Add `@After BydWatchApp.resetForTesting()` if not present.
+
+- [ ] **Step 4: Run the full suite**
+
+Run: `cd android-companion && ./gradlew.bat :app:testStandardDebugUnitTest`
+Expected: PASS, with no references to `nav_lab` or `LabGate`.
+
+Also run:
+`grep -rn "nav_lab\|LabGate\|LabActivity\|lab_" android-companion/app/src/main`
+Expected: no matches.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add -A
+git commit -m "refactor: remove lab trial mode"
+```
 
 ---
 
@@ -54,12 +128,12 @@ The old `car_web_url` key is not migrated; the new default page is `/`.
 - Test: `android-companion/app/src/test/java/com/bydwatch/companion/lab/CarWebUrlTest.java`
 
 **Interfaces:**
-- Consumes: existing `CarWebUrl.normalize`, `CarWebUrl.fromGateway`.
+- Consumes: existing `CarWebUrl.normalize`.
 - Produces:
   - `OverdrivePages.Page` with public final `String label`, `String path`.
-  - `OverdrivePages.pages() -> List<Page>`
-  - `OverdrivePages.labels() -> String[]`
-  - `OverdrivePages.pathForLabel(String label) -> String`
+  - `OverdrivePages.topPages() -> List<Page>` (exactly 5)
+  - `OverdrivePages.morePages() -> List<Page>` (everything else)
+  - `OverdrivePages.allPages() -> List<Page>` (top + more)
   - `CarWebUrl.resolve(String base, String page) -> String`
 
 - [ ] **Step 1: Write the failing tests**
@@ -74,31 +148,40 @@ import java.util.List;
 import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class OverdrivePagesTest {
 
     @Test
-    public void includesTheImportantPages() {
-        List<OverdrivePages.Page> pages = OverdrivePages.pages();
-        assertTrue(pages.stream().anyMatch(p -> "/vehicle-control.html".equals(p.path)));
-        assertTrue(pages.stream().anyMatch(p -> "/events.html".equals(p.path)));
-        assertEquals("/", OverdrivePages.pathForLabel("Dashboard"));
-        assertEquals("/vehicle-control.html", OverdrivePages.pathForLabel("Vehicle Control"));
+    public void topFiveAreTheUsefulDefaults() {
+        List<OverdrivePages.Page> top = OverdrivePages.topPages();
+        assertEquals(5, top.size());
+        assertEquals("/vehicle-control.html", top.get(0).path);
+        assertEquals("/events.html", top.get(1).path);
+        assertEquals("/charging.html", top.get(2).path);
+        assertEquals("/trips.html", top.get(3).path);
+        assertEquals("/live-view.html", top.get(4).path);
     }
 
     @Test
-    public void labelsAndPathsAreUniqueAndWellFormed() {
+    public void morePagesContainDashboardAndSystemPages() {
+        assertTrue(OverdrivePages.morePages().stream()
+                .anyMatch(p -> "/".equals(p.path)));
+        assertTrue(OverdrivePages.morePages().stream()
+                .anyMatch(p -> "/byd-cloud.html".equals(p.path)));
+    }
+
+    @Test
+    public void allLabelsAndPathsAreUnique() {
         Set<String> labels = new HashSet<>();
         Set<String> paths = new HashSet<>();
-        for (OverdrivePages.Page page : OverdrivePages.pages()) {
-            assertFalse(page.label.isEmpty());
+        for (OverdrivePages.Page page : OverdrivePages.allPages()) {
+            assertTrue(labels.add(page.label));
+            assertTrue(paths.add(page.path));
             assertTrue(page.path.startsWith("/"));
-            assertTrue("duplicate label " + page.label, labels.add(page.label));
-            assertTrue("duplicate path " + page.path, paths.add(page.path));
         }
-        assertEquals(OverdrivePages.pages().size(), OverdrivePages.labels().length);
+        assertEquals(5 + OverdrivePages.morePages().size(),
+                OverdrivePages.allPages().size());
     }
 }
 ```
@@ -130,34 +213,35 @@ public class OverdrivePagesTest {
 - [ ] **Step 2: Run tests to verify they fail**
 
 Run: `cd android-companion && ./gradlew.bat :app:testStandardDebugUnitTest --tests "com.bydwatch.companion.lab.OverdrivePagesTest" --tests "com.bydwatch.companion.lab.CarWebUrlTest"`
-Expected: FAIL — `OverdrivePages` missing and `resolve` missing.
+Expected: FAIL — `OverdrivePages` / `resolve` missing.
 
 - [ ] **Step 3: Implement**
 
-`OverdrivePages` holds an immutable ordered list of `Page` objects:
+`OverdrivePages.topPages()`:
+1. Vehicle Control `/vehicle-control.html`
+2. Events `/events.html`
+3. Charging `/charging.html`
+4. Trips `/trips.html`
+5. Live View `/live-view.html`
 
-Primary: Dashboard `/`, Vehicle Control `/vehicle-control.html`, Events `/events.html`,
-Charging `/charging.html`, Automations `/automations.html`, Trips `/trips.html`,
-Parking `/parking.html`, Live View `/live-view.html`, Recordings `/recording.html`,
-Widgets `/widgets.html`.
+`morePages()`:
+Dashboard `/`, Automations `/automations.html`, Parking `/parking.html`,
+Recordings `/recording.html`, Widgets `/widgets.html`, Network `/network.html`,
+BYD Cloud `/byd-cloud.html`, Remote Access `/remote-access.html`, About
+`/about.html`, Module Faults `/module-faults.html`, Seat Positions
+`/seat-positions.html`, Sessions `/sessions.html`, Daemons `/daemons.html`,
+Communication `/communicate.html`, Telegram `/telegram.html`, MQTT
+`/mqtt.html`, WireGuard `/wireguard.html`, ABRP `/abrp.html`, Road Sense
+`/road-sense.html`, SafeKeep `/safekeep.html`, Storage `/storage.html`,
+Factory DVR `/factory-dvr.html`, Key Mapping `/key-mapping.html`,
+Notifications `/notifications.html`, Performance `/performance.html`,
+Surveillance `/surveillance.html`.
 
-System/integrations: Network `/network.html`, BYD Cloud `/byd-cloud.html`,
-Remote Access `/remote-access.html`, About `/about.html`, Module Faults
-`/module-faults.html`, Seat Positions `/seat-positions.html`, Sessions
-`/sessions.html`, Daemons `/daemons.html`, Communication `/communicate.html`,
-Telegram `/telegram.html`, MQTT `/mqtt.html`, WireGuard `/wireguard.html`,
-ABRP `/abrp.html`, Road Sense `/road-sense.html`, SafeKeep `/safekeep.html`,
-Storage `/storage.html`, Factory DVR `/factory-dvr.html`, Key Mapping
-`/key-mapping.html`, Notifications `/notifications.html`, Performance
-`/performance.html`, Surveillance `/surveillance.html`.
-
-`pathForLabel` returns the matching path, or `/` when the label is unknown.
-
-`CarWebUrl.resolve(base, page)`:
-1. Normalize `page` as an absolute URL first; if it starts with `http://` or `https://`, return `normalize(page)`.
-2. Normalize `base`; return `""` when it is empty.
-3. Strip a leading `/` from `page` and build `scheme://host:port/` + page.
-4. Preserve query strings on the page.
+`CarWebUrl.resolve`:
+- If `page` is an absolute `http(s)://` URL, return `normalize(page)`.
+- Normalize `base`; return `""` when empty.
+- Strip a leading `/` from `page`; build `scheme://host:port/` + page.
+- Preserve query strings.
 
 - [ ] **Step 4: Run tests to verify they pass**
 
@@ -171,7 +255,7 @@ git add android-companion/app/src/main/java/com/bydwatch/companion/lab/Overdrive
         android-companion/app/src/main/java/com/bydwatch/companion/lab/CarWebUrl.java \
         android-companion/app/src/test/java/com/bydwatch/companion/lab/OverdrivePagesTest.java \
         android-companion/app/src/test/java/com/bydwatch/companion/lab/CarWebUrlTest.java
-git commit -m "feat(overdrive): add page presets and URL resolver"
+git commit -m "feat(overdrive): add top-five page presets and URL resolver"
 ```
 
 ---
@@ -183,15 +267,15 @@ git commit -m "feat(overdrive): add page presets and URL resolver"
 - Test: `android-companion/app/src/test/java/com/bydwatch/companion/lab/CarWebPrefsTest.java`
 
 **Interfaces:**
-- Consumes: `android.content.Context`, `SharedPreferences`.
+- Consumes: `Context`, `SharedPreferences`.
 - Produces:
-  - `CarWebPrefs.showOverdrive(Context) -> boolean`
+  - `CarWebPrefs.showOverdrive(Context) -> boolean` (default `false`)
   - `CarWebPrefs.setShowOverdrive(Context, boolean)`
-  - `CarWebPrefs.hideUrlBar(Context) -> boolean`
+  - `CarWebPrefs.hideUrlBar(Context) -> boolean` (default `true`)
   - `CarWebPrefs.setHideUrlBar(Context, boolean)`
-  - `CarWebPrefs.baseUrl(Context) -> String`
+  - `CarWebPrefs.baseUrl(Context) -> String` (default `""`)
   - `CarWebPrefs.setBaseUrl(Context, String)`
-  - `CarWebPrefs.defaultPage(Context) -> String`
+  - `CarWebPrefs.defaultPage(Context) -> String` (default `"/"`)
   - `CarWebPrefs.setDefaultPage(Context, String)`
   - `CarWebPrefs.reset(Context)`
 
@@ -202,12 +286,11 @@ package com.bydwatch.companion.lab;
 
 import android.content.Context;
 
-import org.robolectric.RuntimeEnvironment;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
+import org.robolectric.RuntimeEnvironment;
 import org.robolectric.annotation.Config;
 
 import static org.junit.Assert.assertEquals;
@@ -227,8 +310,8 @@ public class CarWebPrefsTest {
     }
 
     @Test
-    public void defaultsAreShowHideAndDashboard() {
-        assertTrue(CarWebPrefs.showOverdrive(context));
+    public void defaultsAreHiddenOverdriveAndHiddenUrlBar() {
+        assertFalse(CarWebPrefs.showOverdrive(context));
         assertTrue(CarWebPrefs.hideUrlBar(context));
         assertEquals("", CarWebPrefs.baseUrl(context));
         assertEquals("/", CarWebPrefs.defaultPage(context));
@@ -236,22 +319,15 @@ public class CarWebPrefsTest {
 
     @Test
     public void settersPersist() {
-        CarWebPrefs.setShowOverdrive(context, false);
+        CarWebPrefs.setShowOverdrive(context, true);
         CarWebPrefs.setHideUrlBar(context, false);
         CarWebPrefs.setBaseUrl(context, "http://192.168.1.50:8080");
         CarWebPrefs.setDefaultPage(context, "/vehicle-control.html");
 
-        assertFalse(CarWebPrefs.showOverdrive(context));
+        assertTrue(CarWebPrefs.showOverdrive(context));
         assertFalse(CarWebPrefs.hideUrlBar(context));
         assertEquals("http://192.168.1.50:8080", CarWebPrefs.baseUrl(context));
         assertEquals("/vehicle-control.html", CarWebPrefs.defaultPage(context));
-    }
-
-    @Test
-    public void resetRestoresDefaults() {
-        CarWebPrefs.setShowOverdrive(context, false);
-        CarWebPrefs.reset(context);
-        assertTrue(CarWebPrefs.showOverdrive(context));
     }
 }
 ```
@@ -261,11 +337,11 @@ public class CarWebPrefsTest {
 Run: `cd android-companion && ./gradlew.bat :app:testStandardDebugUnitTest --tests "com.bydwatch.companion.lab.CarWebPrefsTest"`
 Expected: FAIL — `CarWebPrefs` missing.
 
-- [ ] **Step 3: Implement `CarWebPrefs`**
+- [ ] **Step 3: Implement**
 
-Use `context.getApplicationContext().getSharedPreferences("car_web", Context.MODE_PRIVATE)`.
-Getters use the defaults from the table; setters apply; `reset` clears the four
-keys (do not clear unrelated keys).
+Use `context.getApplicationContext().getSharedPreferences("car_web", MODE_PRIVATE)`.
+Getters use the defaults above; setters persist; `reset` clears only the four
+keys.
 
 - [ ] **Step 4: Run test to verify it passes**
 
@@ -277,31 +353,27 @@ Expected: PASS.
 ```bash
 git add android-companion/app/src/main/java/com/bydwatch/companion/lab/CarWebPrefs.java \
         android-companion/app/src/test/java/com/bydwatch/companion/lab/CarWebPrefsTest.java
-git commit -m "feat(overdrive): add web preferences"
+git commit -m "feat(overdrive): add web preferences with hidden defaults"
 ```
 
 ---
 
-### Task 3: Advanced screen
+### Task 3: Advanced screen with top 5, Load all, and manual URL
 
 **Files:**
 - Create: `android-companion/app/src/main/java/com/bydwatch/companion/lab/AdvancedActivity.java`
 - Create: `android-companion/app/src/main/res/layout/activity_advanced.xml`
-- Modify: `android-companion/app/src/main/AndroidManifest.xml`
-- Modify: `android-companion/app/src/main/res/menu/drawer_menu.xml`
-- Modify: `android-companion/app/src/main/res/values/strings.xml`
-- Modify: `android-companion/app/src/main/res/values-in/strings.xml`
+- Modify: `AndroidManifest.xml`, `drawer_menu.xml`, `strings.xml`, `values-in/strings.xml`
 - Test: `android-companion/app/src/test/java/com/bydwatch/companion/lab/AdvancedActivityTest.java`
 
 **Interfaces:**
 - Consumes: `CarWebPrefs`, `OverdrivePages`, `CarWebUrl`.
 - Produces:
-  - `R.layout.activity_advanced`
-  - `R.id.nav_advanced`
   - `AdvancedActivity`
+  - `R.id.nav_advanced`
   - Views: `switchAdvShowOverdrive`, `switchAdvHideUrlBar`, `etAdvBaseUrl`,
-    `spAdvPage`, `etAdvCustomPage`, `tvAdvPreview`, `btnAdvSave`,
-    `btnAdvReset`, `btnAdvBack`
+    `rgAdvTopPages`, `btnAdvLoadAll`, `layoutAdvMorePages`, `rgAdvMorePages`,
+    `etAdvManualUrl`, `tvAdvPreview`, `btnAdvSave`, `btnAdvReset`, `btnAdvBack`
 
 - [ ] **Step 1: Write the failing test**
 
@@ -310,7 +382,6 @@ package com.bydwatch.companion.lab;
 
 import android.content.Context;
 
-import org.robolectric.RuntimeEnvironment;
 import com.google.android.material.switchmaterial.SwitchMaterial;
 
 import org.junit.Before;
@@ -318,8 +389,10 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
+import org.robolectric.RuntimeEnvironment;
 import org.robolectric.annotation.Config;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -336,79 +409,108 @@ public class AdvancedActivityTest {
     }
 
     @Test
-    public void savingTogglesPersistsAndFinishes() {
+    public void savingTopPagePersistsAndFinishes() {
         AdvancedActivity activity = Robolectric.buildActivity(AdvancedActivity.class)
                 .setup().get();
 
         SwitchMaterial show = activity.findViewById(
                 com.bydwatch.companion.R.id.switchAdvShowOverdrive);
-        SwitchMaterial hide = activity.findViewById(
-                com.bydwatch.companion.R.id.switchAdvHideUrlBar);
-        show.setChecked(false);
-        hide.setChecked(false);
+        show.setChecked(true);
+
+        android.widget.RadioButton vehicle = activity.findViewById(
+                com.bydwatch.companion.R.id.rbAdvVehicleControl);
+        vehicle.setChecked(true);
 
         activity.findViewById(com.bydwatch.companion.R.id.btnAdvSave).performClick();
 
-        assertFalse(CarWebPrefs.showOverdrive(context));
-        assertFalse(CarWebPrefs.hideUrlBar(context));
+        assertTrue(CarWebPrefs.showOverdrive(context));
+        assertEquals("/vehicle-control.html", CarWebPrefs.defaultPage(context));
         assertTrue(activity.isFinishing());
+    }
+
+    @Test
+    public void manualUrlOverridesPreset() {
+        AdvancedActivity activity = Robolectric.buildActivity(AdvancedActivity.class)
+                .setup().get();
+
+        android.widget.EditText manual = activity.findViewById(
+                com.bydwatch.companion.R.id.etAdvManualUrl);
+        manual.setText("http://192.168.1.50:8080/events.html");
+
+        activity.findViewById(com.bydwatch.companion.R.id.btnAdvSave).performClick();
+
+        assertEquals("http://192.168.1.50:8080/events.html",
+                CarWebPrefs.defaultPage(context));
+    }
+
+    @Test
+    public void loadAllRevealsMorePages() {
+        AdvancedActivity activity = Robolectric.buildActivity(AdvancedActivity.class)
+                .setup().get();
+        android.view.View more = activity.findViewById(
+                com.bydwatch.companion.R.id.layoutAdvMorePages);
+        assertEquals(android.view.View.GONE, more.getVisibility());
+
+        activity.findViewById(com.bydwatch.companion.R.id.btnAdvLoadAll).performClick();
+        assertEquals(android.view.View.VISIBLE, more.getVisibility());
     }
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [ ] **Step 2: Run tests to verify they fail**
 
 Run: `cd android-companion && ./gradlew.bat :app:testStandardDebugUnitTest --tests "com.bydwatch.companion.lab.AdvancedActivityTest"`
 Expected: FAIL — `AdvancedActivity` missing.
 
-- [ ] **Step 3: Implement the screen**
+- [ ] **Step 3: Implement**
 
 `AdvancedActivity`:
-- Gate with `LabGate.isEnabled(BuildConfig.DEBUG, BuildConfig.DEMO_BUILD)`; finish otherwise.
-- Bind the views listed above.
-- Initialize switches from `CarWebPrefs`.
-- Populate `spAdvPage` from `OverdrivePages.labels()` plus `"Custom…"`.
-- If the saved `default_page` is one of the preset paths, select that label;
-  otherwise select Custom and fill `etAdvCustomPage` with the saved value.
-- When the spinner changes to a preset, hide the custom field and update the
-  preview with `CarWebUrl.resolve(base, presetPath)`. When Custom is selected,
-  show the field and resolve its text.
-- `btnAdvReset` restores defaults in the form (does not save until Save).
-- `btnAdvSave`:
+- Gate with `if (BuildConfig.DEMO_BUILD) { finish(); return; }`.
+- Bind views; initialize switches from `CarWebPrefs`.
+- Base field: prefill `CarWebPrefs.baseUrl`.
+- Top 5: a `RadioGroup` with five `RadioButton`s, IDs
+  `rbAdvVehicleControl`, `rbAdvEvents`, `rbAdvCharging`, `rbAdvTrips`,
+  `rbAdvLiveView`.
+- `layoutAdvMorePages` starts `GONE`; `btnAdvLoadAll` toggles it visible and
+  updates its text to "Show top 5" / "Load all pages".
+- More pages: a second `RadioGroup` populated programmatically from
+  `OverdrivePages.morePages()`; selecting one clears the top group and manual
+  field. Selecting a top preset clears the more group and manual field.
+- Manual URL field: typing any non-empty value clears both radio groups.
+- Preview updates on every change:
+  `CarWebUrl.resolve(base, selectedPathOrManual)`.
+- Save:
   - `base = CarWebUrl.normalize(etAdvBaseUrl)` (empty allowed).
-  - `page = selected preset path`, or the custom field when Custom.
-  - If page is empty, use `/`.
-  - Persist all four keys and call `finish()`.
-- `btnAdvBack` finishes without saving.
+  - `page = manual non-empty ? manual : selected preset path`, default `/`.
+  - Persist show, hide, base, page; finish.
+- Reset: restore form defaults (show off, hide on, base empty, `/`, no manual);
+  do not save until Save.
 
-`activity_advanced.xml`:
-- `NestedScrollView` → vertical `LinearLayout`, same padding/card style as
-  `activity_lab.xml`.
-- Header with back button, title "Advanced", and a short subtitle.
-- A `MaterialCardView` "Overdrive" containing the two `SwitchMaterial`s.
-- "Car address" `EditText`.
-- "Default page" `Spinner` + custom `EditText` (hidden by default).
-- Preview `TextView` (monospace, selectable).
-- Save and Reset buttons.
+Layout:
+- `NestedScrollView` → vertical `LinearLayout`, card styling from the app.
+- Header with back, title "Advanced".
+- Overdrive card with the two switches.
+- Car address `EditText` + helper text "Blank does nothing — no auto-load."
+- Default page card: top-5 radio list, "Load all pages" button, hidden more
+  pages container, manual URL field.
+- Preview monospace text.
+- Save / Reset in a sticky footer so they remain visible while the page list scrolls.
 
-Manifest: add `.lab.AdvancedActivity` with `exported="false"` and label
+Manifest: `.lab.AdvancedActivity`, `exported=false`, label
 `@string/advanced_title`.
 
-Drawer: add `nav_advanced` after `nav_car_web` with `@string/nav_advanced` and
-the existing tune icon.
+Drawer: add `nav_advanced` (tune icon).
 
-Strings (English + Indonesian):
-`nav_advanced`, `advanced_title`, `advanced_subtitle`, `advanced_overdrive_section`,
-`advanced_show_overdrive`, `advanced_hide_url_bar`, `advanced_car_address`,
-`advanced_car_address_hint`, `advanced_default_page`, `advanced_custom`,
-`advanced_custom_hint`, `advanced_preview`, `advanced_save`, `advanced_reset`,
-`advanced_back`, `nav_overdrive` (rename of `nav_car_web`), `overdrive_title`,
-`overdrive_error`.
+Strings (EN + ID): `nav_advanced`, `advanced_title`, `advanced_subtitle`,
+`advanced_overdrive_section`, `advanced_show_overdrive`,
+`advanced_hide_url_bar`, `advanced_car_address`,
+`advanced_car_address_hint`, `advanced_car_address_help`,
+`advanced_default_page`, `advanced_load_all`, `advanced_show_top5`,
+`advanced_manual_url`, `advanced_manual_url_hint`, `advanced_preview`,
+`advanced_save`, `advanced_reset`, `advanced_back`, `nav_overdrive`,
+`overdrive_title`, `overdrive_error`, `overdrive_set_address`.
 
-Rename existing user-facing "Car Web" strings to "Overdrive"; keep the
-`nav_car_web` ID for compatibility.
-
-- [ ] **Step 4: Run test to verify it passes**
+- [ ] **Step 4: Run tests to verify they pass**
 
 Run: `cd android-companion && ./gradlew.bat :app:testStandardDebugUnitTest --tests "com.bydwatch.companion.lab.AdvancedActivityTest"`
 Expected: PASS.
@@ -423,29 +525,29 @@ git add android-companion/app/src/main/java/com/bydwatch/companion/lab/AdvancedA
         android-companion/app/src/main/res/values/strings.xml \
         android-companion/app/src/main/res/values-in/strings.xml \
         android-companion/app/src/test/java/com/bydwatch/companion/lab/AdvancedActivityTest.java
-git commit -m "feat(overdrive): add advanced settings screen"
+git commit -m "feat(overdrive): add advanced screen with presets and manual url"
 ```
 
 ---
 
-### Task 4: Drawer visibility and rename
+### Task 4: Drawer visibility, rename, and demo gate
 
 **Files:**
-- Modify: `android-companion/app/src/main/java/com/bydwatch/companion/ui/MainActivity.java`
-- Test: `android-companion/app/src/test/java/com/bydwatch/companion/ui/LabEntryTest.java`
+- Modify: `MainActivity.java`
+- Test: `android-companion/app/src/test/java/com/bydwatch/companion/ui/AdvancedEntryTest.java`
 
 **Interfaces:**
-- Consumes: `CarWebPrefs.showOverdrive`, `LabGate.isEnabled`, `AdvancedActivity`.
-- Produces: `MainActivity.applyTrialMenuVisibility()` called from `bindViews()`
-  and `onResume()`.
+- Consumes: `CarWebPrefs.showOverdrive`, `BuildConfig.DEMO_BUILD`, `AdvancedActivity`.
+- Produces: `MainActivity.applyStandardMenuVisibility()` called from
+  `bindViews()` and `onResume()`.
 
 - [ ] **Step 1: Write the failing test**
 
-Add to `LabEntryTest`:
+Add to `AdvancedEntryTest`:
 
 ```java
 @Test
-public void advancedIsAlwaysVisibleAndOverdriveFollowsPreference() {
+public void freshInstallHidesOverdriveButShowsAdvanced() {
     BydRepositoryTest.InMemoryConfigStore store = new BydRepositoryTest.InMemoryConfigStore();
     store.setUsername("test@byd.id");
     store.setPassword("ValidPass123");
@@ -455,67 +557,84 @@ public void advancedIsAlwaysVisibleAndOverdriveFollowsPreference() {
     BydRepositoryTest.FakeBydGateway gateway = new BydRepositoryTest.FakeBydGateway();
     BydRepository repository = new BydRepository(gateway, store);
     BydWatchApp.setTestDependencies(store, gateway, repository);
-    android.content.Context context =
-            org.robolectric.RuntimeEnvironment.getApplication();
+    android.content.Context context = org.robolectric.RuntimeEnvironment.getApplication();
     CarWebPrefs.reset(context);
-    CarWebPrefs.setShowOverdrive(context, false);
 
     MainActivity activity = Robolectric.buildActivity(MainActivity.class).setup().get();
     NavigationView nav = activity.findViewById(R.id.navView);
 
-    assertNotNull(nav.getMenu().findItem(R.id.nav_advanced));
     assertTrue(nav.getMenu().findItem(R.id.nav_advanced).isVisible());
     assertFalse(nav.getMenu().findItem(R.id.nav_car_web).isVisible());
 }
+
+@Test
+public void enablingOverdriveShowsIt() {
+    BydRepositoryTest.InMemoryConfigStore store = new BydRepositoryTest.InMemoryConfigStore();
+    store.setUsername("test@byd.id");
+    store.setPassword("ValidPass123");
+    store.setPin("123456");
+    store.setRegion("id");
+    store.setVin("VIN_TEST");
+    BydRepositoryTest.FakeBydGateway gateway = new BydRepositoryTest.FakeBydGateway();
+    BydRepository repository = new BydRepository(gateway, store);
+    BydWatchApp.setTestDependencies(store, gateway, repository);
+    android.content.Context context = org.robolectric.RuntimeEnvironment.getApplication();
+    CarWebPrefs.reset(context);
+    CarWebPrefs.setShowOverdrive(context, true);
+
+    MainActivity activity = Robolectric.buildActivity(MainActivity.class).setup().get();
+    NavigationView nav = activity.findViewById(R.id.navView);
+
+    assertTrue(nav.getMenu().findItem(R.id.nav_car_web).isVisible());
+}
 ```
 
-Use `RuntimeEnvironment.getApplication()` for the test context; add
-the imports. Reset preferences in `@After`.
+- [ ] **Step 2: Run tests to verify they fail**
 
-- [ ] **Step 2: Run test to verify it fails**
-
-Run: `cd android-companion && ./gradlew.bat :app:testStandardDebugUnitTest --tests "com.bydwatch.companion.ui.LabEntryTest"`
-Expected: FAIL — `nav_advanced` missing and visibility not applied.
+Run: `cd android-companion && ./gradlew.bat :app:testStandardDebugUnitTest --tests "com.bydwatch.companion.ui.AdvancedEntryTest"`
+Expected: FAIL — Overdrive visibility still unconditional.
 
 - [ ] **Step 3: Implement**
 
-- Add `nav_advanced` visibility in the existing drawer setup.
-- Extract `applyTrialMenuVisibility()`:
-  - `boolean enabled = LabGate.isEnabled(BuildConfig.DEBUG, BuildConfig.DEMO_BUILD);`
-  - `nav_advanced` visible = enabled.
-  - `nav_car_web` visible = enabled && `CarWebPrefs.showOverdrive(this)`.
-- Call it from `bindViews()` after `navView` binding and from `onResume()`.
-- In the navigation listener, handle `nav_advanced` by starting
-  `AdvancedActivity` (same pattern as `nav_lab`).
-- Rename the drawer title through `nav_overdrive` / "Overdrive".
+- Add `applyStandardMenuVisibility()`:
+  - `boolean standard = !BuildConfig.DEMO_BUILD;`
+  - `nav_advanced` visible = `standard`.
+  - `nav_car_web` visible = `standard && CarWebPrefs.showOverdrive(this)`.
+- Call from `bindViews()` and `onResume()`.
+- Listener for `nav_advanced` starts `AdvancedActivity`.
+- Drawer title for `nav_car_web` uses `@string/nav_overdrive`.
+- Ensure `nav_lab` is gone.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [ ] **Step 4: Run tests to verify they pass**
 
-Run: `cd android-companion && ./gradlew.bat :app:testStandardDebugUnitTest --tests "com.bydwatch.companion.ui.LabEntryTest"`
+Run: `cd android-companion && ./gradlew.bat :app:testStandardDebugUnitTest --tests "com.bydwatch.companion.ui.AdvancedEntryTest"`
 Expected: PASS.
 
 - [ ] **Step 5: Commit**
 
 ```bash
 git add android-companion/app/src/main/java/com/bydwatch/companion/ui/MainActivity.java \
-        android-companion/app/src/test/java/com/bydwatch/companion/ui/LabEntryTest.java
-git commit -m "feat(overdrive): wire advanced menu and visibility"
+        android-companion/app/src/main/res/menu/drawer_menu.xml \
+        android-companion/app/src/main/res/values/strings.xml \
+        android-companion/app/src/main/res/values-in/strings.xml \
+        android-companion/app/src/test/java/com/bydwatch/companion/ui/AdvancedEntryTest.java
+git commit -m "feat(overdrive): gate drawer entries and rename to overdrive"
 ```
 
 ---
 
-### Task 5: Overdrive screen reads advanced settings
+### Task 5: Overdrive screen behavior
 
 **Files:**
-- Modify: `android-companion/app/src/main/java/com/bydwatch/companion/lab/CarWebActivity.java`
-- Modify: `android-companion/app/src/main/res/layout/activity_car_web.xml`
-- Modify: `android-companion/app/src/main/res/values/strings.xml`
-- Modify: `android-companion/app/src/main/res/values-in/strings.xml`
+- Modify: `CarWebActivity.java`, `activity_car_web.xml`, `strings.xml`, `values-in/strings.xml`
 - Test: `android-companion/app/src/test/java/com/bydwatch/companion/lab/CarWebActivityTest.java`
 
 **Interfaces:**
-- Consumes: `CarWebPrefs`, `CarWebUrl.resolve`, `OverdrivePages`.
-- Produces: `R.id.rowCarWebUrl`; behavior described below.
+- Consumes: `CarWebPrefs`, `CarWebUrl.resolve`.
+- Produces:
+  - `R.id.rowCarWebUrl`
+  - `R.id.layoutOverdriveEmpty`, `R.id.btnOverdriveAdvanced`
+  - behavior below.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -526,13 +645,12 @@ import android.content.Context;
 import android.view.View;
 import android.webkit.WebView;
 
-import org.robolectric.RuntimeEnvironment;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
+import org.robolectric.RuntimeEnvironment;
 import org.robolectric.Shadows;
 import org.robolectric.annotation.Config;
 
@@ -553,6 +671,8 @@ public class CarWebActivityTest {
 
     @Test
     public void hideUrlBarDefaultsToGone() {
+        CarWebPrefs.setBaseUrl(context, "http://192.168.1.50:8080");
+        CarWebPrefs.setDefaultPage(context, "/events.html");
         CarWebActivity activity = Robolectric.buildActivity(CarWebActivity.class)
                 .setup().get();
         assertEquals(View.GONE,
@@ -561,7 +681,22 @@ public class CarWebActivityTest {
     }
 
     @Test
-    public void shownUrlBarIsVisibleAndLoadsResolvedPage() {
+    public void blankAddressAndRelativePageShowsEmptyState() {
+        CarWebPrefs.setBaseUrl(context, "");
+        CarWebPrefs.setDefaultPage(context, "/events.html");
+
+        CarWebActivity activity = Robolectric.buildActivity(CarWebActivity.class)
+                .setup().get();
+
+        assertEquals(View.VISIBLE,
+                activity.findViewById(com.bydwatch.companion.R.id.layoutOverdriveEmpty)
+                        .getVisibility());
+        WebView webView = activity.findViewById(com.bydwatch.companion.R.id.webCar);
+        assertEquals(null, Shadows.shadowOf(webView).getLastLoadedUrl());
+    }
+
+    @Test
+    public void baseAndPageLoadResolvedUrl() {
         CarWebPrefs.setHideUrlBar(context, false);
         CarWebPrefs.setBaseUrl(context, "http://192.168.1.50:8080");
         CarWebPrefs.setDefaultPage(context, "/events.html");
@@ -580,35 +715,36 @@ public class CarWebActivityTest {
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [ ] **Step 2: Run tests to verify they fail**
 
 Run: `cd android-companion && ./gradlew.bat :app:testStandardDebugUnitTest --tests "com.bydwatch.companion.lab.CarWebActivityTest"`
-Expected: FAIL — `rowCarWebUrl` missing and preferences unused.
+Expected: FAIL — empty-state views missing; gateway fallback still present.
 
 - [ ] **Step 3: Implement**
 
-`activity_car_web.xml`: give the URL-row `LinearLayout` the id `rowCarWebUrl`.
+`activity_car_web.xml`:
+- Give the URL row `android:id="@+id/rowCarWebUrl"`.
+- Add an empty-state container `layoutOverdriveEmpty` (centered text + button
+  `btnOverdriveAdvanced`), initially `GONE`.
+- Keep `webCar` and the toolbar.
 
 `CarWebActivity`:
-- Rename title/labels to Overdrive via strings.
-- On create, `boolean hideBar = CarWebPrefs.hideUrlBar(this)`.
-- Resolve the page:
-  - `String page = CarWebPrefs.defaultPage(this);`
-  - `String base = CarWebPrefs.baseUrl(this);`
-  - If `base` is empty, use `findGateway()`.
-  - `String url = CarWebUrl.resolve(base, page);`
-- If `hideBar` and `url` is non-empty: set `rowCarWebUrl` `GONE`; load `url`.
-- If `hideBar` and `url` is empty: force `rowCarWebUrl` `VISIBLE`, focus the field,
-  show `overdrive_error`/`car_web_no_url`.
-- If `!hideBar`: show the row, pre-fill it with `url`, load it.
-- The URL bar is a temporary override; do not write it back to preferences.
-- Keep back/reload behavior and the WebView client.
+- Gate with `if (BuildConfig.DEMO_BUILD) { finish(); return; }`.
+- Remove `findGateway()` and all gateway usage.
+- `base = CarWebPrefs.baseUrl(this)`, `page = CarWebPrefs.defaultPage(this)`.
+- `url = CarWebUrl.resolve(base, page)`.
+- If `hideUrlBar`: `rowCarWebUrl` `GONE`; else `VISIBLE`.
+- If `url` is empty:
+  - `layoutOverdriveEmpty` `VISIBLE`; `webCar` `GONE` or empty; do not load.
+  - `btnOverdriveAdvanced` starts `AdvancedActivity`.
+  - If the URL bar is visible, keep it available.
+- If `url` is non-empty: `layoutOverdriveEmpty` `GONE`, `webCar` `VISIBLE`,
+  load `url`.
+- The URL bar remains a temporary override; do not persist.
+- Rename title/labels to Overdrive.
+- Keep back/reload/WebView client.
 
-Strings: replace `car_web_title` usage with `overdrive_title`; add
-`overdrive_error` if needed. Keep the activity label in the manifest as
-`@string/overdrive_title`.
-
-- [ ] **Step 4: Run test to verify it passes**
+- [ ] **Step 4: Run tests to verify they pass**
 
 Run: `cd android-companion && ./gradlew.bat :app:testStandardDebugUnitTest --tests "com.bydwatch.companion.lab.CarWebActivityTest"`
 Expected: PASS.
@@ -626,68 +762,56 @@ git add android-companion/app/src/main/java/com/bydwatch/companion/lab/CarWebAct
         android-companion/app/src/main/res/values/strings.xml \
         android-companion/app/src/main/res/values-in/strings.xml \
         android-companion/app/src/test/java/com/bydwatch/companion/lab/CarWebActivityTest.java
-git commit -m "feat(overdrive): honor advanced web settings"
+git commit -m "feat(overdrive): honor presets, blank address, and url bar setting"
 ```
 
 ---
 
-### Task 6: Build, verify, and publish the trial APK
+### Task 6: Build and publish
 
-**Files:**
-- No source changes.
-
-- [ ] **Step 1: Build the debug APK**
+- [ ] **Step 1: Build**
 
 Run: `cd android-companion && ./gradlew.bat :app:assembleStandardDebug`
-Expected: BUILD SUCCESSFUL; artifact at
-`app/build/outputs/apk/standard/debug/BYD-Open-Remote.apk`.
+Expected: BUILD SUCCESSFUL.
 
-- [ ] **Step 2: Verify the canonical signature**
+- [ ] **Step 2: Verify signature**
 
 Run:
 `"D:/Android/Sdk/build-tools/36.0.0/apksigner.bat" verify --print-certs android-companion/app/build/outputs/apk/standard/debug/BYD-Open-Remote.apk`
-Expected: SHA-256 `D1670D073C1A8542B780802ADFCC41DE58875BC598ADCC7644D8CC8F155CB899`.
+Expected: `D1670D073C1A8542B780802ADFCC41DE58875BC598ADCC7644D8CC8F155CB899`.
 
-- [ ] **Step 3: Publish to the preview server**
+- [ ] **Step 3: Publish**
 
-Copy the APK to `C:\Users\kenny\AppData\Local\Temp\opencode\dist\BYD-Open-Remote-Lab-trial.apk`
-(overwrite) and to `E:\Kenny\Huawei\BYD-Open-Remote-Lab-trial.apk`.
+Copy to `C:\Users\kenny\AppData\Local\Temp\opencode\dist\BYD-Open-Remote-Lab-trial.apk`
+and `E:\Kenny\Huawei\BYD-Open-Remote-Lab-trial.apk`.
 
 Verify:
 `curl -s -I http://192.168.1.109:8091/BYD-Open-Remote-Lab-trial.apk`
-Expected: `200 OK` and the new file size.
-
-- [ ] **Step 4: Commit the plan/docs if not already committed**
-
-```bash
-git add docs/superpowers/specs/2026-11-20-byd-overdrive-web-advanced-design.md \
-        docs/superpowers/plans/2026-11-20-byd-overdrive-web-advanced.md
-git commit -m "docs: plan overdrive web advanced settings"
-```
+Expected: `200 OK`.
 
 ---
 
 ## Manual Acceptance
 
-1. Open the drawer: **Advanced** and **Overdrive** are present.
-2. Advanced → turn **Show Overdrive in menu** off → back → Overdrive is gone,
-   Advanced is still there.
-3. Turn it on → Overdrive returns without restarting the app.
-4. Advanced → set **Car address** to the head unit (or leave blank on the car
-   hotspot), select **Vehicle Control**, Save.
-5. Open Overdrive: no URL bar, it loads `/vehicle-control.html`.
-6. Advanced → **Hide URL bar** off → Overdrive shows the URL field.
-7. Advanced → **Custom** → enter `events.html` or a full
-   `http://<car-ip>:8080/events.html` → Save → Overdrive loads it.
-8. Set a wrong IP, confirm the error toast, then correct it in Advanced.
-9. Release/demo build: Advanced and Overdrive are absent.
+1. Fresh install: drawer shows **Advanced**, no **Overdrive**, no **Lab**.
+2. Advanced → turn **Show Overdrive in menu** on → back → Overdrive appears.
+3. Advanced → **Car address** blank, **Vehicle Control** selected → Save →
+   Overdrive shows the empty state and an Advanced link (no auto-load).
+4. Set car address `http://<car-ip>:8080` → Save → Overdrive loads Vehicle
+   Control without a URL bar.
+5. Advanced → **Events** → Save → Overdrive loads `/events.html`.
+6. Advanced → **Load all pages** → Dashboard and system pages appear.
+7. Advanced → manual `http://<car-ip>:8080/recording.html` → Save → Overdrive
+   loads it; manual overrides the preset.
+8. Advanced → **Hide URL bar** off → Overdrive shows the URL row.
+9. Demo build: Advanced and Overdrive absent.
 
 ## Self-Review Notes
 
-- Spec coverage: Advanced entry (Tasks 3/4), Overdrive rename (Tasks 3/4/5),
-  visibility toggle (Task 4), URL setting moved (Tasks 3/5), hide URL bar
-  default true (Task 2/5), presets + manual URL (Tasks 1/3), build/publish
-  (Task 6).
-- Review Focus tests are owned by Tasks 1, 2, 4, and 5.
-- No cloud calls, no watch changes, no new dependencies.
+- Spec coverage: Lab removal (Task 0), top-5 presets (Task 1), default-off
+  preference (Task 2), Advanced top-5/Load all/manual URL (Task 3), drawer
+  visibility/rename/demo gate (Task 4), blank-address empty state and hidden
+  URL bar (Task 5), build/publish (Task 6).
+- Review Focus tests map to Tasks 0, 2/4, 5, 1/3, 3/4.
+- No cloud calls, no gateway detection, no new dependencies.
 - Execution must wait until 2026-11-20 11:01 GMT+7.

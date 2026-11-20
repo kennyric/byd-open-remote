@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BYD Open Remote — Overdrive Web + Advanced</title>
+<style>
+  :root{
+    --bg:#070A08; --panel:#0E1411; --card:#141B18; --card2:#101613;
+    --line:#26302B; --line2:#33413A; --text:#EAF2ED; --muted:#8C9A92;
+    --emerald:#6DDBAC; --emerald-dim:#2E5B4B; --amber:#F0B35E; --rose:#F08A8A;
+    --blue:#8CC8FF;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:
+    radial-gradient(1200px 700px at 85% -10%, rgba(109,219,172,.10), transparent 60%),
+    radial-gradient(900px 600px at 0% 30%, rgba(140,200,255,.06), transparent 55%),
+    var(--bg);
+    color:var(--text);font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  body{padding:34px 28px 70px}
+  header{max-width:1560px;margin:0 auto 28px}
+  .kicker{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--emerald);font-weight:800}
+  h1{font-size:30px;line-height:1.15;margin:8px 0 8px;letter-spacing:-.02em}
+  .sub{color:var(--muted);font-size:14px;line-height:1.6;max-width:920px}
+  .legend{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+  .tag{font-size:11px;font-weight:700;padding:6px 10px;border-radius:999px;border:1px solid var(--line2);color:var(--muted);background:#0B100D}
+  .tag.on{color:#082017;background:var(--emerald);border-color:var(--emerald)}
+  .tag.off{color:#2A1600;background:var(--amber);border-color:var(--amber)}
+  .tag.info{color:var(--blue);border-color:#27455B;background:#0B1520}
+  .grid{max-width:1560px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:30px 26px}
+  .frame{display:flex;flex-direction:column;gap:10px}
+  .caption{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:var(--text)}
+  .caption .n{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:7px;background:var(--emerald);color:#062017;font-size:11px}
+  .caption .hint{font-weight:500;color:var(--muted)}
+  .phone{position:relative;width:100%;max-width:360px;height:740px;border-radius:36px;padding:10px;background:linear-gradient(180deg,#1A211D,#0B0F0D);box-shadow:0 30px 70px rgba(0,0,0,.55), inset 0 0 0 1px #2A3530;overflow:hidden}
+  .screen{position:relative;height:100%;border-radius:28px;background:var(--bg);overflow:hidden;display:flex;flex-direction:column}
+  .status{height:26px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;color:#A6B3AB;font-size:10px;font-weight:600;letter-spacing:.02em;flex:none}
+  .status .dots{letter-spacing:2px}
+  .appbar{display:flex;align-items:center;gap:10px;padding:10px 14px 8px;flex:none}
+  .iconbtn{width:36px;height:36px;border-radius:12px;background:var(--card);border:1px solid var(--line);display:grid;place-items:center;color:var(--text);font-size:15px;flex:none}
+  .appbar .titles{flex:1;min-width:0}
+  .appbar .t1{font-size:16px;font-weight:800;letter-spacing:-.01em}
+  .appbar .t2{font-size:10.5px;color:var(--muted);margin-top:1px}
+  .pill{font-size:9.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:5px 8px;border-radius:999px;background:#13231D;color:var(--emerald);border:1px solid var(--emerald-dim)}
+  .scroll{overflow-y:auto;padding:4px 14px 22px;scrollbar-width:none}
+  .scroll::-webkit-scrollbar{display:none}
+  .section-label{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:800;margin:14px 2px 7px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px;margin-bottom:10px}
+  .card.flat{background:var(--card2)}
+  .row{display:flex;align-items:center;gap:10px;padding:9px 2px}
+  .row + .row{border-top:1px solid rgba(255,255,255,.035)}
+  .row .grow{flex:1;min-width:0}
+  .row .label{font-size:12.5px;font-weight:650}
+  .row .sub{font-size:10.5px;color:var(--muted);line-height:1.35;margin-top:2px}
+  .switch{width:38px;height:22px;border-radius:999px;background:#2A3530;position:relative;flex:none;transition:.2s}
+  .switch .knob{position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#93A299;transition:.2s}
+  .switch.on{background:var(--emerald)}
+  .switch.on .knob{left:19px;background:#062017}
+  .divider{height:1px;background:var(--line);margin:9px 0}
+  .input{display:flex;align-items:center;gap:8px;background:#0B100D;border:1px solid var(--line2);border-radius:11px;padding:9px 10px;font-size:11.5px;color:#D9E5DE}
+  .input .ph{color:#607067}
+  .input .caret{width:1px;height:14px;background:var(--emerald);margin-left:1px}
+  .help{font-size:10.5px;color:var(--muted);line-height:1.45;margin:7px 2px 0}
+  .help strong{color:var(--text)}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;border-radius:11px;padding:9px 12px;font-size:11.5px;font-weight:750;background:#1A231F;border:1px solid var(--line2);color:var(--text)}
+  .btn.primary{background:var(--emerald);color:#062017;border-color:var(--emerald)}
+  .btn.ghost{background:transparent}
+  .btn.small{padding:7px 10px;font-size:10.5px;border-radius:9px}
+  .btnrow{display:flex;gap:8px;margin-top:10px}
+  .btnrow .btn{flex:1}
+  .footerbar{flex:none;display:flex;gap:8px;padding:10px 14px 14px;background:linear-gradient(transparent,#0B0F0D 32%);border-top:1px solid var(--line)}
+  .footerbar .btn{flex:1}
+  .radio{width:17px;height:17px;border-radius:50%;border:1.5px solid #3A4A42;flex:none;display:grid;place-items:center}
+  .radio.on{border-color:var(--emerald);background:var(--emerald)}
+  .radio.on::after{content:"";width:7px;height:7px;border-radius:50%;background:#062017}
+  .radio + .rtext{flex:1}
+  .path{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:10px;color:var(--muted)}
+  .preview{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:10.5px;color:#BFE9D6;background:#0B100D;border:1px dashed #2E5B4B;border-radius:10px;padding:9px;word-break:break-all}
+  .fade{position:absolute;left:0;right:0;bottom:0;height:54px;background:linear-gradient(transparent,var(--bg));pointer-events:none}
+  .drawerhead{padding:18px 18px 10px;display:flex;align-items:center;gap:11px}
+  .avatar{width:38px;height:38px;border-radius:13px;background:linear-gradient(145deg,#1C3A2F,#0F211A);display:grid;place-items:center;color:var(--emerald);font-weight:800;font-size:13px;border:1px solid #2E5B4B}
+  .drawerhead .name{font-size:13px;font-weight:800}
+  .drawerhead .meta{font-size:10.5px;color:var(--muted);margin-top:1px}
+  .nav{padding:4px 10px}
+  .navitem{display:flex;align-items:center;gap:11px;padding:11px 10px;border-radius:12px;font-size:12.5px;font-weight:600;color:#C7D4CC}
+  .navitem .ic{width:22px;text-align:center;color:#8FA097}
+  .navitem.active{background:#13231D;color:var(--emerald);border:1px solid #2E5B4B}
+  .navitem.muted{opacity:.45}
+  .navsep{height:1px;background:var(--line);margin:9px 10px}
+  .ghostrow{border:1px dashed #3A4A42;border-radius:12px;padding:10px;margin:8px 10px 0;display:flex;align-items:center;gap:10px;color:#6F7F76;font-size:11px}
+  .ghostrow .eyeoff{font-size:14px}
+  .empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:28px;gap:10px}
+  .empty .orb{width:64px;height:64px;border-radius:22px;background:linear-gradient(145deg,#16241E,#0C1410);border:1px solid #2E5B4B;display:grid;place-items:center;font-size:26px;color:var(--emerald);margin-bottom:4px}
+  .empty h3{font-size:15px;margin:0}
+  .empty p{font-size:11.5px;color:var(--muted);line-height:1.55;margin:0;max-width:230px}
+  .vc{display:flex;flex-direction:column;gap:10px}
+  .vc h2{font-size:18px;margin:2px 0 0;letter-spacing:-.01em}
+  .vc .statusline{display:flex;gap:6px;flex-wrap:wrap}
+  .chip{font-size:9.5px;font-weight:750;padding:5px 8px;border-radius:999px;background:#13231D;border:1px solid #2A4A3C;color:#9FE9C6}
+  .chip.gray{background:#131A17;border-color:#2A3530;color:#9AA8A1}
+  .seg{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;background:#0B100D;border:1px solid #2A3530;padding:4px;border-radius:11px}
+  .seg .s{text-align:center;font-size:10.5px;font-weight:800;padding:8px 0;border-radius:8px;color:#91A198}
+  .seg .s.on{background:var(--emerald);color:#062017}
+  .meter{height:7px;border-radius:99px;background:#1D2924;overflow:hidden;margin-top:8px}
+  .meter i{display:block;height:100%;width:64%;background:linear-gradient(90deg,#2E5B4B,var(--emerald))}
+  .event{display:flex;gap:9px;align-items:flex-start;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+  .event .dot{width:8px;height:8px;border-radius:50%;background:var(--emerald);margin-top:4px;flex:none}
+  .event .et{font-size:11.5px;font-weight:700}
+  .event .ed{font-size:10px;color:var(--muted);margin-top:2px}
+  .note{font-size:11px;color:var(--muted);line-height:1.5;border-left:2px solid var(--emerald);padding-left:10px;margin:10px 2px}
+  .annot{font-size:11.5px;color:var(--muted);line-height:1.5;padding:0 2px;min-height:34px}
+  .annot b{color:var(--text)}
+  @media (max-width:900px){body{padding:22px 14px 50px}h1{font-size:24px}.grid{grid-template-columns:1fr;justify-items:center}.frame{width:100%;max-width:380px}}
+</style>
+</head>
+<body>
+<header>
+  <div class="kicker">BYD Open Remote · design mockup</div>
+  <h1>Overdrive Web + Advanced</h1>
+  <p class="sub">Rename Car Web to <b>Overdrive</b>, hide its URL bar by default, and move the settings into a new <b>Advanced</b> drawer screen. The Lab (trial) menu is removed. Overdrive is hidden on a fresh install; Advanced is always visible. A blank car address does nothing — no gateway guessing.</p>
+  <div class="legend">
+    <span class="tag off">Show Overdrive default OFF</span>
+    <span class="tag on">Hide URL bar default ON</span>
+    <span class="tag info">Top 5 + Load all + manual URL</span>
+    <span class="tag">Blank address = no auto-load</span>
+  </div>
+</header>
+
+<div class="grid">
+
+  <!-- 1. Drawer -->
+  <div class="frame">
+    <div class="caption"><span class="n">1</span> Drawer — fresh install <span class="hint">Overdrive hidden, no Lab</span></div>
+    <div class="phone"><div class="screen">
+      <div class="status"><span>9:41</span><span class="dots">▮▮▮ ◔ ▰</span></div>
+      <div class="drawerhead">
+        <div class="avatar">BYD</div>
+        <div><div class="name">BYD Open Remote</div><div class="meta">ATTO 1 · ***3128</div></div>
+      </div>
+      <div class="nav">
+        <div class="navitem"><span class="ic">⌂</span> Controls</div>
+        <div class="navitem"><span class="ic">◉</span> Account &amp; Region</div>
+        <div class="navitem"><span class="ic">⚙</span> Preferences</div>
+        <div class="navitem"><span class="ic">⌚</span> Watch Bridge &amp; Log</div>
+        <div class="navsep"></div>
+        <div class="navitem"><span class="ic">⟳</span> Check update</div>
+        <div class="navitem"><span class="ic">♡</span> Support me</div>
+        <div class="navsep"></div>
+        <div class="navitem active"><span class="ic">⚑</span> Advanced</div>
+      </div>
+      <div class="ghostrow"><span class="eyeoff">◌</span><div><b>Overdrive</b> hidden by default — enable it in Advanced.</div></div>
+      <div class="note">The old <b>Lab (trial)</b> item is gone. No debug diagnostics in the drawer.</div>
+    </div></div>
+    <div class="annot"><b>Default off.</b> The user sees Advanced but not Overdrive until they enable it. Turning it on updates the drawer without a restart.</div>
+  </div>
+
+  <!-- 2. Advanced defaults -->
+  <div class="frame">
+    <div class="caption"><span class="n">2</span> Advanced — defaults <span class="hint">top 5 + manual URL</span></div>
+    <div class="phone"><div class="screen">
+      <div class="status"><span>9:41</span><span class="dots">▮▮▮ ◔ ▰</span></div>
+      <div class="appbar">
+        <div class="iconbtn">←</div>
+        <div class="titles"><div class="t1">Advanced</div><div class="t2">Overdrive web · menu · default page</div></div>
+      </div>
+      <div class="scroll">
+        <div class="section-label">Overdrive</div>
+        <div class="card">
+          <div class="row"><div class="grow"><div class="label">Show Overdrive in menu</div><div class="sub">Adds “Overdrive” to the drawer</div></div><span class="switch"><span class="knob"></span></span></div>
+          <div class="row"><div class="grow"><div class="label">Hide URL bar</div><div class="sub">Open straight to the car page</div></div><span class="switch on"><span class="knob"></span></span></div>
+        </div>
+
+        <div class="section-label">Connection</div>
+        <div class="card">
+          <div class="label" style="font-size:12px;font-weight:650;margin-bottom:7px">Car address</div>
+          <div class="input"><span class="ph">http://192.168.1.50:8080</span><span class="caret"></span></div>
+          <div class="help"><strong>Blank does nothing.</strong> No gateway discovery, no auto-load. Enter the head unit’s IP or port-forward URL.</div>
+        </div>
+
+        <div class="section-label">Default page</div>
+        <div class="help" style="margin:0 2px 7px">Fresh default: <strong>Dashboard (/)</strong>. Pick a top page below to change it.</div>
+        <div class="card">
+          <div class="row"><span class="radio on"></span><div class="rtext"><div class="label">Vehicle Control</div><div class="path">/vehicle-control.html</div></div></div>
+          <div class="row"><span class="radio"></span><div class="rtext"><div class="label">Events</div><div class="path">/events.html</div></div></div>
+          <div class="row"><span class="radio"></span><div class="rtext"><div class="label">Charging</div><div class="path">/charging.html</div></div></div>
+          <div class="row"><span class="radio"></span><div class="rtext"><div class="label">Trips</div><div class="path">/trips.html</div></div></div>
+          <div class="row"><span class="radio"></span><div class="rtext"><div class="label">Live View</div><div class="path">/live-view.html</div></div></div>
+          <div class="btnrow"><div class="btn ghost small">＋ Load all pages</div></div>
+          <div class="divider"></div>
+          <div class="label" style="font-size:11px;font-weight:650;margin-bottom:6px">Manual URL</div>
+          <div class="input"><span class="ph">path or http://…</span><span class="caret"></span></div>
+          <div class="help">Typing here overrides the preset. Choosing a preset clears it.</div>
+        </div>
+
+        <div class="section-label">Preview</div>
+        <div class="preview">http://192.168.1.50:8080/vehicle-control.html</div>
+        <div style="height:10px"></div>
+      </div>
+      <div class="footerbar"><div class="btn ghost">Reset</div><div class="btn primary">Save</div></div>
+    </div></div>
+    <div class="annot"><b>Top 5 first.</b> Vehicle Control, Events, Charging, Trips, Live View. “Load all pages” reveals the rest; manual URL always wins. Blank address = no auto-load.</div>
+  </div>
+
+  <!-- 3. Advanced all pages -->
+  <div class="frame">
+    <div class="caption"><span class="n">3</span> Advanced — all pages <span class="hint">“Load all pages” expanded</span></div>
+    <div class="phone"><div class="screen">
+      <div class="status"><span>9:41</span><span class="dots">▮▮▮ ◔ ▰</span></div>
+      <div class="appbar">
+        <div class="iconbtn">←</div>
+        <div class="titles"><div class="t1">Advanced</div><div class="t2">All Overdrive pages</div></div>
+      </div>
+      <div class="scroll">
+        <div class="section-label">Default page</div>
+        <div class="card">
+          <div class="row"><span class="radio"></span><div class="rtext"><div class="label">Dashboard</div><div class="path">/</div></div></div>
+          <div class="row"><span class="radio"></span><div class="rtext"><div class="label">Automations</div><div class="path">/automations.html</div></div></div>
+          <div class="row"><span class="radio"></span><div class="rtext"><div class="label">Parking</div><div class="path">/parking.html</div></div></div>
+          <div class="row"><span class="radio"></span><div class="rtext"><div class="label">Recordings</div><div class="path">/recording.html</div></div></div>
+          <div class="row"><span class="radio"></span><div class="rtext"><div class="label">Widgets</div><div class="path">/widgets.html</div></div></div>
+          <div class="row"><span class="radio"></span><div class="rtext"><div class="label">Network</div><div class="path">/network.html</div></div></div>
+          <div class="row"><span class="radio"></span><div class="rtext"><div class="label">BYD Cloud</div><div class="path">/byd-cloud.html</div></div></div>
+          <div class="row"><span class="radio"></span><div class="rtext"><div class="label">Remote Access</div><div class="path">/remote-access.html</div></div></div>
+          <div class="row"><span class="radio"></span><div class="rtext"><div class="label">About</div><div class="path">/about.html</div></div></div>
+          <div class="row"><span class="radio"></span><div class="rtext"><div class="label">Module Faults</div><div class="path">/module-faults.html</div></div></div>
+          <div class="row"><span class="radio"></span><div class="rtext"><div class="label">Seat Positions</div><div class="path">/seat-positions.html</div></div></div>
+          <div class="row"><span class="radio"></span><div class="rtext"><div class="label">Sessions</div><div class="path">/sessions.html</div></div></div>
+          <div class="row"><span class="radio"></span><div class="rtext"><div class="label">Daemons</div><div class="path">/daemons.html</div></div></div>
+          <div class="row"><span class="radio"></span><div class="rtext"><div class="label">Communication</div><div class="path">/communicate.html</div></div></div>
+          <div class="row"><span class="radio"></span><div class="rtext"><div class="label">Telegram</div><div class="path">/telegram.html</div></div></div>
+          <div class="row"><span class="radio"></span><div class="rtext"><div class="label">MQTT</div><div class="path">/mqtt.html</div></div></div>
+          <div class="row"><span class="radio"></span><div class="rtext"><div class="label">WireGuard</div><div class="path">/wireguard.html</div></div></div>
+          <div class="row"><span class="radio"></span><div class="rtext"><div class="label">ABRP</div><div class="path">/abrp.html</div></div></div>
+          <div class="row"><span class="radio"></span><div class="rtext"><div class="label">Road Sense</div><div class="path">/road-sense.html</div></div></div>
+          <div class="row"><span class="radio"></span><div class="rtext"><div class="label">SafeKeep</div><div class="path">/safekeep.html</div></div></div>
+          <div class="row"><span class="radio"></span><div class="rtext"><div class="label">Storage</div><div class="path">/storage.html</div></div></div>
+          <div class="row"><span class="radio"></span><div class="rtext"><div class="label">Factory DVR</div><div class="path">/factory-dvr.html</div></div></div>
+          <div class="row"><span class="radio"></span><div class="rtext"><div class="label">Key Mapping</div><div class="path">/key-mapping.html</div></div></div>
+          <div class="row"><span class="radio"></span><div class="rtext"><div class="label">Notifications</div><div class="path">/notifications.html</div></div></div>
+          <div class="row"><span class="radio"></span><div class="rtext"><div class="label">Performance</div><div class="path">/performance.html</div></div></div>
+          <div class="row"><span class="radio"></span><div class="rtext"><div class="label">Surveillance</div><div class="path">/surveillance.html</div></div></div>
+          <div class="btnrow"><div class="btn ghost small">↑ Show top 5</div></div>
+        </div>
+        <div class="section-label">Manual URL</div>
+        <div class="card flat"><div class="input"><span class="ph">http://192.168.1.50:8080/recording.html</span><span class="caret"></span></div><div class="help">Always available. Overrides the preset when non-empty.</div></div>
+        <div style="height:10px"></div>
+      </div>
+      <div class="footerbar"><div class="btn ghost">Reset</div><div class="btn primary">Save</div></div>
+    </div></div>
+    <div class="annot"><b>Load all</b> reveals Dashboard, Parking, Recordings, Widgets, Network, BYD Cloud, and the rest. Manual entry stays at the bottom.</div>
+  </div>
+
+  <!-- 4. Overdrive empty -->
+  <div class="frame">
+    <div class="caption"><span class="n">4</span> Overdrive — blank address <span class="hint">does nothing</span></div>
+    <div class="phone"><div class="screen">
+      <div class="status"><span>9:41</span><span class="dots">▮▮▮ ◔ ▰</span></div>
+      <div class="appbar">
+        <div class="iconbtn">←</div>
+        <div class="titles"><div class="t1">Overdrive</div><div class="t2">Car head unit · :8080</div></div>
+        <div class="iconbtn">⟳</div>
+      </div>
+      <div class="empty">
+        <div class="orb">⌂</div>
+        <h3>No car address yet</h3>
+        <p>Set the car address in Advanced to open Overdrive. A blank address never auto-loads.</p>
+        <div class="btn primary" style="margin-top:6px">Open Advanced</div>
+      </div>
+      <div class="note" style="margin:0 18px 18px">No Wi-Fi gateway guessing. The app will not try the router’s :8080.</div>
+    </div></div>
+    <div class="annot"><b>Blank = nothing.</b> The URL bar stays hidden; the empty state is the only escape hatch and links to Advanced.</div>
+  </div>
+
+  <!-- 5. Overdrive vehicle control -->
+  <div class="frame">
+    <div class="caption"><span class="n">5</span> Overdrive — Vehicle Control <span class="hint">URL bar hidden</span></div>
+    <div class="phone"><div class="screen">
+      <div class="status"><span>9:41</span><span class="dots">▮▮▮ ◔ ▰</span></div>
+      <div class="appbar">
+        <div class="iconbtn">←</div>
+        <div class="titles"><div class="t1">Overdrive</div><div class="t2">192.168.1.50:8080</div></div>
+        <div class="iconbtn">⟳</div>
+      </div>
+      <div class="scroll">
+        <div class="vc">
+          <h2>Vehicle Control</h2>
+          <div class="statusline"><span class="chip">● Locked</span><span class="chip gray">Parked</span><span class="chip gray">AC off</span></div>
+
+          <div class="card">
+            <div class="label" style="font-size:13px;font-weight:750">AC charging current</div>
+            <div class="sub" style="font-size:10.5px;color:var(--muted);margin:3px 0 9px">Set the vehicle’s AC inlet current limit. Success only after matching readback.</div>
+            <div class="seg">
+              <div class="s">6 A</div><div class="s">8 A</div><div class="s">10 A</div><div class="s">16 A</div><div class="s on">Max</div>
+            </div>
+            <div class="meter"><i></i></div>
+            <div class="help">Active: <strong>Max</strong> · supported: 6 A, 8 A, 10 A, 16 A, Max</div>
+          </div>
+
+          <div class="card flat">
+            <div class="row"><div class="grow"><div class="label">Climate</div><div class="sub">22°C · Auto · 2</div></div><div class="btn small">Open</div></div>
+            <div class="row"><div class="grow"><div class="label">Windows</div><div class="sub">All closed</div></div><div class="btn small">Close</div></div>
+            <div class="row"><div class="grow"><div class="label">Trunk</div><div class="sub">Closed</div></div><div class="btn small">Open</div></div>
+          </div>
+
+          <div class="note">This page is the real Overdrive UI. The app is a WebView bridge; no cloud calls are involved.</div>
+          <div style="height:12px"></div>
+        </div>
+      </div>
+    </div></div>
+    <div class="annot"><b>The payoff.</b> With a car address and Vehicle Control selected, the AC current segmented control is one tap away — no URL bar, no Lab.</div>
+  </div>
+
+  <!-- 6. Overdrive URL bar on -->
+  <div class="frame">
+    <div class="caption"><span class="n">6</span> Overdrive — URL bar on <span class="hint">temporary override</span></div>
+    <div class="phone"><div class="screen">
+      <div class="status"><span>9:41</span><span class="dots">▮▮▮ ◔ ▰</span></div>
+      <div class="appbar">
+        <div class="iconbtn">←</div>
+        <div class="titles"><div class="t1">Overdrive</div><div class="t2">Events</div></div>
+        <div class="iconbtn">⟳</div>
+      </div>
+      <div style="display:flex;gap:7px;padding:0 14px 8px">
+        <div class="input" style="flex:1"><span>http://192.168.1.50:8080/events.html</span></div>
+        <div class="btn primary small">Open</div>
+      </div>
+      <div class="scroll">
+        <div class="section-label">Recent events</div>
+        <div class="card">
+          <div class="event"><span class="dot"></span><div><div class="et">Sentry event · 08:42</div><div class="ed">Motion detected · front camera · clip saved</div></div></div>
+          <div class="event"><span class="dot" style="background:#F0B35E"></span><div><div class="et">Charging started · 07:12</div><div class="ed">AC · 6.9 kW · 52% → 80%</div></div></div>
+          <div class="event"><span class="dot" style="background:#8CC8FF"></span><div><div class="et">Trip ended · 06:58</div><div class="ed">12.4 km · 18 min · 4.1 km/kWh</div></div></div>
+          <div class="event"><span class="dot" style="background:#8C9A92"></span><div><div class="et">Door unlocked · 06:51</div><div class="ed">Driver door · key fob</div></div></div>
+        </div>
+        <div class="note">The URL bar is a quick experiment. It does not overwrite the Advanced default page.</div>
+      </div>
+    </div></div>
+    <div class="annot"><b>Hide URL bar off</b> exposes the temporary override. The saved default remains whatever Advanced says.</div>
+  </div>
+
+</div>
+</body>
+</html>
