@@ -68,6 +68,12 @@
             android:windowSoftInputMode="adjustResize" />
 
         <activity
+            android:name=".lab.OverdriveControlActivity"
+            android:exported="false"
+            android:label="@string/overdrive_controls_title"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
             android:name=".ui.NavigationPromptActivity"
             android:excludeFromRecents="true"
             android:exported="false"

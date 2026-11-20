@@ -47,9 +47,16 @@ public class CarWebPrefsTest {
     }
 
     @Test
-    public void shortcutsDefaultOffAndPersist() {
-        assertFalse(CarWebPrefs.overdriveShortcutsEnabled(context));
-        CarWebPrefs.setOverdriveShortcutsEnabled(context, true);
-        assertTrue(CarWebPrefs.overdriveShortcutsEnabled(context));
+    public void controlsDefaultOffAndPersist() {
+        assertFalse(CarWebPrefs.overdriveControlsEnabled(context));
+        CarWebPrefs.setOverdriveControlsEnabled(context, true);
+        assertTrue(CarWebPrefs.overdriveControlsEnabled(context));
+    }
+
+    @Test
+    public void controlsSettingSurvivesFromTheOldShortcutName() {
+        context.getSharedPreferences("car_web", android.content.Context.MODE_PRIVATE)
+                .edit().putBoolean("overdrive_shortcuts_enabled", true).commit();
+        assertTrue(CarWebPrefs.overdriveControlsEnabled(context));
     }
 }

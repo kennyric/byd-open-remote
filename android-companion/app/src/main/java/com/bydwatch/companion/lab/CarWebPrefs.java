@@ -11,7 +11,8 @@ public final class CarWebPrefs {
     private static final String KEY_HIDE_URL = "hide_url_bar";
     private static final String KEY_BASE = "car_base_url";
     private static final String KEY_PAGE = "default_page";
-    private static final String KEY_SHORTCUTS = "overdrive_shortcuts_enabled";
+    // Kept as the old key name so an existing toggle survives the rename.
+    private static final String KEY_CONTROLS = "overdrive_shortcuts_enabled";
 
     private CarWebPrefs() {}
 
@@ -47,12 +48,12 @@ public final class CarWebPrefs {
         prefs(context).edit().putString(KEY_PAGE, page != null ? page : "/vehicle-control.html").apply();
     }
 
-    public static boolean overdriveShortcutsEnabled(Context context) {
-        return prefs(context).getBoolean(KEY_SHORTCUTS, false);
+    public static boolean overdriveControlsEnabled(Context context) {
+        return prefs(context).getBoolean(KEY_CONTROLS, false);
     }
 
-    public static void setOverdriveShortcutsEnabled(Context context, boolean enabled) {
-        prefs(context).edit().putBoolean(KEY_SHORTCUTS, enabled).apply();
+    public static void setOverdriveControlsEnabled(Context context, boolean enabled) {
+        prefs(context).edit().putBoolean(KEY_CONTROLS, enabled).apply();
     }
 
     public static void reset(Context context) {
@@ -61,8 +62,9 @@ public final class CarWebPrefs {
                 .remove(KEY_HIDE_URL)
                 .remove(KEY_BASE)
                 .remove(KEY_PAGE)
-                .remove(KEY_SHORTCUTS)
+                .remove(KEY_CONTROLS)
                 .apply();
+        OverdriveSession.clear(context);
     }
 
     private static SharedPreferences prefs(Context context) {

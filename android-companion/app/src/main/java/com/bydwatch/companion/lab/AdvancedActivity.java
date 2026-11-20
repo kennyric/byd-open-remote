@@ -1,5 +1,6 @@
 package com.bydwatch.companion.lab;
 
+import android.content.Context;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -38,6 +39,11 @@ public class AdvancedActivity extends AppCompatActivity {
     private TextView tvPreview;
     private TextView tvOverdriveStatus;
     private View btnOverdriveLogin;
+    private TextView tvAccessDetail;
+    private EditText etAccessCode;
+    private MaterialButton btnAccessConnect;
+    private MaterialButton btnAccessDisconnect;
+    private int statusGeneration;
 
     private final Map<Integer, String> morePaths = new HashMap<>();
     private boolean binding;
@@ -75,6 +81,16 @@ public class AdvancedActivity extends AppCompatActivity {
             btnOverdriveLogin.setOnClickListener(v -> startActivity(
                     CarWebActivity.intent(this, "/", null)));
         }
+        tvAccessDetail = findViewById(R.id.tvAdvAccessDetail);
+        etAccessCode = findViewById(R.id.etAdvAccessCode);
+        btnAccessConnect = findViewById(R.id.btnAdvAccessConnect);
+        btnAccessDisconnect = findViewById(R.id.btnAdvAccessDisconnect);
+        if (btnAccessConnect != null) {
+            btnAccessConnect.setOnClickListener(v -> connectAccess());
+        }
+        if (btnAccessDisconnect != null) {
+            btnAccessDisconnect.setOnClickListener(v -> disconnectAccess());
+        }
 
         populateMorePages();
         bindListeners();
@@ -89,35 +105,134 @@ public class AdvancedActivity extends AppCompatActivity {
     }
 
     private void refreshOverdriveStatus() {
+        final String base = CarWebPrefs.baseUrl(this);
+        final int generation = ++statusGeneration;
         if (tvOverdriveStatus != null) {
             tvOverdriveStatus.setText(R.string.advanced_overdrive_checking);
             tvOverdriveStatus.setTextColor(ContextCompat.getColor(this, R.color.text_muted));
         }
         if (btnOverdriveLogin != null) btnOverdriveLogin.setVisibility(View.GONE);
-        OverdriveConnection.check(this, status ->
-                runOnUiThread(() -> renderOverdriveStatus(status)));
+        renderAccessDetail();
+
+        final Context app = getApplicationContext();
+        OverdriveWork.run(() -> {
+            boolean reachable = !base.trim().isEmpty() && OverdriveClient.isReachable(base);
+            boolean hasSession = reachable
+                    && OverdriveSession.hasJwt(app, System.currentTimeMillis());
+            runOnUiThread(() -> {
+                if (generation != statusGeneration) return;
+                renderOverdriveStatus(reachable, hasSession);
+            });
+        });
     }
 
-    private void renderOverdriveStatus(OverdriveConnection.Status status) {
+    private void renderOverdriveStatus(boolean reachable, boolean hasSession) {
         if (tvOverdriveStatus == null) return;
-        switch (status) {
-            case CONNECTED:
-                tvOverdriveStatus.setText(R.string.advanced_overdrive_connected);
-                tvOverdriveStatus.setTextColor(ContextCompat.getColor(this, R.color.accent_emerald));
-                if (btnOverdriveLogin != null) btnOverdriveLogin.setVisibility(View.GONE);
-                break;
-            case LOGIN_REQUIRED:
-                tvOverdriveStatus.setText(R.string.advanced_overdrive_login_needed);
-                tvOverdriveStatus.setTextColor(ContextCompat.getColor(this, R.color.accent_amber));
-                if (btnOverdriveLogin != null) btnOverdriveLogin.setVisibility(View.VISIBLE);
-                break;
-            case UNREACHABLE:
-            default:
-                tvOverdriveStatus.setText(R.string.advanced_overdrive_unreachable);
-                tvOverdriveStatus.setTextColor(ContextCompat.getColor(this, R.color.accent_rose));
-                if (btnOverdriveLogin != null) btnOverdriveLogin.setVisibility(View.GONE);
-                break;
+        if (!reachable) {
+            tvOverdriveStatus.setText(R.string.advanced_overdrive_unreachable);
+            tvOverdriveStatus.setTextColor(ContextCompat.getColor(this, R.color.accent_rose));
+            if (btnOverdriveLogin != null) btnOverdriveLogin.setVisibility(View.GONE);
+            return;
         }
+        if (hasSession) {
+            tvOverdriveStatus.setText(R.string.advanced_overdrive_connected);
+            tvOverdriveStatus.setTextColor(ContextCompat.getColor(this, R.color.accent_emerald));
+            if (btnOverdriveLogin != null) btnOverdriveLogin.setVisibility(View.GONE);
+            return;
+        }
+        tvOverdriveStatus.setText(R.string.advanced_overdrive_login_needed);
+        tvOverdriveStatus.setTextColor(ContextCompat.getColor(this, R.color.accent_amber));
+        if (btnOverdriveLogin != null) btnOverdriveLogin.setVisibility(View.VISIBLE);
+    }
+
+    private void renderAccessDetail() {
+        if (tvAccessDetail == null) return;
+        String device = OverdriveSession.deviceId(this);
+        if (device == null || device.isEmpty()) {
+            tvAccessDetail.setText(R.string.advanced_access_detail_none);
+        } else {
+            tvAccessDetail.setText(getString(R.string.overdrive_access_device, device));
+        }
+        if (etAccessCode != null && etAccessCode.getText().length() == 0
+                && OverdriveSession.hasAccessCode(this)) {
+            etAccessCode.setHint(R.string.advanced_access_code_saved);
+        }
+        if (btnAccessDisconnect != null) {
+            btnAccessDisconnect.setEnabled(OverdriveSession.hasAccessCode(this));
+        }
+        if (btnAccessConnect != null) {
+            btnAccessConnect.setText(OverdriveSession.hasJwt(this, System.currentTimeMillis())
+                    ? R.string.advanced_access_reconnect : R.string.advanced_access_connect);
+        }
+    }
+
+    /** Exchange the typed access code for an Overdrive JWT. */
+    private void connectAccess() {
+        String code = etAccessCode != null ? etAccessCode.getText().toString().trim() : "";
+        if (!OverdriveSession.isPlausibleAccessCode(code)) {
+            Toast.makeText(this, R.string.advanced_access_code_invalid, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        final String base = CarWebPrefs.baseUrl(this);
+        if (base.trim().isEmpty()) {
+            Toast.makeText(this, R.string.advanced_invalid_address, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        OverdriveSession.setAccessCode(this, code);
+        if (btnAccessConnect != null) btnAccessConnect.setEnabled(false);
+        if (tvAccessDetail != null) tvAccessDetail.setText(R.string.advanced_access_connecting);
+        final int generation = ++statusGeneration;
+
+        final Context app = getApplicationContext();
+        OverdriveWork.run(() -> {
+            String deviceId = OverdriveClient.deviceId(base);
+            if (deviceId == null) {
+                finishConnect(generation, false, R.string.advanced_overdrive_unreachable);
+                return;
+            }
+            OverdriveSession.setDeviceId(app, deviceId);
+            OverdriveClient.Outcome<String> outcome = OverdriveClient.login(base, deviceId, code);
+            if (!outcome.ok() || outcome.value == null) {
+                String message = outcome.error;
+                runOnUiThread(() -> {
+                    if (generation != statusGeneration) return;
+                    if (btnAccessConnect != null) btnAccessConnect.setEnabled(true);
+                    renderAccessDetail();
+                    Toast.makeText(app, message != null ? message
+                                    : getString(R.string.overdrive_controls_error_generic),
+                            Toast.LENGTH_SHORT).show();
+                });
+                return;
+            }
+            OverdriveSession.setJwt(app, outcome.value, 30L * 24 * 60 * 60,
+                    System.currentTimeMillis());
+            finishConnect(generation, true, 0);
+        });
+    }
+
+    private void finishConnect(int generation, boolean ok, int messageRes) {
+        runOnUiThread(() -> {
+            if (generation != statusGeneration) return;
+            if (btnAccessConnect != null) btnAccessConnect.setEnabled(true);
+            if (etAccessCode != null) etAccessCode.setText("");
+            renderAccessDetail();
+            if (messageRes != 0) {
+                Toast.makeText(this, messageRes, Toast.LENGTH_SHORT).show();
+            } else if (ok) {
+                Toast.makeText(this, R.string.overdrive_access_connected, Toast.LENGTH_SHORT).show();
+            }
+            refreshOverdriveStatus();
+        });
+    }
+
+    private void disconnectAccess() {
+        OverdriveSession.clear(this);
+        if (etAccessCode != null) {
+            etAccessCode.setText("");
+            etAccessCode.setHint(R.string.advanced_access_code_label);
+        }
+        Toast.makeText(this, R.string.overdrive_access_disconnected, Toast.LENGTH_SHORT).show();
+        refreshOverdriveStatus();
     }
 
     private void populateMorePages() {
@@ -186,7 +301,7 @@ public class AdvancedActivity extends AppCompatActivity {
         binding = true;
         switchShow.setChecked(CarWebPrefs.showOverdrive(this));
         switchHideUrl.setChecked(CarWebPrefs.hideUrlBar(this));
-        switchShortcuts.setChecked(CarWebPrefs.overdriveShortcutsEnabled(this));
+        switchShortcuts.setChecked(CarWebPrefs.overdriveControlsEnabled(this));
         etBase.setText(CarWebPrefs.baseUrl(this));
         rgTop.clearCheck();
         rgMore.clearCheck();
@@ -239,7 +354,7 @@ public class AdvancedActivity extends AppCompatActivity {
         String page = selectedPage();
         CarWebPrefs.setShowOverdrive(this, switchShow.isChecked());
         CarWebPrefs.setHideUrlBar(this, switchHideUrl.isChecked());
-        CarWebPrefs.setOverdriveShortcutsEnabled(this, switchShortcuts.isChecked());
+        CarWebPrefs.setOverdriveControlsEnabled(this, switchShortcuts.isChecked());
         CarWebPrefs.setBaseUrl(this, base);
         CarWebPrefs.setDefaultPage(this, page);
         finish();

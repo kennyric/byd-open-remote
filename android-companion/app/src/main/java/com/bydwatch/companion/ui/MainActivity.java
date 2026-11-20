@@ -66,7 +66,11 @@ import com.bydwatch.companion.data.SecureConfigStore;
 import com.bydwatch.companion.lab.AdvancedActivity;
 import com.bydwatch.companion.lab.CarWebActivity;
 import com.bydwatch.companion.lab.CarWebPrefs;
-import com.bydwatch.companion.lab.OverdriveConnection;
+import com.bydwatch.companion.lab.OverdriveApi;
+import com.bydwatch.companion.lab.OverdriveClient;
+import com.bydwatch.companion.lab.OverdriveControlActivity;
+import com.bydwatch.companion.lab.OverdriveSession;
+import com.bydwatch.companion.lab.OverdriveWork;
 import com.bydwatch.companion.model.CustomActionCombo;
 import com.bydwatch.companion.model.RegionOption;
 import com.bydwatch.companion.model.UnitPreferences;
@@ -155,9 +159,11 @@ public class MainActivity extends AppCompatActivity {
     private TextView tvHeaderTitle;
     private TextView tvHeaderSubtitle;
     private View cardControls;
-    private View cardOverdriveShortcuts;
-    private TextView tvOverdriveShortcutStatus;
-    private boolean overdriveShortcutsConnected;
+    private View cardOverdriveControls;
+    private TextView tvOverdriveControlsStatus;
+    private TextView tvOverdriveCurrentSummary;
+    private TextView tvOverdriveScheduleSummary;
+    private boolean overdriveControlsReachable;
     private int overdriveProbeGeneration;
     private View cardAccount;
     private View cardPreferences;
@@ -436,7 +442,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         applyStandardMenuVisibility();
-        refreshOverdriveShortcuts();
+        refreshOverdriveControlsCard();
         updateWatchStatus();
     }
 
@@ -451,39 +457,93 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void refreshOverdriveShortcuts() {
-        if (cardOverdriveShortcuts == null) return;
-        overdriveShortcutsConnected = false;
-        applyOverdriveShortcutVisibility();
+    /**
+     * The card below TPMS: a native summary of the car's current limit and
+     * charging schedule. Hidden unless Overdrive controls are enabled, an
+     * address is set, the car answers, and the phone holds a session.
+     */
+    private void refreshOverdriveControlsCard() {
+        if (cardOverdriveControls == null) return;
+        overdriveControlsReachable = false;
+        applyOverdriveControlsVisibility();
         if (com.bydwatch.companion.BuildConfig.DEMO_BUILD) return;
-        if (!CarWebPrefs.overdriveShortcutsEnabled(this)) return;
-        if (CarWebPrefs.baseUrl(this).trim().isEmpty()) return;
+        if (!CarWebPrefs.overdriveControlsEnabled(this)) return;
+        final String base = CarWebPrefs.baseUrl(this);
+        if (base.trim().isEmpty()) return;
 
         final int generation = ++overdriveProbeGeneration;
-        if (tvOverdriveShortcutStatus != null) {
-            tvOverdriveShortcutStatus.setText(R.string.overdrive_shortcuts_checking);
-            tvOverdriveShortcutStatus.setTextColor(
+        if (tvOverdriveControlsStatus != null) {
+            tvOverdriveControlsStatus.setText(R.string.overdrive_controls_card_checking);
+            tvOverdriveControlsStatus.setTextColor(
                     ContextCompat.getColor(this, R.color.accent_emerald));
         }
-        OverdriveConnection.check(this, status -> runOnUiThread(() -> {
-            if (generation != overdriveProbeGeneration) return;
-            overdriveShortcutsConnected = status == OverdriveConnection.Status.CONNECTED;
-            if (tvOverdriveShortcutStatus != null) {
-                tvOverdriveShortcutStatus.setText(overdriveShortcutsConnected
-                        ? getString(R.string.overdrive_shortcuts_connected) : "");
+
+        final Context app = getApplicationContext();
+        OverdriveWork.run(() -> {
+            boolean reachable = OverdriveClient.isReachable(base);
+            boolean hasSession = OverdriveSession.hasJwt(app, System.currentTimeMillis());
+            OverdriveApi.CurrentLimit limit = null;
+            OverdriveApi.Schedule schedule = null;
+            if (reachable && hasSession) {
+                String jwt = OverdriveSession.jwt(app);
+                OverdriveClient.Outcome<OverdriveApi.CurrentLimit> current =
+                        OverdriveClient.currentLimit(base, jwt);
+                if (current.ok()) limit = current.value;
+                OverdriveClient.Outcome<OverdriveApi.Schedule> loaded =
+                        OverdriveClient.schedule(base, jwt);
+                if (loaded.ok()) schedule = loaded.value;
             }
-            applyOverdriveShortcutVisibility();
-        }));
+            final OverdriveApi.CurrentLimit currentLimit = limit;
+            final OverdriveApi.Schedule loadedSchedule = schedule;
+            runOnUiThread(() -> {
+                if (generation != overdriveProbeGeneration) return;
+                overdriveControlsReachable = reachable && hasSession;
+                if (tvOverdriveControlsStatus != null) {
+                    if (overdriveControlsReachable) {
+                        tvOverdriveControlsStatus.setText(R.string.overdrive_controls_card_connected);
+                    } else {
+                        tvOverdriveControlsStatus.setText("");
+                    }
+                }
+                if (tvOverdriveCurrentSummary != null) {
+                    tvOverdriveCurrentSummary.setText(currentLimit != null
+                            && currentLimit.label != null
+                            ? currentLimit.label
+                            : getString(R.string.overdrive_controls_summary_unknown));
+                }
+                if (tvOverdriveScheduleSummary != null) {
+                    tvOverdriveScheduleSummary.setText(
+                            scheduleSummary(loadedSchedule));
+                }
+                applyOverdriveControlsVisibility();
+            });
+        });
     }
 
-    private void applyOverdriveShortcutVisibility() {
-        if (cardOverdriveShortcuts == null) return;
+    /** "23:00–06:00 · Daily" for the card, or an em dash when unknown. */
+    private String scheduleSummary(OverdriveApi.Schedule schedule) {
+        if (schedule == null || schedule.start == null || schedule.end == null) {
+            return getString(R.string.overdrive_controls_summary_unknown);
+        }
+        String repeat;
+        if (schedule.repeat == OverdriveApi.Repeat.ONCE) {
+            repeat = getString(R.string.overdrive_repeat_once);
+        } else if (schedule.repeat == OverdriveApi.Repeat.WEEKDAYS) {
+            repeat = getString(R.string.overdrive_repeat_weekdays);
+        } else {
+            repeat = getString(R.string.overdrive_repeat_daily);
+        }
+        return schedule.start + "–" + schedule.endLabel() + " · " + repeat;
+    }
+
+    private void applyOverdriveControlsVisibility() {
+        if (cardOverdriveControls == null) return;
         boolean show = !com.bydwatch.companion.BuildConfig.DEMO_BUILD
                 && currentPageId == R.id.nav_controls
-                && CarWebPrefs.overdriveShortcutsEnabled(this)
+                && CarWebPrefs.overdriveControlsEnabled(this)
                 && !CarWebPrefs.baseUrl(this).trim().isEmpty()
-                && overdriveShortcutsConnected;
-        cardOverdriveShortcuts.setVisibility(show ? View.VISIBLE : View.GONE);
+                && overdriveControlsReachable;
+        cardOverdriveControls.setVisibility(show ? View.VISIBLE : View.GONE);
     }
 
     @Override
@@ -541,22 +601,14 @@ public class MainActivity extends AppCompatActivity {
         tvHeaderTitle = findViewById(R.id.tvHeaderTitle);
         tvHeaderSubtitle = findViewById(R.id.tvHeaderSubtitle);
         cardControls = findViewById(R.id.cardControls);
-        cardOverdriveShortcuts = findViewById(R.id.cardOverdriveShortcuts);
-        tvOverdriveShortcutStatus = findViewById(R.id.tvOverdriveShortcutStatus);
-        View odSchedule = findViewById(R.id.btnOverdriveSchedule);
-        if (odSchedule != null) {
-            odSchedule.setOnClickListener(v -> startActivity(
-                    CarWebActivity.intent(this, "/vehicle-control.html", "panelCharging")));
-        }
-        View odCurrent = findViewById(R.id.btnOverdriveCurrent);
-        if (odCurrent != null) {
-            odCurrent.setOnClickListener(v -> startActivity(
-                    CarWebActivity.intent(this, "/vehicle-control.html", "acChargeCurrentSection")));
-        }
-        View odManage = findViewById(R.id.btnOverdriveManage);
-        if (odManage != null) {
-            odManage.setOnClickListener(v ->
-                    startActivity(new android.content.Intent(this, AdvancedActivity.class)));
+        cardOverdriveControls = findViewById(R.id.cardOverdriveControls);
+        tvOverdriveControlsStatus = findViewById(R.id.tvOverdriveControlsStatus);
+        tvOverdriveCurrentSummary = findViewById(R.id.tvOverdriveCurrentSummary);
+        tvOverdriveScheduleSummary = findViewById(R.id.tvOverdriveScheduleSummary);
+        View odOpen = findViewById(R.id.btnOpenOverdriveControls);
+        if (odOpen != null) {
+            odOpen.setOnClickListener(v -> startActivity(
+                    new android.content.Intent(this, OverdriveControlActivity.class)));
         }
         cardAccount = findViewById(R.id.cardAccount);
         cardPreferences = findViewById(R.id.cardPreferences);
@@ -1240,7 +1292,7 @@ public class MainActivity extends AppCompatActivity {
         if (drawerLayout != null && drawerLayout.isDrawerOpen(GravityCompat.START)) {
             drawerLayout.closeDrawer(GravityCompat.START);
         }
-        applyOverdriveShortcutVisibility();
+        applyOverdriveControlsVisibility();
     }
 
     private void updateHeaderSubtitleForPage(int navItemId) {
