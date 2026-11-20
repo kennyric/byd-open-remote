@@ -370,4 +370,35 @@
     <string name="car_web_load">Buka</string>
     <string name="car_web_no_url">Masukkan IP mobil atau URL hotspot.</string>
     <string name="car_web_error">Tidak dapat menjangkau mobil. Periksa IP dan pastikan Overdrive berjalan di head unit.</string>
+
+    <string name="nav_advanced">Lanjutan</string>
+    <string name="nav_overdrive">Overdrive</string>
+    <string name="advanced_title">Lanjutan</string>
+    <string name="advanced_subtitle">Web dan menu Overdrive</string>
+    <string name="advanced_back">Kembali</string>
+    <string name="advanced_overdrive_section">Overdrive</string>
+    <string name="advanced_show_overdrive">Tampilkan Overdrive di menu</string>
+    <string name="advanced_hide_url_bar">Sembunyikan bilah URL</string>
+    <string name="advanced_car_address">Alamat mobil</string>
+    <string name="advanced_car_address_hint">http://192.168.1.50:8080</string>
+    <string name="advanced_car_address_help">Opsional. Biarkan kosong agar Overdrive tetap tertutup sampai alamat diisi.</string>
+    <string name="advanced_invalid_address">Masukkan alamat http:// atau https:// yang valid.</string>
+    <string name="advanced_default_page">Halaman default</string>
+    <string name="advanced_load_all">Muat semua halaman</string>
+    <string name="advanced_show_top5">Tampilkan 5 teratas</string>
+    <string name="advanced_manual_url">URL manual</string>
+    <string name="advanced_manual_url_hint">Path atau URL lengkap</string>
+    <string name="advanced_preview">Pratinjau</string>
+    <string name="advanced_preview_empty">Belum ada URL</string>
+    <string name="advanced_save">Simpan</string>
+    <string name="advanced_reset">Atur ulang</string>
+    <string name="advanced_page_vehicle_control">Kontrol Kendaraan</string>
+    <string name="advanced_page_events">Peristiwa</string>
+    <string name="advanced_page_charging">Pengisian</string>
+    <string name="advanced_page_trips">Perjalanan</string>
+    <string name="advanced_page_live_view">Tampilan Langsung</string>
+    <string name="overdrive_title">Overdrive</string>
+    <string name="overdrive_error">Tidak dapat menjangkau mobil. Periksa alamat dan pastikan Overdrive berjalan.</string>
+    <string name="overdrive_set_address">Tambahkan alamat Overdrive mobil di Lanjutan untuk membuka halaman ini.</string>
+    <string name="overdrive_open_advanced">Buka Lanjutan</string>
 </resources>
