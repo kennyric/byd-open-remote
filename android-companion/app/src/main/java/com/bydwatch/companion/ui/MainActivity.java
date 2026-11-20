@@ -64,8 +64,6 @@ import com.bydwatch.companion.data.BydRepository;
 import com.bydwatch.companion.data.ConfigStore;
 import com.bydwatch.companion.data.SecureConfigStore;
 import com.bydwatch.companion.lab.CarWebActivity;
-import com.bydwatch.companion.lab.LabActivity;
-import com.bydwatch.companion.lab.LabGate;
 import com.bydwatch.companion.model.CustomActionCombo;
 import com.bydwatch.companion.model.RegionOption;
 import com.bydwatch.companion.model.UnitPreferences;
@@ -462,17 +460,9 @@ public class MainActivity extends AppCompatActivity {
         }
         navView = findViewById(R.id.navView);
         if (navView != null) {
-            android.view.MenuItem labItem = navView.getMenu().findItem(R.id.nav_lab);
-            if (labItem != null) {
-                labItem.setVisible(LabGate.isEnabled(
-                        com.bydwatch.companion.BuildConfig.DEBUG,
-                        com.bydwatch.companion.BuildConfig.DEMO_BUILD));
-            }
             android.view.MenuItem carWebItem = navView.getMenu().findItem(R.id.nav_car_web);
             if (carWebItem != null) {
-                carWebItem.setVisible(LabGate.isEnabled(
-                        com.bydwatch.companion.BuildConfig.DEBUG,
-                        com.bydwatch.companion.BuildConfig.DEMO_BUILD));
+                carWebItem.setVisible(!com.bydwatch.companion.BuildConfig.DEMO_BUILD);
             }
         }
         btnHamburger = findViewById(R.id.btnHamburger);
@@ -1218,13 +1208,6 @@ public class MainActivity extends AppCompatActivity {
                         drawerLayout.closeDrawer(GravityCompat.START);
                     }
                     openExternalUrl(getString(R.string.support_url));
-                    return false;
-                }
-                if (item.getItemId() == R.id.nav_lab) {
-                    if (drawerLayout != null && drawerLayout.isDrawerOpen(GravityCompat.START)) {
-                        drawerLayout.closeDrawer(GravityCompat.START);
-                    }
-                    startActivity(new android.content.Intent(this, LabActivity.class));
                     return false;
                 }
                 if (item.getItemId() == R.id.nav_car_web) {

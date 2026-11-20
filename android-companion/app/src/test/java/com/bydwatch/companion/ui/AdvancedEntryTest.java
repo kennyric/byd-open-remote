@@ -8,7 +8,6 @@ import com.bydwatch.companion.R;
 import com.bydwatch.companion.data.BydRepository;
 import com.bydwatch.companion.data.BydRepositoryTest;
 import com.bydwatch.companion.lab.CarWebActivity;
-import com.bydwatch.companion.lab.LabActivity;
 import com.google.android.material.navigation.NavigationView;
 
 import org.junit.After;
@@ -26,7 +25,7 @@ import static org.junit.Assert.assertTrue;
 
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = 34)
-public class LabEntryTest {
+public class AdvancedEntryTest {
 
     @After
     public void tearDown() {
@@ -34,33 +33,7 @@ public class LabEntryTest {
     }
 
     @Test
-    public void drawerShowsLabAndOpensActivity() {
-        BydRepositoryTest.InMemoryConfigStore store = new BydRepositoryTest.InMemoryConfigStore();
-        store.setUsername("test@byd.id");
-        store.setPassword("ValidPass123");
-        store.setPin("123456");
-        store.setRegion("id");
-        store.setVin("VIN_TEST");
-        BydRepositoryTest.FakeBydGateway gateway = new BydRepositoryTest.FakeBydGateway();
-        BydRepository repository = new BydRepository(gateway, store);
-        BydWatchApp.setTestDependencies(store, gateway, repository);
-
-        MainActivity activity = Robolectric.buildActivity(MainActivity.class).setup().get();
-        NavigationView nav = activity.findViewById(R.id.navView);
-        MenuItem item = nav.getMenu().findItem(R.id.nav_lab);
-        assertNotNull(item);
-        assertTrue(item.isVisible());
-
-        nav.getMenu().performIdentifierAction(R.id.nav_lab, 0);
-
-        ShadowActivity shadow = Shadows.shadowOf(activity);
-        Intent next = shadow.getNextStartedActivity();
-        assertNotNull(next);
-        assertEquals(LabActivity.class.getName(), next.getComponent().getClassName());
-    }
-
-    @Test
-    public void drawerShowsCarWebAndOpensActivity() {
+    public void drawerShowsOverdriveAndOpensActivity() {
         BydRepositoryTest.InMemoryConfigStore store = new BydRepositoryTest.InMemoryConfigStore();
         store.setUsername("test@byd.id");
         store.setPassword("ValidPass123");

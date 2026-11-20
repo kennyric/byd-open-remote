@@ -56,11 +56,6 @@
             android:windowSoftInputMode="adjustResize|stateHidden" />
 
         <activity
-            android:name=".lab.LabActivity"
-            android:exported="false"
-            android:label="@string/lab_title" />
-
-        <activity
             android:name=".lab.CarWebActivity"
             android:exported="false"
             android:label="@string/car_web_title"

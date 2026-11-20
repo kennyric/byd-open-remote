@@ -44,7 +44,7 @@ public class CarWebActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        if (!LabGate.isEnabled(BuildConfig.DEBUG, BuildConfig.DEMO_BUILD)) {
+        if (BuildConfig.DEMO_BUILD) {
             super.onCreate(savedInstanceState);
             finish();
             return;
