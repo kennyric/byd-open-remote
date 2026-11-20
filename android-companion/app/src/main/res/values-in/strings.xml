@@ -428,4 +428,12 @@
     <string name="lab_send">Kirim</string>
     <string name="lab_invalid_json">JSON tidak valid</string>
     <string name="lab_endpoint">Endpoint</string>
+    <string name="nav_car_web">Web Mobil (:8080)</string>
+    <string name="car_web_title">Web Mobil</string>
+    <string name="car_web_back">Kembali</string>
+    <string name="car_web_reload">Muat ulang</string>
+    <string name="car_web_url_hint">http://&lt;ip-mobil&gt;:8080</string>
+    <string name="car_web_load">Buka</string>
+    <string name="car_web_no_url">Masukkan IP mobil atau URL hotspot.</string>
+    <string name="car_web_error">Tidak dapat menjangkau mobil. Periksa IP dan pastikan Overdrive berjalan di head unit.</string>
 </resources>

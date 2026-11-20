@@ -63,6 +63,7 @@ import com.bydwatch.companion.data.BydGateway;
 import com.bydwatch.companion.data.BydRepository;
 import com.bydwatch.companion.data.ConfigStore;
 import com.bydwatch.companion.data.SecureConfigStore;
+import com.bydwatch.companion.lab.CarWebActivity;
 import com.bydwatch.companion.lab.LabActivity;
 import com.bydwatch.companion.lab.LabGate;
 import com.bydwatch.companion.model.CustomActionCombo;
@@ -464,6 +465,12 @@ public class MainActivity extends AppCompatActivity {
             android.view.MenuItem labItem = navView.getMenu().findItem(R.id.nav_lab);
             if (labItem != null) {
                 labItem.setVisible(LabGate.isEnabled(
+                        com.bydwatch.companion.BuildConfig.DEBUG,
+                        com.bydwatch.companion.BuildConfig.DEMO_BUILD));
+            }
+            android.view.MenuItem carWebItem = navView.getMenu().findItem(R.id.nav_car_web);
+            if (carWebItem != null) {
+                carWebItem.setVisible(LabGate.isEnabled(
                         com.bydwatch.companion.BuildConfig.DEBUG,
                         com.bydwatch.companion.BuildConfig.DEMO_BUILD));
             }
@@ -1218,6 +1225,13 @@ public class MainActivity extends AppCompatActivity {
                         drawerLayout.closeDrawer(GravityCompat.START);
                     }
                     startActivity(new android.content.Intent(this, LabActivity.class));
+                    return false;
+                }
+                if (item.getItemId() == R.id.nav_car_web) {
+                    if (drawerLayout != null && drawerLayout.isDrawerOpen(GravityCompat.START)) {
+                        drawerLayout.closeDrawer(GravityCompat.START);
+                    }
+                    startActivity(new android.content.Intent(this, CarWebActivity.class));
                     return false;
                 }
                 showPage(item.getItemId());

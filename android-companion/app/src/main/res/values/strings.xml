@@ -511,4 +511,12 @@
     <string name="lab_send">Send</string>
     <string name="lab_invalid_json">Invalid JSON</string>
     <string name="lab_endpoint">Endpoint</string>
+    <string name="nav_car_web">Car Web (:8080)</string>
+    <string name="car_web_title">Car Web</string>
+    <string name="car_web_back">Back</string>
+    <string name="car_web_reload">Reload</string>
+    <string name="car_web_url_hint">http://&lt;car-ip&gt;:8080</string>
+    <string name="car_web_load">Open</string>
+    <string name="car_web_no_url">Enter the car IP or hotspot URL.</string>
+    <string name="car_web_error">Could not reach the car. Check the IP and that Overdrive is running on the head unit.</string>
 </resources>

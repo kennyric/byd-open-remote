@@ -21,6 +21,10 @@
             android:id="@+id/nav_lab"
             android:icon="@drawable/ic_nav_tune"
             android:title="@string/nav_lab" />
+        <item
+            android:id="@+id/nav_car_web"
+            android:icon="@drawable/ic_byd_location"
+            android:title="@string/nav_car_web" />
     </group>
 
     <item
