@@ -202,3 +202,42 @@ tasks.configureEach { task ->
         task.dependsOn('checkSigningKey')
     }
 }
+
+// ---------------------------------------------------------------------------
+// APK export
+//
+// Every assemble* build also copies its APK to E:\Kenny\Huawei\APK using the
+// release asset names, so the newest standard build is always
+// APK\BYD-Open-Remote.apk (demo: APK\BYD-Open-Remote-Demo.apk).
+// ---------------------------------------------------------------------------
+def apkExportDir = file('E:/Kenny/Huawei/APK')
+
+[
+        ['StandardDebug', 'standard', 'debug', 'BYD-Open-Remote.apk'],
+        ['StandardRelease', 'standard', 'release', 'BYD-Open-Remote.apk'],
+        ['DemoDebug', 'demo', 'debug', 'BYD-Open-Remote-Demo.apk'],
+        ['DemoRelease', 'demo', 'release', 'BYD-Open-Remote-Demo.apk'],
+].each { spec ->
+    def variant = spec[0]
+    def apkName = spec[3]
+    def source = layout.buildDirectory.file("outputs/apk/${spec[1]}/${spec[2]}/${apkName}")
+    def exportTask = tasks.register("export${variant}Apk") {
+        doLast {
+            // A failed assemble leaves the previous APK in place; do not pretend it is new.
+            if (tasks.named("assemble${variant}").get().state.failure != null) return
+            def apk = source.get().asFile
+            if (!apk.exists()) {
+                logger.warn("APK export skipped: ${apk} does not exist")
+                return
+            }
+            def target = new File(apkExportDir, apkName)
+            target.parentFile.mkdirs()
+            java.nio.file.Files.copy(apk.toPath(), target.toPath(),
+                    java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+            logger.lifecycle("APK exported: ${target}")
+        }
+    }
+    tasks.matching { it.name == "assemble${variant}" }.configureEach {
+        finalizedBy(exportTask)
+    }
+}
