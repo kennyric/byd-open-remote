@@ -65,7 +65,6 @@ A new `AdvancedActivity` with a scrollable form:
 - **Hide URL bar** — switch, default **on**.
 - **Car address** — optional base URL, e.g. `http://192.168.1.50:8080`.
   **Leave blank to keep Overdrive closed** until an address is configured.
-  The app does not discover the address automatically.
 - **Default page**:
   - Top 5 presets as a compact radio list:
     1. Vehicle Control — `/vehicle-control.html`
