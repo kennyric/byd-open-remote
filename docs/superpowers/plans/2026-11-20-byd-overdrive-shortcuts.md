@@ -1,6 +1,6 @@
 # Overdrive Shortcuts (Experimental) — Implementation Plan
 
-**Goal:** Add an opt-in Advanced setting that shows **Charging schedule** and **AC current limit** shortcuts on the Controls page when the car’s Overdrive server is reachable, opening the correct Overdrive page section in the existing WebView.
+**Goal:** Add an opt-in Advanced setting that shows **Charging schedule** and **AC current limit** shortcuts on the Controls page when the car’s Overdrive server is connected, opening the correct Overdrive page section in the existing WebView.
 
 **Architecture:** `CarWebPrefs` stores the opt-in flag. `OverdriveConnection` probes the public `GET /auth/status` endpoint asynchronously. `CarWebActivity` accepts an optional page and scroll-ID extra, resolves the page, and scrolls the WebView after load. `MainActivity` shows a new Controls card only when the flag is on and the probe succeeds.
 
@@ -22,7 +22,7 @@
 ## Review Focus
 
 - No access-code field appears; a fresh WebView with no login still opens the Overdrive login page — Task 2.
-- The card is hidden unless the switch is on, the address is non-blank, and `/auth/status` is reachable — Task 4.
+- The card is hidden unless the switch is on, the address is non-blank, and the session is CONNECTED — Task 4.
 - The card does not appear on non-Control pages — Task 4.
 - **Charging schedule** opens `/vehicle-control.html#panelCharging`; **AC current limit** opens `/vehicle-control.html#acChargeCurrentSection` — Task 2.
 - The card refreshes after returning from Advanced without an app restart — Task 4.
@@ -41,7 +41,7 @@
 - `CarWebPrefs.overdriveShortcutsEnabled(Context) -> boolean` (default `false`)
 - `CarWebPrefs.setOverdriveShortcutsEnabled(Context, boolean)`
 - `OverdriveConnection.check(Context, Callback)`
-- `OverdriveConnection.Callback.onResult(boolean reachable)`
+- `OverdriveConnection.Callback.onResult(Status status)`
 - `OverdriveConnection.statusUrl(String base) -> String`
 - `OverdriveConnection.setReachableForTesting(Boolean)` (`@VisibleForTesting`)
 
@@ -254,6 +254,11 @@ Expected: FAIL — switch missing.
 - Bind the switch; initialize from `CarWebPrefs.overdriveShortcutsEnabled`.
 - Save persists it.
 - Reset turns it off.
+- Add a **connection status row** in the Overdrive card:
+  - `tvAdvOverdriveStatus` (“Checking…”, “Connected”, “Login needed”, “Not reachable”).
+  - `btnAdvOverdriveLogin` visible only when login is needed; opens
+    `CarWebActivity` so the user can sign in.
+  - Re-probe in `onResume` so returning from the login page updates the status.
 - No access-code/token field.
 
 Strings:
@@ -394,9 +399,9 @@ Expected: FAIL — card/IDs missing.
 - `refreshOverdriveShortcuts()`:
   - Hide if `BuildConfig.DEMO_BUILD`, flag off, base blank, or current page is
     not `nav_controls`.
-  - Otherwise call `OverdriveConnection.check`; on result, if reachable, show
+  - Otherwise call `OverdriveConnection.check`; on result, if CONNECTED, show
     card; else hide.
-  - Update status text to Connected/Not reachable.
+  - Update status text to Connected/Login needed/Not reachable.
 - Call from `onResume()` and from `showPage()`.
 - Buttons:
   - Schedule → `CarWebActivity.intent(this, "/vehicle-control.html", "panelCharging")`.
@@ -463,7 +468,7 @@ Do **not** push to GitHub until the user tests it.
 ## Manual Acceptance
 
 1. Advanced → **Experimental** → **Overdrive shortcuts** on → Save.
-2. Controls shows the **Overdrive** card when the car address is reachable.
+2. Controls shows the **Overdrive** card when the car address is connected and logged in.
 3. Tap **Charging schedule** → Overdrive opens Vehicle Control at the schedule.
 4. Back → tap **AC current limit** → Overdrive opens Vehicle Control at the AC current section.
 5. Turn the toggle off → the card disappears.

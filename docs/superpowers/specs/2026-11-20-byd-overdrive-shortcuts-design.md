@@ -82,6 +82,11 @@ No access-code field is needed for this phase.
   expired, Overdrive shows its login page and the user signs in there.
 - The reachability probe uses `GET /auth/status`, which is public and does not
   require a login.
+- Advanced shows the live status: **Connected**, **Login needed**, or
+  **Not reachable**.
+- When login is needed, an **Open Overdrive login** button opens the WebView
+  so the user can sign in; returning to Advanced re-probes and updates the
+  status.
 - If Phase 2 adds native API calls, the app can reuse
   `CookieManager.getCookie(baseUrl)` and send the same session cookie. Only if
   that proves unreliable should Advanced gain an optional access-token field.
