@@ -68,8 +68,8 @@ android {
         applicationId 'com.bydopenremote.app'
         minSdk 26
         targetSdk 34
-        versionCode 9
-        versionName '1.2.1'
+        versionCode 10
+        versionName '1.3.0'
 
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
 
@@ -121,8 +121,8 @@ android {
             // the Quick Settings tile resolve at runtime.
             applicationId 'com.bydopenremote.demo'
             // Distinct version so an in-place update is unambiguous ("1.1.0-demo2" in Settings).
-            versionCode 18
-            versionNameSuffix '-demo12'
+            versionCode 19
+            versionNameSuffix '-demo13'
             buildConfigField "boolean", "DEMO_BUILD", "true"
             manifestPlaceholders.putAll(demoManifestPlaceholders + [
                 DEMO_SETUP_TILE   : 'true',
