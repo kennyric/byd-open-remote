@@ -15,3 +15,6 @@ watch-gt4/**/build/
 *.tmp
 *.xlsx
 agconnect-services.json
+
+# LocalSend CLI binary (downloaded on demand)
+tools/localsend-cli.exe
