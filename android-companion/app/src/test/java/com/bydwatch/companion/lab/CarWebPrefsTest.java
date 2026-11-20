@@ -45,4 +45,11 @@ public class CarWebPrefsTest {
         assertEquals("http://192.168.1.50:8080", CarWebPrefs.baseUrl(context));
         assertEquals("/vehicle-control.html", CarWebPrefs.defaultPage(context));
     }
+
+    @Test
+    public void shortcutsDefaultOffAndPersist() {
+        assertFalse(CarWebPrefs.overdriveShortcutsEnabled(context));
+        CarWebPrefs.setOverdriveShortcutsEnabled(context, true);
+        assertTrue(CarWebPrefs.overdriveShortcutsEnabled(context));
+    }
 }

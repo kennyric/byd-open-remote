@@ -11,6 +11,7 @@ public final class CarWebPrefs {
     private static final String KEY_HIDE_URL = "hide_url_bar";
     private static final String KEY_BASE = "car_base_url";
     private static final String KEY_PAGE = "default_page";
+    private static final String KEY_SHORTCUTS = "overdrive_shortcuts_enabled";
 
     private CarWebPrefs() {}
 
@@ -43,7 +44,15 @@ public final class CarWebPrefs {
     }
 
     public static void setDefaultPage(Context context, String page) {
-        prefs(context).edit().putString(KEY_PAGE, page != null ? page : "/").apply();
+        prefs(context).edit().putString(KEY_PAGE, page != null ? page : "/vehicle-control.html").apply();
+    }
+
+    public static boolean overdriveShortcutsEnabled(Context context) {
+        return prefs(context).getBoolean(KEY_SHORTCUTS, false);
+    }
+
+    public static void setOverdriveShortcutsEnabled(Context context, boolean enabled) {
+        prefs(context).edit().putBoolean(KEY_SHORTCUTS, enabled).apply();
     }
 
     public static void reset(Context context) {
@@ -52,6 +61,7 @@ public final class CarWebPrefs {
                 .remove(KEY_HIDE_URL)
                 .remove(KEY_BASE)
                 .remove(KEY_PAGE)
+                .remove(KEY_SHORTCUTS)
                 .apply();
     }
 
