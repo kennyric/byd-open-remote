@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BYD Open Remote — Overdrive Shortcuts</title>
+<style>
+  :root{
+    --bg:#070A08; --panel:#0E1411; --card:#141B18; --card2:#101613;
+    --line:#26302B; --line2:#33413A; --text:#EAF2ED; --muted:#8C9A92;
+    --emerald:#6DDBAC; --emerald-dim:#2E5B4B; --amber:#F0B35E;
+    --blue:#8CC8FF; --rose:#F08A8A;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:
+    radial-gradient(1100px 700px at 85% -10%, rgba(109,219,172,.10), transparent 60%),
+    radial-gradient(900px 600px at 0% 25%, rgba(140,200,255,.055), transparent 55%),
+    var(--bg);
+    color:var(--text);font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  body{padding:34px 28px 64px}
+  header{max-width:1300px;margin:0 auto 26px}
+  .kicker{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--emerald);font-weight:800}
+  h1{font-size:30px;line-height:1.15;margin:8px 0 8px;letter-spacing:-.02em}
+  .sub{color:var(--muted);font-size:14px;line-height:1.6;max-width:960px}
+  .legend{display:flex;gap:9px;flex-wrap:wrap;margin-top:17px}
+  .tag{font-size:11px;font-weight:700;padding:6px 10px;border-radius:999px;border:1px solid var(--line2);color:var(--muted);background:#0B100D}
+  .tag.on{color:#082017;background:var(--emerald);border-color:var(--emerald)}
+  .tag.info{color:var(--blue);border-color:#27455B;background:#0B1520}
+  .grid{max-width:1300px;margin:0 auto;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:28px 26px;justify-items:center}
+  .frame{display:flex;flex-direction:column;gap:10px;width:100%;max-width:410px}
+  .caption{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700}
+  .caption .n{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:7px;background:var(--emerald);color:#062017;font-size:11px;flex:none}
+  .caption .hint{font-weight:500;color:var(--muted)}
+  .phone{position:relative;width:100%;max-width:390px;height:820px;border-radius:36px;padding:10px;background:linear-gradient(180deg,#1A211D,#0B0F0D);box-shadow:0 30px 70px rgba(0,0,0,.55), inset 0 0 0 1px #2A3530;overflow:hidden;margin:0 auto}
+  .screen{position:relative;height:100%;border-radius:28px;background:var(--bg);overflow:hidden;display:flex;flex-direction:column}
+  .status{height:26px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;color:#A6B3AB;font-size:10px;font-weight:600;flex:none}
+  .status .dots{letter-spacing:2px}
+  .appbar{display:flex;align-items:center;gap:10px;padding:10px 14px 8px;flex:none}
+  .iconbtn{width:36px;height:36px;border-radius:12px;background:var(--card);border:1px solid var(--line);display:grid;place-items:center;color:var(--text);font-size:15px;flex:none}
+  .appbar .titles{flex:1;min-width:0}
+  .appbar .t1{font-size:16px;font-weight:800;letter-spacing:-.01em}
+  .appbar .t2{font-size:10.5px;color:var(--muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pill{font-size:9px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;padding:5px 8px;border-radius:999px;background:#13231D;color:var(--emerald);border:1px solid var(--emerald-dim);flex:none}
+  .scroll{flex:1;min-height:0;overflow-y:auto;padding:4px 14px 22px;scrollbar-width:none}
+  .scroll::-webkit-scrollbar{display:none}
+  .section-label{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:800;margin:13px 2px 7px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px;margin-bottom:10px}
+  .card.flat{background:var(--card2)}
+  .row{display:flex;align-items:center;gap:10px;padding:9px 2px}
+  .row + .row{border-top:1px solid rgba(255,255,255,.035)}
+  .grow{flex:1;min-width:0}
+  .label{font-size:12.5px;font-weight:650}
+  .subtext{font-size:10.5px;color:var(--muted);line-height:1.35;margin-top:2px}
+  .mono{font-family:ui-monospace,SFMono-Regular,Consolas,monospace}
+  .switch{width:38px;height:22px;border-radius:999px;background:#2A3530;position:relative;flex:none}
+  .switch .knob{position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#93A299}
+  .switch.on{background:var(--emerald)}
+  .switch.on .knob{left:19px;background:#062017}
+  .divider{height:1px;background:var(--line);margin:9px 0}
+  .hero{display:flex;gap:12px;align-items:center;padding:4px 2px 10px}
+  .hero .car{width:58px;height:58px;border-radius:18px;background:linear-gradient(145deg,#1C3A2F,#0F211A);border:1px solid #2E5B4B;display:grid;place-items:center;color:var(--emerald);font-size:22px;flex:none}
+  .hero .name{font-size:14px;font-weight:800}
+  .hero .meta{font-size:10.5px;color:var(--muted);margin-top:2px}
+  .big{font-size:27px;font-weight:850;letter-spacing:-.03em}
+  .big small{font-size:12px;color:var(--muted);font-weight:600;letter-spacing:0}
+  .chiprow{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}
+  .chip{font-size:9.5px;font-weight:750;padding:5px 8px;border-radius:999px;background:#13231D;border:1px solid #2A4A3C;color:#9FE9C6}
+  .chip.gray{background:#131A17;border-color:#2A3530;color:#9AA8A1}
+  .quick{display:grid;grid-template-columns:repeat(2,1fr);gap:7px;margin-top:2px}
+  .quick .q{display:flex;align-items:center;gap:8px;background:#0F1512;border:1px solid var(--line);border-radius:12px;padding:9px 10px;font-size:11.5px;font-weight:700;color:#D7E3DC}
+  .quick .q .qi{width:22px;height:22px;border-radius:8px;background:#16241E;display:grid;place-items:center;color:var(--emerald);font-size:12px;flex:none}
+  .odcard{border-color:#2E5B4B;background:linear-gradient(180deg,#12231C,#101916);box-shadow:0 0 0 1px rgba(109,219,172,.08), 0 16px 34px rgba(0,0,0,.25)}
+  .odhead{display:flex;align-items:center;gap:8px}
+  .odhead .title{font-size:14px;font-weight:850;flex:1}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--emerald);box-shadow:0 0 0 3px rgba(109,219,172,.12);flex:none}
+  .statusline{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--emerald);font-weight:800}
+  .odsub{font-size:10.5px;color:var(--muted);margin:3px 0 9px}
+  .odbtn{display:flex;align-items:center;gap:10px;width:100%;background:#0B100D;border:1px solid #2A4A3C;border-radius:12px;padding:10px;margin-bottom:7px;text-align:left}
+  .odbtn .ico{width:30px;height:30px;border-radius:10px;background:#16241E;display:grid;place-items:center;color:var(--emerald);flex:none}
+  .odbtn .txt{flex:1;min-width:0}
+  .odbtn .bt{font-size:12px;font-weight:800;color:var(--text)}
+  .odbtn .bs{font-size:9.5px;color:var(--muted);margin-top:2px}
+  .odbtn .arrow{color:var(--emerald);font-size:14px}
+  .manage{font-size:10.5px;color:var(--emerald);font-weight:750;text-align:right;margin-top:2px}
+  .note{font-size:10.5px;color:var(--muted);line-height:1.45;border-left:2px solid var(--emerald);padding-left:9px;margin:9px 2px}
+  .annot{font-size:11.5px;color:var(--muted);line-height:1.5;padding:0 2px;min-height:34px}
+  .annot b{color:var(--text)}
+  .vc h2{font-size:18px;margin:2px 0 0;letter-spacing:-.01em}
+  .statusline2{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+  .seg{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;background:#0B100D;border:1px solid #2A3530;padding:4px;border-radius:11px}
+  .seg .s{text-align:center;font-size:10.5px;font-weight:800;padding:8px 0;border-radius:8px;color:#91A198}
+  .seg .s.on{background:var(--emerald);color:#062017}
+  .highlight{position:relative;box-shadow:0 0 0 2px var(--emerald), 0 0 28px rgba(109,219,172,.22);border-color:var(--emerald)}
+  .opened{position:absolute;top:-11px;right:10px;background:var(--emerald);color:#062017;font-size:9px;font-weight:900;letter-spacing:.06em;text-transform:uppercase;padding:4px 7px;border-radius:999px;z-index:2}
+  .sched{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:7px}
+  .field{background:#0B100D;border:1px solid #2A3530;border-radius:9px;padding:8px;font-size:11px;color:#D7E3DC}
+  .field .fl{font-size:8.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-weight:800;margin-bottom:3px}
+  .btn{display:inline-flex;align-items:center;justify-content:center;border-radius:10px;padding:8px 11px;font-size:10.5px;font-weight:800;background:#1A231F;border:1px solid var(--line2);color:var(--text)}
+  .btn.primary{background:var(--emerald);color:#062017;border-color:var(--emerald)}
+  .btnrow{display:flex;gap:7px;margin-top:8px}
+  .btnrow .btn{flex:1}
+  .footerbar{flex:none;display:flex;gap:8px;padding:10px 14px 14px;background:linear-gradient(transparent,#0B0F0D 32%);border-top:1px solid var(--line)}
+  .footerbar .btn{flex:1}
+  .help{font-size:10px;color:var(--muted);line-height:1.45;margin-top:6px}
+  @media (max-width:860px){body{padding:22px 14px 50px}h1{font-size:24px}.grid{grid-template-columns:1fr}.frame{max-width:390px}}
+</style>
+</head>
+<body>
+<header>
+  <div class="kicker">BYD Open Remote · design mockup</div>
+  <h1>Overdrive shortcuts</h1>
+  <p class="sub">Experimental opt-in under Advanced. When the car’s Overdrive server is reachable, the Controls page shows two shortcuts: <b>Charging schedule</b> and <b>AC current limit</b>. Both open the existing Overdrive WebView at the right section. Uses the WebView’s Overdrive session — no access code field.</p>
+  <div class="legend">
+    <span class="tag on">Opt-in · default off</span>
+    <span class="tag info">Only when reachable</span>
+    <span class="tag">No access code</span>
+  </div>
+</header>
+
+<div class="grid">
+
+  <!-- 1. Controls -->
+  <div class="frame">
+    <div class="caption"><span class="n">1</span> Controls — Overdrive card <span class="hint">connected</span></div>
+    <div class="phone"><div class="screen">
+      <div class="status"><span>9:41</span><span class="dots">▮▮▮ ◔ ▰</span></div>
+      <div class="appbar">
+        <div class="iconbtn">☰</div>
+        <div class="titles"><div class="t1">Controls</div><div class="t2">ATTO 1 · ***3128</div></div>
+        <div class="iconbtn">⟳</div>
+      </div>
+      <div class="scroll">
+        <div class="card">
+          <div class="hero">
+            <div class="car">⚡</div>
+            <div class="grow">
+              <div class="name">ATTO 1</div>
+              <div class="meta">Parked · Outside 31°C</div>
+            </div>
+            <div class="big">62<small>%</small></div>
+          </div>
+          <div class="chiprow"><span class="chip">● Locked</span><span class="chip gray">310 km</span><span class="chip gray">12.4 V</span></div>
+        </div>
+
+        <div class="section-label">Quick controls</div>
+        <div class="quick">
+          <div class="q"><span class="qi">◉</span> Lock</div>
+          <div class="q"><span class="qi">◎</span> Unlock</div>
+          <div class="q"><span class="qi">❄</span> Climate</div>
+          <div class="q"><span class="qi">▣</span> Windows</div>
+        </div>
+
+        <div class="card odcard" style="margin-top:10px">
+          <div class="odhead">
+            <div class="title">Overdrive</div>
+            <span class="pill">Experimental</span>
+            <div class="statusline"><span class="dot"></span> Connected</div>
+          </div>
+          <div class="odsub mono">Vehicle server · 192.168.1.50:8080</div>
+
+          <div class="odbtn">
+            <div class="ico">◷</div>
+            <div class="txt"><div class="bt">Charging schedule</div><div class="bs">Open the charge window &amp; repeat</div></div>
+            <div class="arrow">›</div>
+          </div>
+          <div class="odbtn">
+            <div class="ico">ϟ</div>
+            <div class="txt"><div class="bt">AC current limit</div><div class="bs">6 A · 8 A · 10 A · 16 A · Max</div></div>
+            <div class="arrow">›</div>
+          </div>
+          <div class="manage">Manage</div>
+        </div>
+
+        <div class="note">Only visible when the Overdrive shortcuts experiment is on <b>and</b> the car address answers. It opens Overdrive’s own page; no duplicate controls.</div>
+      </div>
+    </div></div>
+    <div class="annot"><b>The new buttons.</b> Two one-tap shortcuts on Controls, plus a Manage link back to Advanced.</div>
+  </div>
+
+  <!-- 2. Advanced toggle -->
+  <div class="frame">
+    <div class="caption"><span class="n">2</span> Advanced — experimental toggle <span class="hint">default off</span></div>
+    <div class="phone"><div class="screen">
+      <div class="status"><span>9:41</span><span class="dots">▮▮▮ ◔ ▰</span></div>
+      <div class="appbar">
+        <div class="iconbtn">←</div>
+        <div class="titles"><div class="t1">Advanced</div><div class="t2">Overdrive web and menu</div></div>
+      </div>
+      <div class="scroll">
+        <div class="section-label">Overdrive</div>
+        <div class="card">
+          <div class="row"><div class="grow"><div class="label">Show Overdrive in menu</div><div class="subtext">Adds Overdrive to the drawer</div></div><span class="switch on"><span class="knob"></span></span></div>
+          <div class="row"><div class="grow"><div class="label">Hide URL bar</div><div class="subtext">Open straight to the car page</div></div><span class="switch on"><span class="knob"></span></span></div>
+        </div>
+
+        <div class="section-label">Experimental</div>
+        <div class="card" style="border-color:#2E5B4B">
+          <div class="row">
+            <div class="grow">
+              <div class="label">Overdrive shortcuts</div>
+              <div class="subtext">Show charging schedule and AC current limit shortcuts when Overdrive is reachable.</div>
+            </div>
+            <span class="switch on"><span class="knob"></span></span>
+          </div>
+          <div class="help">Uses your existing Overdrive session. If you are logged out, Overdrive’s login page appears in the WebView. No access code to enter here.</div>
+        </div>
+
+        <div class="section-label">Default page</div>
+        <div class="card">
+          <div class="row"><span class="dot"></span><div class="grow"><div class="label">Vehicle Control</div><div class="mono" style="font-size:9.5px;color:var(--muted)">/vehicle-control.html</div></div></div>
+          <div class="manage" style="text-align:left">Change in Default page…</div>
+        </div>
+        <div style="height:8px"></div>
+      </div>
+      <div class="footerbar"><div class="btn">Reset</div><div class="btn primary">Save</div></div>
+    </div></div>
+    <div class="annot"><b>Opt-in.</b> The switch lives under Advanced → Experimental and is off by default. No token/access-code field.</div>
+  </div>
+
+  <!-- 3. Schedule deep link -->
+  <div class="frame">
+    <div class="caption"><span class="n">3</span> Charging schedule — deep link <span class="hint">scroll target</span></div>
+    <div class="phone"><div class="screen">
+      <div class="status"><span>9:41</span><span class="dots">▮▮▮ ◔ ▰</span></div>
+      <div class="appbar">
+        <div class="iconbtn">←</div>
+        <div class="titles"><div class="t1">Overdrive</div><div class="t2">Vehicle Control · schedule</div></div>
+        <div class="iconbtn">⟳</div>
+      </div>
+      <div class="scroll">
+        <div class="vc">
+          <h2>Vehicle Control</h2>
+          <div class="statusline2"><span class="chip gray">Parked</span><span class="chip gray">AC off</span></div>
+
+          <div class="card highlight" style="margin-top:10px">
+            <div class="opened">Opened here</div>
+            <div class="label" style="font-size:13px;font-weight:800">Charging schedule</div>
+            <div class="subtext">Window and repeat for the OEM charge schedule.</div>
+            <div class="sched">
+              <div class="field"><div class="fl">Window</div>23:00 – 06:00</div>
+              <div class="field"><div class="fl">Repeat</div>Every day</div>
+            </div>
+            <div class="btnrow"><div class="btn">Clear</div><div class="btn primary">Save schedule</div></div>
+          </div>
+
+          <div class="card" style="margin-top:12px">
+            <div class="label" style="font-size:13px;font-weight:800">AC charging current</div>
+            <div class="subtext">Set the vehicle’s AC inlet current limit.</div>
+            <div class="seg" style="margin-top:8px"><div class="s">6 A</div><div class="s">8 A</div><div class="s">10 A</div><div class="s">16 A</div><div class="s on">Max</div></div>
+          </div>
+        </div>
+      </div>
+    </div></div>
+    <div class="annot"><b>Charging schedule</b> opens <span class="mono">/vehicle-control.html#panelCharging</span> and scrolls to the schedule card.</div>
+  </div>
+
+  <!-- 4. Current limit deep link -->
+  <div class="frame">
+    <div class="caption"><span class="n">4</span> AC current limit — deep link <span class="hint">scroll target</span></div>
+    <div class="phone"><div class="screen">
+      <div class="status"><span>9:41</span><span class="dots">▮▮▮ ◔ ▰</span></div>
+      <div class="appbar">
+        <div class="iconbtn">←</div>
+        <div class="titles"><div class="t1">Overdrive</div><div class="t2">Vehicle Control · AC current</div></div>
+        <div class="iconbtn">⟳</div>
+      </div>
+      <div class="scroll">
+        <div class="vc">
+          <h2>Vehicle Control</h2>
+          <div class="statusline2"><span class="chip gray">Parked</span><span class="chip gray">AC off</span></div>
+
+          <div class="card" style="margin-top:10px">
+            <div class="label" style="font-size:13px;font-weight:800">Charging schedule</div>
+            <div class="subtext">23:00 – 06:00 · Every day</div>
+          </div>
+
+          <div class="card highlight" style="margin-top:12px">
+            <div class="opened">Opened here</div>
+            <div class="label" style="font-size:13px;font-weight:800">AC charging current</div>
+            <div class="subtext">Set the vehicle’s AC inlet current limit. Success only after matching readback.</div>
+            <div class="seg" style="margin-top:9px"><div class="s">6 A</div><div class="s">8 A</div><div class="s">10 A</div><div class="s">16 A</div><div class="s on">Max</div></div>
+            <div class="help">Active: <b>Max</b> · supported: 6 A, 8 A, 10 A, 16 A, Max</div>
+          </div>
+
+          <div class="note">This is Overdrive’s real control. The app only navigates here.</div>
+        </div>
+      </div>
+    </div></div>
+    <div class="annot"><b>AC current limit</b> opens <span class="mono">/vehicle-control.html#acChargeCurrentSection</span> and scrolls to the segmented control.</div>
+  </div>
+
+</div>
+</body>
+</html>
