@@ -415,11 +415,4 @@
     <string name="advanced_overdrive_visibility_always">Selalu tampilkan</string>
     <string name="advanced_overdrive_visibility_connected">Hanya saat terhubung</string>
     <string name="advanced_overdrive_visibility_hidden">Selalu sembunyikan</string>
-    <string name="overdrive_shortcuts_title">Overdrive</string>
-    <string name="overdrive_shortcuts_subtitle">Buka Overdrive di mobil</string>
-    <string name="overdrive_shortcuts_checking">Memeriksa…</string>
-    <string name="overdrive_shortcuts_connected">Terhubung</string>
-    <string name="overdrive_shortcut_schedule">Jadwal pengisian</string>
-    <string name="overdrive_shortcut_current">Batas arus AC</string>
-    <string name="overdrive_shortcut_manage">Kelola</string>
 </resources>
