@@ -484,4 +484,20 @@
     <string name="overdrive_error">Could not reach the vehicle. Check the address and that Overdrive is running.</string>
     <string name="overdrive_set_address">Add your vehicle’s Overdrive address in Advanced to open this page.</string>
     <string name="overdrive_open_advanced">Open Advanced</string>
+    <string name="advanced_experimental">Experimental</string>
+    <string name="advanced_overdrive_shortcuts">Overdrive shortcuts</string>
+    <string name="advanced_overdrive_shortcuts_desc">Show charging schedule and AC current limit shortcuts when Overdrive is reachable.</string>
+    <string name="advanced_overdrive_shortcuts_help">Uses your existing Overdrive session. No access code needed.</string>
+    <string name="advanced_overdrive_checking">Checking Overdrive…</string>
+    <string name="advanced_overdrive_connected">Connected</string>
+    <string name="advanced_overdrive_login_needed">Login needed</string>
+    <string name="advanced_overdrive_unreachable">Not reachable</string>
+    <string name="advanced_overdrive_login_button">Open Overdrive login</string>
+    <string name="overdrive_shortcuts_title">Overdrive</string>
+    <string name="overdrive_shortcuts_subtitle">Open Overdrive on the car</string>
+    <string name="overdrive_shortcuts_checking">Checking…</string>
+    <string name="overdrive_shortcuts_connected">Connected</string>
+    <string name="overdrive_shortcut_schedule">Charging schedule</string>
+    <string name="overdrive_shortcut_current">AC current limit</string>
+    <string name="overdrive_shortcut_manage">Manage</string>
 </resources>

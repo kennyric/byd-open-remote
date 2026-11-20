@@ -1,18 +1,23 @@
 package com.bydwatch.companion.lab;
 
 import android.content.Context;
+import android.content.Intent;
 
 import com.google.android.material.switchmaterial.SwitchMaterial;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
+import org.robolectric.Shadows;
 import org.robolectric.annotation.Config;
+import org.robolectric.shadows.ShadowLooper;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 @RunWith(RobolectricTestRunner.class)
@@ -25,6 +30,12 @@ public class AdvancedActivityTest {
     public void setUp() {
         context = RuntimeEnvironment.getApplication();
         CarWebPrefs.reset(context);
+        OverdriveConnection.setStatusForTesting(null);
+    }
+
+    @After
+    public void tearDown() {
+        OverdriveConnection.setStatusForTesting(null);
     }
 
     @Test
@@ -85,5 +96,53 @@ public class AdvancedActivityTest {
         android.widget.RadioButton vehicle = activity.findViewById(
                 com.bydwatch.companion.R.id.rbAdvVehicleControl);
         assertTrue(vehicle.isChecked());
+    }
+
+    @Test
+    public void experimentalShortcutTogglePersists() {
+        AdvancedActivity activity = Robolectric.buildActivity(AdvancedActivity.class)
+                .setup().get();
+
+        com.google.android.material.switchmaterial.SwitchMaterial shortcuts =
+                activity.findViewById(com.bydwatch.companion.R.id.switchAdvOverdriveShortcuts);
+        shortcuts.setChecked(true);
+        activity.findViewById(com.bydwatch.companion.R.id.btnAdvSave).performClick();
+
+        assertTrue(CarWebPrefs.overdriveShortcutsEnabled(context));
+    }
+
+    @Test
+    public void connectedStatusHidesLoginButton() {
+        OverdriveConnection.setStatusForTesting(OverdriveConnection.Status.CONNECTED);
+        AdvancedActivity activity = Robolectric.buildActivity(AdvancedActivity.class)
+                .setup().get();
+        ShadowLooper.idleMainLooper();
+
+        android.widget.TextView status = activity.findViewById(
+                com.bydwatch.companion.R.id.tvAdvOverdriveStatus);
+        assertEquals("Connected", status.getText().toString());
+        assertEquals(android.view.View.GONE,
+                activity.findViewById(com.bydwatch.companion.R.id.btnAdvOverdriveLogin)
+                        .getVisibility());
+    }
+
+    @Test
+    public void loginNeededShowsButtonAndOpensOverdrive() {
+        OverdriveConnection.setStatusForTesting(OverdriveConnection.Status.LOGIN_REQUIRED);
+        AdvancedActivity activity = Robolectric.buildActivity(AdvancedActivity.class)
+                .setup().get();
+        ShadowLooper.idleMainLooper();
+
+        android.widget.TextView status = activity.findViewById(
+                com.bydwatch.companion.R.id.tvAdvOverdriveStatus);
+        assertEquals("Login needed", status.getText().toString());
+        android.view.View login = activity.findViewById(
+                com.bydwatch.companion.R.id.btnAdvOverdriveLogin);
+        assertEquals(android.view.View.VISIBLE, login.getVisibility());
+
+        login.performClick();
+        Intent next = Shadows.shadowOf(activity).getNextStartedActivity();
+        assertNotNull(next);
+        assertEquals(CarWebActivity.class.getName(), next.getComponent().getClassName());
     }
 }

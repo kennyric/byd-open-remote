@@ -401,4 +401,20 @@
     <string name="overdrive_error">Tidak dapat menjangkau mobil. Periksa alamat dan pastikan Overdrive berjalan.</string>
     <string name="overdrive_set_address">Tambahkan alamat Overdrive mobil di Lanjutan untuk membuka halaman ini.</string>
     <string name="overdrive_open_advanced">Buka Lanjutan</string>
+    <string name="advanced_experimental">Eksperimental</string>
+    <string name="advanced_overdrive_shortcuts">Pintasan Overdrive</string>
+    <string name="advanced_overdrive_shortcuts_desc">Tampilkan pintasan jadwal pengisian dan batas arus AC saat Overdrive dapat dijangkau.</string>
+    <string name="advanced_overdrive_shortcuts_help">Menggunakan sesi Overdrive Anda yang sudah ada. Tidak perlu kode akses.</string>
+    <string name="advanced_overdrive_checking">Memeriksa Overdrive…</string>
+    <string name="advanced_overdrive_connected">Terhubung</string>
+    <string name="advanced_overdrive_login_needed">Perlu login</string>
+    <string name="advanced_overdrive_unreachable">Tidak dapat dijangkau</string>
+    <string name="advanced_overdrive_login_button">Buka login Overdrive</string>
+    <string name="overdrive_shortcuts_title">Overdrive</string>
+    <string name="overdrive_shortcuts_subtitle">Buka Overdrive di mobil</string>
+    <string name="overdrive_shortcuts_checking">Memeriksa…</string>
+    <string name="overdrive_shortcuts_connected">Terhubung</string>
+    <string name="overdrive_shortcut_schedule">Jadwal pengisian</string>
+    <string name="overdrive_shortcut_current">Batas arus AC</string>
+    <string name="overdrive_shortcut_manage">Kelola</string>
 </resources>

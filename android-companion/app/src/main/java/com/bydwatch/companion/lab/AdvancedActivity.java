@@ -28,6 +28,7 @@ public class AdvancedActivity extends AppCompatActivity {
 
     private SwitchMaterial switchShow;
     private SwitchMaterial switchHideUrl;
+    private SwitchMaterial switchShortcuts;
     private EditText etBase;
     private RadioGroup rgTop;
     private RadioGroup rgMore;
@@ -35,6 +36,8 @@ public class AdvancedActivity extends AppCompatActivity {
     private MaterialButton btnLoadAll;
     private EditText etManual;
     private TextView tvPreview;
+    private TextView tvOverdriveStatus;
+    private View btnOverdriveLogin;
 
     private final Map<Integer, String> morePaths = new HashMap<>();
     private boolean binding;
@@ -51,6 +54,7 @@ public class AdvancedActivity extends AppCompatActivity {
 
         switchShow = findViewById(R.id.switchAdvShowOverdrive);
         switchHideUrl = findViewById(R.id.switchAdvHideUrlBar);
+        switchShortcuts = findViewById(R.id.switchAdvOverdriveShortcuts);
         etBase = findViewById(R.id.etAdvBaseUrl);
         rgTop = findViewById(R.id.rgAdvTopPages);
         rgMore = findViewById(R.id.rgAdvMorePages);
@@ -58,6 +62,8 @@ public class AdvancedActivity extends AppCompatActivity {
         btnLoadAll = findViewById(R.id.btnAdvLoadAll);
         etManual = findViewById(R.id.etAdvManualUrl);
         tvPreview = findViewById(R.id.tvAdvPreview);
+        tvOverdriveStatus = findViewById(R.id.tvAdvOverdriveStatus);
+        btnOverdriveLogin = findViewById(R.id.btnAdvOverdriveLogin);
 
         ImageButton back = findViewById(R.id.btnAdvBack);
         if (back != null) back.setOnClickListener(v -> finish());
@@ -65,11 +71,53 @@ public class AdvancedActivity extends AppCompatActivity {
         if (reset != null) reset.setOnClickListener(v -> resetForm());
         View save = findViewById(R.id.btnAdvSave);
         if (save != null) save.setOnClickListener(v -> save());
+        if (btnOverdriveLogin != null) {
+            btnOverdriveLogin.setOnClickListener(v -> startActivity(
+                    CarWebActivity.intent(this, "/", null)));
+        }
 
         populateMorePages();
         bindListeners();
         loadFromPrefs();
         updatePreview();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        refreshOverdriveStatus();
+    }
+
+    private void refreshOverdriveStatus() {
+        if (tvOverdriveStatus != null) {
+            tvOverdriveStatus.setText(R.string.advanced_overdrive_checking);
+            tvOverdriveStatus.setTextColor(ContextCompat.getColor(this, R.color.text_muted));
+        }
+        if (btnOverdriveLogin != null) btnOverdriveLogin.setVisibility(View.GONE);
+        OverdriveConnection.check(this, status ->
+                runOnUiThread(() -> renderOverdriveStatus(status)));
+    }
+
+    private void renderOverdriveStatus(OverdriveConnection.Status status) {
+        if (tvOverdriveStatus == null) return;
+        switch (status) {
+            case CONNECTED:
+                tvOverdriveStatus.setText(R.string.advanced_overdrive_connected);
+                tvOverdriveStatus.setTextColor(ContextCompat.getColor(this, R.color.accent_emerald));
+                if (btnOverdriveLogin != null) btnOverdriveLogin.setVisibility(View.GONE);
+                break;
+            case LOGIN_REQUIRED:
+                tvOverdriveStatus.setText(R.string.advanced_overdrive_login_needed);
+                tvOverdriveStatus.setTextColor(ContextCompat.getColor(this, R.color.accent_amber));
+                if (btnOverdriveLogin != null) btnOverdriveLogin.setVisibility(View.VISIBLE);
+                break;
+            case UNREACHABLE:
+            default:
+                tvOverdriveStatus.setText(R.string.advanced_overdrive_unreachable);
+                tvOverdriveStatus.setTextColor(ContextCompat.getColor(this, R.color.accent_rose));
+                if (btnOverdriveLogin != null) btnOverdriveLogin.setVisibility(View.GONE);
+                break;
+        }
     }
 
     private void populateMorePages() {
@@ -138,6 +186,7 @@ public class AdvancedActivity extends AppCompatActivity {
         binding = true;
         switchShow.setChecked(CarWebPrefs.showOverdrive(this));
         switchHideUrl.setChecked(CarWebPrefs.hideUrlBar(this));
+        switchShortcuts.setChecked(CarWebPrefs.overdriveShortcutsEnabled(this));
         etBase.setText(CarWebPrefs.baseUrl(this));
         rgTop.clearCheck();
         rgMore.clearCheck();
@@ -170,6 +219,7 @@ public class AdvancedActivity extends AppCompatActivity {
         binding = true;
         switchShow.setChecked(false);
         switchHideUrl.setChecked(true);
+        switchShortcuts.setChecked(false);
         etBase.setText("");
         rgTop.clearCheck();
         rgMore.clearCheck();
@@ -189,6 +239,7 @@ public class AdvancedActivity extends AppCompatActivity {
         String page = selectedPage();
         CarWebPrefs.setShowOverdrive(this, switchShow.isChecked());
         CarWebPrefs.setHideUrlBar(this, switchHideUrl.isChecked());
+        CarWebPrefs.setOverdriveShortcutsEnabled(this, switchShortcuts.isChecked());
         CarWebPrefs.setBaseUrl(this, base);
         CarWebPrefs.setDefaultPage(this, page);
         finish();

@@ -19,4 +19,11 @@ public class OverdriveConnectionTest {
         assertEquals("", OverdriveConnection.statusUrl(""));
         assertEquals("", OverdriveConnection.statusUrl(null));
     }
+
+    @Test
+    public void buildsAuthenticatedStatusUrl() {
+        assertEquals("http://192.168.1.50:8080/status",
+                OverdriveConnection.authStatusUrl("192.168.1.50"));
+        assertEquals("", OverdriveConnection.authStatusUrl(""));
+    }
 }

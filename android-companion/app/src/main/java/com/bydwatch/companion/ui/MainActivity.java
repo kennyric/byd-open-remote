@@ -66,6 +66,7 @@ import com.bydwatch.companion.data.SecureConfigStore;
 import com.bydwatch.companion.lab.AdvancedActivity;
 import com.bydwatch.companion.lab.CarWebActivity;
 import com.bydwatch.companion.lab.CarWebPrefs;
+import com.bydwatch.companion.lab.OverdriveConnection;
 import com.bydwatch.companion.model.CustomActionCombo;
 import com.bydwatch.companion.model.RegionOption;
 import com.bydwatch.companion.model.UnitPreferences;
@@ -154,6 +155,10 @@ public class MainActivity extends AppCompatActivity {
     private TextView tvHeaderTitle;
     private TextView tvHeaderSubtitle;
     private View cardControls;
+    private View cardOverdriveShortcuts;
+    private TextView tvOverdriveShortcutStatus;
+    private boolean overdriveShortcutsConnected;
+    private int overdriveProbeGeneration;
     private View cardAccount;
     private View cardPreferences;
     private View cardBridge;
@@ -431,6 +436,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         applyStandardMenuVisibility();
+        refreshOverdriveShortcuts();
         updateWatchStatus();
     }
 
@@ -443,6 +449,41 @@ public class MainActivity extends AppCompatActivity {
         if (overdrive != null) {
             overdrive.setVisible(standard && CarWebPrefs.showOverdrive(this));
         }
+    }
+
+    private void refreshOverdriveShortcuts() {
+        if (cardOverdriveShortcuts == null) return;
+        overdriveShortcutsConnected = false;
+        applyOverdriveShortcutVisibility();
+        if (com.bydwatch.companion.BuildConfig.DEMO_BUILD) return;
+        if (!CarWebPrefs.overdriveShortcutsEnabled(this)) return;
+        if (CarWebPrefs.baseUrl(this).trim().isEmpty()) return;
+
+        final int generation = ++overdriveProbeGeneration;
+        if (tvOverdriveShortcutStatus != null) {
+            tvOverdriveShortcutStatus.setText(R.string.overdrive_shortcuts_checking);
+            tvOverdriveShortcutStatus.setTextColor(
+                    ContextCompat.getColor(this, R.color.accent_emerald));
+        }
+        OverdriveConnection.check(this, status -> runOnUiThread(() -> {
+            if (generation != overdriveProbeGeneration) return;
+            overdriveShortcutsConnected = status == OverdriveConnection.Status.CONNECTED;
+            if (tvOverdriveShortcutStatus != null) {
+                tvOverdriveShortcutStatus.setText(overdriveShortcutsConnected
+                        ? getString(R.string.overdrive_shortcuts_connected) : "");
+            }
+            applyOverdriveShortcutVisibility();
+        }));
+    }
+
+    private void applyOverdriveShortcutVisibility() {
+        if (cardOverdriveShortcuts == null) return;
+        boolean show = !com.bydwatch.companion.BuildConfig.DEMO_BUILD
+                && currentPageId == R.id.nav_controls
+                && CarWebPrefs.overdriveShortcutsEnabled(this)
+                && !CarWebPrefs.baseUrl(this).trim().isEmpty()
+                && overdriveShortcutsConnected;
+        cardOverdriveShortcuts.setVisibility(show ? View.VISIBLE : View.GONE);
     }
 
     @Override
@@ -500,6 +541,23 @@ public class MainActivity extends AppCompatActivity {
         tvHeaderTitle = findViewById(R.id.tvHeaderTitle);
         tvHeaderSubtitle = findViewById(R.id.tvHeaderSubtitle);
         cardControls = findViewById(R.id.cardControls);
+        cardOverdriveShortcuts = findViewById(R.id.cardOverdriveShortcuts);
+        tvOverdriveShortcutStatus = findViewById(R.id.tvOverdriveShortcutStatus);
+        View odSchedule = findViewById(R.id.btnOverdriveSchedule);
+        if (odSchedule != null) {
+            odSchedule.setOnClickListener(v -> startActivity(
+                    CarWebActivity.intent(this, "/vehicle-control.html", "panelCharging")));
+        }
+        View odCurrent = findViewById(R.id.btnOverdriveCurrent);
+        if (odCurrent != null) {
+            odCurrent.setOnClickListener(v -> startActivity(
+                    CarWebActivity.intent(this, "/vehicle-control.html", "acChargeCurrentSection")));
+        }
+        View odManage = findViewById(R.id.btnOverdriveManage);
+        if (odManage != null) {
+            odManage.setOnClickListener(v ->
+                    startActivity(new android.content.Intent(this, AdvancedActivity.class)));
+        }
         cardAccount = findViewById(R.id.cardAccount);
         cardPreferences = findViewById(R.id.cardPreferences);
         cardBridge = findViewById(R.id.cardBridge);
@@ -1182,6 +1240,7 @@ public class MainActivity extends AppCompatActivity {
         if (drawerLayout != null && drawerLayout.isDrawerOpen(GravityCompat.START)) {
             drawerLayout.closeDrawer(GravityCompat.START);
         }
+        applyOverdriveShortcutVisibility();
     }
 
     private void updateHeaderSubtitleForPage(int navItemId) {
