@@ -55,4 +55,14 @@ public class CarWebUrlTest {
         assertEquals("", CarWebUrl.resolve("", "events.html"));
         assertEquals("", CarWebUrl.resolve(null, "events.html"));
     }
+
+    @Test
+    public void appendsSafeFragmentOnlyOnce() {
+        assertEquals("http://x:8080/vehicle-control.html#panelCharging",
+                CarWebUrl.withFragment("http://x:8080/vehicle-control.html", "panelCharging"));
+        assertEquals("http://x:8080/vehicle-control.html#acChargeCurrentSection",
+                CarWebUrl.withFragment("http://x:8080/vehicle-control.html", "acChargeCurrentSection"));
+        assertEquals("http://x:8080/vehicle-control.html",
+                CarWebUrl.withFragment("http://x:8080/vehicle-control.html", ""));
+    }
 }

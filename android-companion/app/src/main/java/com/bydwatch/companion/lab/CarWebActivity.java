@@ -1,5 +1,7 @@
 package com.bydwatch.companion.lab;
 
+import android.content.Context;
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
@@ -28,11 +30,22 @@ import com.bydwatch.companion.R;
  */
 public class CarWebActivity extends AppCompatActivity {
 
+    public static final String EXTRA_PAGE = "overdrive_page";
+    public static final String EXTRA_SCROLL_ID = "overdrive_scroll_id";
+
     private WebView webView;
     private EditText etUrl;
     private ProgressBar progress;
     private View rowUrl;
     private View emptyState;
+    private String scrollTarget = "";
+
+    public static Intent intent(Context context, String page, String scrollId) {
+        Intent intent = new Intent(context, CarWebActivity.class);
+        if (page != null) intent.putExtra(EXTRA_PAGE, page);
+        if (scrollId != null) intent.putExtra(EXTRA_SCROLL_ID, scrollId);
+        return intent;
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -101,6 +114,10 @@ public class CarWebActivity extends AppCompatActivity {
             @Override
             public void onPageFinished(WebView view, String url) {
                 if (progress != null) progress.setVisibility(View.GONE);
+                if (!scrollTarget.isEmpty()) {
+                    scrollToTarget();
+                    if (webView != null) webView.postDelayed(CarWebActivity.this::scrollToTarget, 300);
+                }
             }
 
             @Override
@@ -125,8 +142,16 @@ public class CarWebActivity extends AppCompatActivity {
         boolean hideBar = CarWebPrefs.hideUrlBar(this);
         if (rowUrl != null) rowUrl.setVisibility(hideBar ? View.GONE : View.VISIBLE);
 
-        String url = CarWebUrl.resolve(
-                CarWebPrefs.baseUrl(this), CarWebPrefs.defaultPage(this));
+        String page = getIntent().getStringExtra(EXTRA_PAGE);
+        if (page == null || page.trim().isEmpty()) {
+            page = CarWebPrefs.defaultPage(this);
+        }
+        String rawScroll = getIntent().getStringExtra(EXTRA_SCROLL_ID);
+        scrollTarget = rawScroll != null
+                ? rawScroll.replaceAll("[^A-Za-z0-9_-]", "") : "";
+
+        String url = CarWebUrl.withFragment(
+                CarWebUrl.resolve(CarWebPrefs.baseUrl(this), page), scrollTarget);
         if (url.isEmpty()) {
             if (webView != null) webView.setVisibility(View.GONE);
             if (emptyState != null) emptyState.setVisibility(View.VISIBLE);
@@ -152,6 +177,13 @@ public class CarWebActivity extends AppCompatActivity {
         }
         if (etUrl != null) etUrl.setText(url);
         if (webView != null) webView.loadUrl(url);
+    }
+
+    private void scrollToTarget() {
+        if (webView == null || scrollTarget.isEmpty()) return;
+        String js = "(function(){var e=document.getElementById('" + scrollTarget
+                + "');if(e){e.scrollIntoView({block:'start'});}})()";
+        webView.evaluateJavascript(js, null);
     }
 
     @Override

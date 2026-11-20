@@ -37,6 +37,16 @@ public final class CarWebUrl {
         return normalize(gateway.trim() + ":" + DEFAULT_PORT);
     }
 
+    /** Append a sanitized element ID as a fragment, replacing any existing fragment. */
+    public static String withFragment(String url, String id) {
+        if (url == null || url.isEmpty()) return url;
+        String safe = id != null ? id.replaceAll("[^A-Za-z0-9_-]", "") : "";
+        if (safe.isEmpty()) return url;
+        int hash = url.indexOf('#');
+        String base = hash >= 0 ? url.substring(0, hash) : url;
+        return base + "#" + safe;
+    }
+
     /**
      * Resolve a preset path against the configured car address.
      * An absolute page URL wins; a relative page with no base resolves to nothing.

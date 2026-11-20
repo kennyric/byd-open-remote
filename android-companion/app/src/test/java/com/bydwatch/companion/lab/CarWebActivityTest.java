@@ -85,4 +85,18 @@ public class CarWebActivityTest {
         assertTrue("loaded=" + loaded,
                 loaded != null && loaded.contains("192.168.1.50:8080/vehicle-control.html"));
     }
+
+    @Test
+    public void deepLinkLoadsVehicleControlSection() {
+        CarWebPrefs.setBaseUrl(context, "http://192.168.1.50:8080");
+        android.content.Intent intent = CarWebActivity.intent(
+                context, "/vehicle-control.html", "panelCharging");
+
+        CarWebActivity activity = Robolectric.buildActivity(CarWebActivity.class, intent)
+                .setup().get();
+        WebView webView = activity.findViewById(com.bydwatch.companion.R.id.webCar);
+        String loaded = Shadows.shadowOf(webView).getLastLoadedUrl();
+        assertTrue("loaded=" + loaded,
+                loaded != null && loaded.contains("/vehicle-control.html#panelCharging"));
+    }
 }
