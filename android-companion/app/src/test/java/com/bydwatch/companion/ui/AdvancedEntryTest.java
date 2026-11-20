@@ -1,5 +1,6 @@
 package com.bydwatch.companion.ui;
 
+import android.content.Context;
 import android.content.Intent;
 import android.view.MenuItem;
 
@@ -8,6 +9,7 @@ import com.bydwatch.companion.R;
 import com.bydwatch.companion.data.BydRepository;
 import com.bydwatch.companion.data.BydRepositoryTest;
 import com.bydwatch.companion.lab.CarWebActivity;
+import com.bydwatch.companion.lab.CarWebPrefs;
 import com.google.android.material.navigation.NavigationView;
 
 import org.junit.After;
@@ -15,11 +17,13 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
+import org.robolectric.RuntimeEnvironment;
 import org.robolectric.Shadows;
 import org.robolectric.annotation.Config;
 import org.robolectric.shadows.ShadowActivity;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -32,8 +36,11 @@ public class AdvancedEntryTest {
         BydWatchApp.resetForTesting();
     }
 
-    @Test
-    public void drawerShowsOverdriveAndOpensActivity() {
+    private static Context context() {
+        return RuntimeEnvironment.getApplication();
+    }
+
+    private static void seedRepository() {
         BydRepositoryTest.InMemoryConfigStore store = new BydRepositoryTest.InMemoryConfigStore();
         store.setUsername("test@byd.id");
         store.setPassword("ValidPass123");
@@ -43,6 +50,13 @@ public class AdvancedEntryTest {
         BydRepositoryTest.FakeBydGateway gateway = new BydRepositoryTest.FakeBydGateway();
         BydRepository repository = new BydRepository(gateway, store);
         BydWatchApp.setTestDependencies(store, gateway, repository);
+    }
+
+    @Test
+    public void drawerShowsOverdriveAndOpensActivity() {
+        CarWebPrefs.reset(context());
+        CarWebPrefs.setShowOverdrive(context(), true);
+        seedRepository();
 
         MainActivity activity = Robolectric.buildActivity(MainActivity.class).setup().get();
         NavigationView nav = activity.findViewById(R.id.navView);
@@ -56,5 +70,29 @@ public class AdvancedEntryTest {
         Intent next = shadow.getNextStartedActivity();
         assertNotNull(next);
         assertEquals(CarWebActivity.class.getName(), next.getComponent().getClassName());
+    }
+
+    @Test
+    public void freshInstallHidesOverdriveButShowsAdvanced() {
+        CarWebPrefs.reset(context());
+        seedRepository();
+
+        MainActivity activity = Robolectric.buildActivity(MainActivity.class).setup().get();
+        NavigationView nav = activity.findViewById(R.id.navView);
+
+        assertTrue(nav.getMenu().findItem(R.id.nav_advanced).isVisible());
+        assertFalse(nav.getMenu().findItem(R.id.nav_car_web).isVisible());
+    }
+
+    @Test
+    public void enablingOverdriveShowsIt() {
+        CarWebPrefs.reset(context());
+        CarWebPrefs.setShowOverdrive(context(), true);
+        seedRepository();
+
+        MainActivity activity = Robolectric.buildActivity(MainActivity.class).setup().get();
+        NavigationView nav = activity.findViewById(R.id.navView);
+
+        assertTrue(nav.getMenu().findItem(R.id.nav_car_web).isVisible());
     }
 }

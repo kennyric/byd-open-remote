@@ -63,7 +63,9 @@ import com.bydwatch.companion.data.BydGateway;
 import com.bydwatch.companion.data.BydRepository;
 import com.bydwatch.companion.data.ConfigStore;
 import com.bydwatch.companion.data.SecureConfigStore;
+import com.bydwatch.companion.lab.AdvancedActivity;
 import com.bydwatch.companion.lab.CarWebActivity;
+import com.bydwatch.companion.lab.CarWebPrefs;
 import com.bydwatch.companion.model.CustomActionCombo;
 import com.bydwatch.companion.model.RegionOption;
 import com.bydwatch.companion.model.UnitPreferences;
@@ -428,7 +430,19 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        applyStandardMenuVisibility();
         updateWatchStatus();
+    }
+
+    private void applyStandardMenuVisibility() {
+        if (navView == null) return;
+        boolean standard = !com.bydwatch.companion.BuildConfig.DEMO_BUILD;
+        android.view.MenuItem advanced = navView.getMenu().findItem(R.id.nav_advanced);
+        if (advanced != null) advanced.setVisible(standard);
+        android.view.MenuItem overdrive = navView.getMenu().findItem(R.id.nav_car_web);
+        if (overdrive != null) {
+            overdrive.setVisible(standard && CarWebPrefs.showOverdrive(this));
+        }
     }
 
     @Override
@@ -459,12 +473,7 @@ public class MainActivity extends AppCompatActivity {
             getWindow().setStatusBarColor(statusScrim);
         }
         navView = findViewById(R.id.navView);
-        if (navView != null) {
-            android.view.MenuItem carWebItem = navView.getMenu().findItem(R.id.nav_car_web);
-            if (carWebItem != null) {
-                carWebItem.setVisible(!com.bydwatch.companion.BuildConfig.DEMO_BUILD);
-            }
-        }
+        applyStandardMenuVisibility();
         btnHamburger = findViewById(R.id.btnHamburger);
         if (navView != null && navView.getHeaderCount() > 0) {
             View drawerHeader = navView.getHeaderView(0);
@@ -1215,6 +1224,13 @@ public class MainActivity extends AppCompatActivity {
                         drawerLayout.closeDrawer(GravityCompat.START);
                     }
                     startActivity(new android.content.Intent(this, CarWebActivity.class));
+                    return false;
+                }
+                if (item.getItemId() == R.id.nav_advanced) {
+                    if (drawerLayout != null && drawerLayout.isDrawerOpen(GravityCompat.START)) {
+                        drawerLayout.closeDrawer(GravityCompat.START);
+                    }
+                    startActivity(new android.content.Intent(this, AdvancedActivity.class));
                     return false;
                 }
                 showPage(item.getItemId());
