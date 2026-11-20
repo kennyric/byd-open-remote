@@ -117,12 +117,12 @@
 <header>
   <div class="kicker">BYD Open Remote · design mockup</div>
   <h1>Overdrive Web + Advanced</h1>
-  <p class="sub">Rename Car Web to <b>Overdrive</b>, hide its URL bar by default, and move the settings into a new <b>Advanced</b> drawer screen. The Lab (trial) menu is removed. Overdrive is hidden on a fresh install; Advanced is always visible. A blank car address does nothing — no gateway guessing.</p>
+  <p class="sub">Rename Car Web to <b>Overdrive</b>, hide its URL bar by default, and move the settings into a new <b>Advanced</b> drawer screen. The Lab (trial) menu is removed. Overdrive is hidden on a fresh install; Advanced is always visible. A car address must be configured before Overdrive can open.</p>
   <div class="legend">
     <span class="tag off">Show Overdrive default OFF</span>
     <span class="tag on">Hide URL bar default ON</span>
     <span class="tag info">Top 5 + Load all + manual URL</span>
-    <span class="tag">Blank address = no auto-load</span>
+    <span class="tag">Car address required</span>
   </div>
 </header>
 
@@ -174,7 +174,7 @@
         <div class="card">
           <div class="label" style="font-size:12px;font-weight:650;margin-bottom:7px">Car address</div>
           <div class="input"><span class="ph">http://192.168.1.50:8080</span><span class="caret"></span></div>
-          <div class="help"><strong>Blank does nothing.</strong> No gateway discovery, no auto-load. Enter the head unit’s IP or port-forward URL.</div>
+          <div class="help">Optional. Leave blank to keep Overdrive closed until an address is configured. Example: http://192.168.1.50:8080</div>
         </div>
 
         <div class="section-label">Default page</div>
@@ -198,7 +198,7 @@
       </div>
       <div class="footerbar"><div class="btn ghost">Reset</div><div class="btn primary">Save</div></div>
     </div></div>
-    <div class="annot"><b>Top 5 first.</b> Vehicle Control, Events, Charging, Trips, Live View. “Load all pages” reveals the rest; manual URL always wins. Blank address = no auto-load.</div>
+    <div class="annot"><b>Top 5 first.</b> Vehicle Control, Events, Charging, Trips, Live View. “Load all pages” reveals the rest; manual URL always wins. Set a car address to use these pages.</div>
   </div>
 
   <!-- 3. Advanced all pages -->
@@ -252,23 +252,23 @@
 
   <!-- 4. Overdrive empty -->
   <div class="frame">
-    <div class="caption"><span class="n">4</span> Overdrive — blank address <span class="hint">does nothing</span></div>
+    <div class="caption"><span class="n">4</span> Overdrive — no address <span class="hint">add one in Advanced</span></div>
     <div class="phone"><div class="screen">
       <div class="status"><span>9:41</span><span class="dots">▮▮▮ ◔ ▰</span></div>
       <div class="appbar">
         <div class="iconbtn">←</div>
-        <div class="titles"><div class="t1">Overdrive</div><div class="t2">Car head unit · :8080</div></div>
+        <div class="titles"><div class="t1">Overdrive</div><div class="t2">Vehicle server · :8080</div></div>
         <div class="iconbtn">⟳</div>
       </div>
       <div class="empty">
         <div class="orb">⌂</div>
         <h3>No car address yet</h3>
-        <p>Set the car address in Advanced to open Overdrive. A blank address never auto-loads.</p>
+        <p>Add your vehicle’s Overdrive address in Advanced to open this page.</p>
         <div class="btn primary" style="margin-top:6px">Open Advanced</div>
       </div>
-      <div class="note" style="margin:0 18px 18px">No Wi-Fi gateway guessing. The app will not try the router’s :8080.</div>
+      <div class="note" style="margin:0 18px 18px">The app does not discover the address automatically. You can change it at any time in Advanced.</div>
     </div></div>
-    <div class="annot"><b>Blank = nothing.</b> The URL bar stays hidden; the empty state is the only escape hatch and links to Advanced.</div>
+    <div class="annot"><b>No address configured.</b> The URL bar stays hidden; use Advanced to add the vehicle’s Overdrive address.</div>
   </div>
 
   <!-- 5. Overdrive vehicle control -->

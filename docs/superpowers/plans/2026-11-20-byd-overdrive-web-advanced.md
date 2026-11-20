@@ -18,7 +18,7 @@
 - Advanced and Overdrive are visible when `!BuildConfig.DEMO_BUILD`; demo hides both.
 - Default `show_overdrive_entry` is **false**.
 - Default `hide_url_bar` is **true**.
-- Blank car address means **no auto-load**; no Wi-Fi gateway detection.
+- An address is required before Overdrive opens; no Wi-Fi gateway detection.
 - No new dependencies.
 - Do not change `applicationId` or signing configuration.
 - Work on `feat/byd-charging-lab`; do not merge.
@@ -38,7 +38,7 @@ Name: `car_web`
 
 - Lab is truly gone: no `nav_lab`, `LabGate`, lab screen, lab strings, or lab tests; full suite green — Task 0.
 - Fresh install: Overdrive hidden, Advanced visible; enabling it restores Overdrive without restart — Tasks 2/4.
-- Blank car address + relative page does nothing (empty state, no gateway auto-load) — Task 5.
+- A blank car address + relative page leaves Overdrive closed, with an Advanced link — Task 5.
 - Top 5 presets, "Load all" expansion, and manual URL override all resolve correctly — Tasks 1/3.
 - Demo build hides Advanced and Overdrive; standard build shows them — Tasks 3/4.
 
@@ -490,7 +490,7 @@ Layout:
 - `NestedScrollView` → vertical `LinearLayout`, card styling from the app.
 - Header with back, title "Advanced".
 - Overdrive card with the two switches.
-- Car address `EditText` + helper text "Blank does nothing — no auto-load."
+- Car address `EditText` + helper text: “Optional. Leave blank to keep Overdrive closed until an address is configured. Example: http://192.168.1.50:8080”.
 - Default page card: top-5 radio list, "Load all pages" button, hidden more
   pages container, manual URL field.
 - Preview monospace text.
@@ -509,6 +509,12 @@ Strings (EN + ID): `nav_advanced`, `advanced_title`, `advanced_subtitle`,
 `advanced_manual_url`, `advanced_manual_url_hint`, `advanced_preview`,
 `advanced_save`, `advanced_reset`, `advanced_back`, `nav_overdrive`,
 `overdrive_title`, `overdrive_error`, `overdrive_set_address`.
+
+Use these exact user-facing strings:
+- `advanced_car_address_hint` — “http://192.168.1.50:8080”
+- `advanced_car_address_help` — “Optional. Leave blank to keep Overdrive closed until an address is configured.”
+- `overdrive_set_address` — “Add your vehicle’s Overdrive address in Advanced to open this page.”
+- `overdrive_error` — “Could not reach the vehicle. Check the address and that Overdrive is running.”
 
 - [ ] **Step 4: Run tests to verify they pass**
 
@@ -796,7 +802,7 @@ Expected: `200 OK`.
 1. Fresh install: drawer shows **Advanced**, no **Overdrive**, no **Lab**.
 2. Advanced → turn **Show Overdrive in menu** on → back → Overdrive appears.
 3. Advanced → **Car address** blank, **Vehicle Control** selected → Save →
-   Overdrive shows the empty state and an Advanced link (no auto-load).
+   Overdrive shows the closed state and an Advanced link; no page is loaded.
 4. Set car address `http://<car-ip>:8080` → Save → Overdrive loads Vehicle
    Control without a URL bar.
 5. Advanced → **Events** → Save → Overdrive loads `/events.html`.

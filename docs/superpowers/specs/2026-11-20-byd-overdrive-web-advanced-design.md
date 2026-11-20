@@ -64,8 +64,8 @@ A new `AdvancedActivity` with a scrollable form:
 - **Show Overdrive in menu** — switch, default **off**.
 - **Hide URL bar** — switch, default **on**.
 - **Car address** — optional base URL, e.g. `http://192.168.1.50:8080`.
-  **Blank does nothing**: no gateway discovery, no auto-load. The user must
-  enter the address (or use a manual absolute URL).
+  **Leave blank to keep Overdrive closed** until an address is configured.
+  The app does not discover the address automatically.
 - **Default page**:
   - Top 5 presets as a compact radio list:
     1. Vehicle Control — `/vehicle-control.html`
@@ -189,7 +189,7 @@ Delete in the same execution:
 - **Load all pages** reveals Dashboard and the system pages.
 - A manual absolute URL overrides the car address; a manual relative path
   joins a non-blank car address.
-- Blank car address + relative page = no auto-load, empty state, Advanced link.
+- Blank car address + relative page = Overdrive stays closed, with an Advanced link.
 - Demo build hides Advanced and Overdrive.
 - All unit tests pass; APK builds and keeps the canonical signature.
 
@@ -197,7 +197,7 @@ Delete in the same execution:
 
 | Risk | Mitigation |
 |---|---|
-| Blank car address looks like a bug | Advanced helper says "Blank does nothing"; empty state links to Advanced |
+| Blank car address leaves Overdrive closed | Advanced helper explains that an address is required; the empty state links to Advanced |
 | Overdrive hidden by default | Advanced remains visible; one switch restores it |
 | Overdrive not installed/not reachable | WebView error toast; user checks IP/Overdrive |
 | Cleartext HTTP blocked | Debug-only `usesCleartextTraffic` manifest overlay |
