@@ -33,7 +33,9 @@ public final class VehicleStatusProvider extends ContentProvider {
             VehicleStatusContract.log("query refused for uid " + Binder.getCallingUid());
             return new MatrixCursor(VehicleStatusContract.COLUMNS);
         }
-        Object[] row = VehicleStatusContract.row(cachedStatus(), batteryCapacityKwh());
+        VehicleStatus status = cachedStatus();
+        Object[] row = VehicleStatusContract.row(status, batteryCapacityKwh());
+        refreshForConsumer();
         VehicleStatusContract.log("served row to uid " + Binder.getCallingUid());
         MatrixCursor cursor = new MatrixCursor(VehicleStatusContract.COLUMNS);
         cursor.addRow(row);
@@ -84,8 +86,24 @@ public final class VehicleStatusProvider extends ContentProvider {
         return false;
     }
 
-    private static float batteryCapacityKwh() {
+    /**
+     * Keeps the cache fresh for consumers that only read (the patched Maps). The consumer owns the
+     * cadence — its own "fetch every N minutes" setting drives this — and the repository debounces
+     * accidental bursts, so this cannot become a cloud loop.
+     */
+    private static void refreshForConsumer() {
         try {
+            BydWatchApp app = BydWatchApp.getInstance();
+            if (app == null) return;
+            BydRepository repository = app.getRepository();
+            if (repository == null) return;
+            repository.refreshNow(VehicleStatusContract.CONSUMER_REFRESH_MIN_GAP_MS);
+        } catch (RuntimeException unavailable) {
+            // A read must always answer, even when no refresh can be scheduled.
+        }
+    }
+
+    private static float batteryCapacityKwh() {        try {
             BydWatchApp app = BydWatchApp.getInstance();
             return app == null ? 0f : app.getConfigStore().getBatteryCapacityKwh();
         } catch (Throwable unavailable) {
