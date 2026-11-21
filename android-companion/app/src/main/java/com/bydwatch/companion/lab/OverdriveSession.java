@@ -2,6 +2,10 @@ package com.bydwatch.companion.lab;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.util.Log;
+
+import com.bydwatch.companion.BydWatchApp;
+import com.bydwatch.companion.data.ConfigStore;
 
 import java.util.Locale;
 
@@ -9,12 +13,15 @@ import java.util.Locale;
  * The phone's Overdrive session: the one-time access code and the JWT minted
  * from it.
  *
- * <p>The access code is Overdrive's device secret. It never leaves the phone
- * except to {@code POST /auth/token} on the car's own HTTP server.
+ * <p>The access code is Overdrive's device secret. It is kept in the encrypted
+ * {@link ConfigStore} (Keystore-backed) instead of plain preferences, because it
+ * is equivalent in power to the operation PIN. Older installs stored it in
+ * {@code car_web}; those values are migrated and removed on first read.
  */
 public final class OverdriveSession {
 
-    private static final String PREFS = "car_web";
+    private static final String TAG = "OverdriveSession";
+    private static final String LEGACY_PREFS = "car_web";
     private static final String KEY_ACCESS_CODE = "overdrive_access_code";
     private static final String KEY_JWT = "overdrive_jwt";
     private static final String KEY_JWT_EXPIRY = "overdrive_jwt_expiry";
@@ -31,13 +38,17 @@ public final class OverdriveSession {
     }
 
     public static String accessCode(Context context) {
-        String code = prefs(context).getString(KEY_ACCESS_CODE, "");
-        return code == null || code.trim().isEmpty() ? null : code.trim();
+        migrateLegacy(context);
+        ConfigStore store = store(context);
+        return store != null ? trimOrNull(store.getOverdriveAccessCode()) : null;
     }
 
     public static void setAccessCode(Context context, String code) {
-        String value = code != null ? code.trim() : "";
-        prefs(context).edit().putString(KEY_ACCESS_CODE, value).apply();
+        migrateLegacy(context);
+        ConfigStore store = store(context);
+        if (store != null) {
+            store.setOverdriveAccessCode(code != null ? code.trim() : "");
+        }
     }
 
     /** Matches Overdrive's own minimum-length check before it hits the network. */
@@ -46,45 +57,53 @@ public final class OverdriveSession {
     }
 
     public static String jwt(Context context) {
-        String jwt = prefs(context).getString(KEY_JWT, "");
-        return jwt == null || jwt.trim().isEmpty() ? null : jwt.trim();
+        migrateLegacy(context);
+        ConfigStore store = store(context);
+        return store != null ? trimOrNull(store.getOverdriveJwt()) : null;
     }
 
     public static void setJwt(Context context, String jwt, long expiresInSeconds, long nowMs) {
+        ConfigStore store = store(context);
+        if (store == null) return;
         long seconds = expiresInSeconds > 0 ? expiresInSeconds : 30L * 24 * 60 * 60;
-        prefs(context).edit()
-                .putString(KEY_JWT, jwt != null ? jwt : "")
-                .putLong(KEY_JWT_EXPIRY, nowMs + seconds * 1000L)
-                .apply();
+        store.setOverdriveJwt(jwt != null ? jwt : "");
+        store.setOverdriveJwtExpiry(nowMs + seconds * 1000L);
     }
 
     public static boolean hasJwt(Context context, long nowMs) {
-        if (jwt(context) == null) return false;
-        long expiry = prefs(context).getLong(KEY_JWT_EXPIRY, 0L);
-        return expiry == 0L || expiry > nowMs;
+        migrateLegacy(context);
+        ConfigStore store = store(context);
+        if (store == null) return false;
+        if (trimOrNull(store.getOverdriveJwt()) == null) return false;
+        return store.getOverdriveJwtExpiry() > nowMs;
     }
 
     public static void clearJwt(Context context) {
-        prefs(context).edit()
-                .remove(KEY_JWT)
-                .remove(KEY_JWT_EXPIRY)
-                .apply();
+        ConfigStore store = store(context);
+        if (store == null) return;
+        store.setOverdriveJwt("");
+        store.setOverdriveJwtExpiry(0L);
     }
 
     public static String deviceId(Context context) {
-        String id = prefs(context).getString(KEY_DEVICE_ID, "");
-        return id == null || id.trim().isEmpty() ? null : id.trim();
+        migrateLegacy(context);
+        ConfigStore store = store(context);
+        return store != null ? trimOrNull(store.getOverdriveDeviceId()) : null;
     }
 
     public static void setDeviceId(Context context, String deviceId) {
-        prefs(context).edit()
-                .putString(KEY_DEVICE_ID, deviceId != null ? deviceId.trim() : "")
-                .apply();
+        migrateLegacy(context);
+        ConfigStore store = store(context);
+        if (store != null) {
+            store.setOverdriveDeviceId(deviceId != null ? deviceId.trim() : "");
+        }
     }
 
     /** Forget the access code, JWT and remembered device. */
     public static void clear(Context context) {
-        prefs(context).edit()
+        ConfigStore store = store(context);
+        if (store != null) store.clearOverdriveSession();
+        legacy(context).edit()
                 .remove(KEY_ACCESS_CODE)
                 .remove(KEY_JWT)
                 .remove(KEY_JWT_EXPIRY)
@@ -98,8 +117,60 @@ public final class OverdriveSession {
         return String.format(Locale.ROOT, "%" + code.length() + "s", "").replace(' ', '•');
     }
 
-    private static SharedPreferences prefs(Context context) {
+    /**
+     * Copy the pre-encryption {@code car_web} values once, then delete them. Kept cheap
+     * enough to run on every access: the legacy keys disappear after the first migration.
+     */
+    private static void migrateLegacy(Context context) {
+        SharedPreferences legacy = legacy(context);
+        String code = legacy.getString(KEY_ACCESS_CODE, "");
+        String jwt = legacy.getString(KEY_JWT, "");
+        long expiry = legacy.getLong(KEY_JWT_EXPIRY, 0L);
+        String device = legacy.getString(KEY_DEVICE_ID, "");
+        if (isBlank(code) && isBlank(jwt) && expiry == 0L && isBlank(device)) return;
+
+        ConfigStore store = store(context);
+        if (store == null) return;
+        if (isBlank(store.getOverdriveAccessCode()) && !isBlank(code)) {
+            store.setOverdriveAccessCode(code.trim());
+        }
+        if (isBlank(store.getOverdriveJwt()) && !isBlank(jwt)) {
+            store.setOverdriveJwt(jwt.trim());
+            if (expiry > 0L) store.setOverdriveJwtExpiry(expiry);
+        }
+        if (isBlank(store.getOverdriveDeviceId()) && !isBlank(device)) {
+            store.setOverdriveDeviceId(device.trim());
+        }
+        legacy.edit()
+                .remove(KEY_ACCESS_CODE)
+                .remove(KEY_JWT)
+                .remove(KEY_JWT_EXPIRY)
+                .remove(KEY_DEVICE_ID)
+                .apply();
+    }
+
+    private static ConfigStore store(Context context) {
+        try {
+            BydWatchApp app = BydWatchApp.getInstance();
+            return app != null ? app.getConfigStore() : null;
+        } catch (RuntimeException unavailable) {
+            Log.w(TAG, "Encrypted config store unavailable; Overdrive session disabled", unavailable);
+            return null;
+        }
+    }
+
+    private static SharedPreferences legacy(Context context) {
         return context.getApplicationContext()
-                .getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+                .getSharedPreferences(LEGACY_PREFS, Context.MODE_PRIVATE);
+    }
+
+    private static boolean isBlank(String value) {
+        return value == null || value.trim().isEmpty();
+    }
+
+    private static String trimOrNull(String value) {
+        if (value == null) return null;
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 }

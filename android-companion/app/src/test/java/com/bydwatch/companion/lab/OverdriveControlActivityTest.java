@@ -5,6 +5,7 @@ import android.widget.EditText;
 
 import com.bydwatch.companion.BydWatchApp;
 import com.bydwatch.companion.R;
+import com.bydwatch.companion.data.BydRepositoryTest;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.button.MaterialButtonToggleGroup;
 import com.google.android.material.materialswitch.MaterialSwitch;
@@ -125,6 +126,7 @@ public class OverdriveControlActivityTest {
     @Before
     public void setUp() {
         context = RuntimeEnvironment.getApplication();
+        BydWatchApp.setTestDependencies(new BydRepositoryTest.InMemoryConfigStore(), null, null);
         CarWebPrefs.reset(context);
         CarWebPrefs.setBaseUrl(context, "192.168.1.50:8080");
         CarWebPrefs.setOverdriveControlsEnabled(context, true);

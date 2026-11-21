@@ -87,6 +87,24 @@ public class CarWebActivityTest {
     }
 
     @Test
+    public void crossOriginPageRevealsTheAddressBar() {
+        CarWebPrefs.setBaseUrl(context, "http://192.168.1.50:8080");
+        CarWebPrefs.setHideUrlBar(context, true);
+
+        CarWebActivity activity = Robolectric.buildActivity(CarWebActivity.class)
+                .setup().get();
+        WebView webView = activity.findViewById(com.bydwatch.companion.R.id.webCar);
+        View row = activity.findViewById(com.bydwatch.companion.R.id.rowCarWebUrl);
+
+        android.webkit.WebViewClient client = Shadows.shadowOf(webView).getWebViewClient();
+        client.onPageStarted(webView, "http://192.168.1.50:8080/vehicle-control.html", null);
+        assertEquals(View.GONE, row.getVisibility());
+
+        client.onPageStarted(webView, "http://evil.example/login", null);
+        assertEquals(View.VISIBLE, row.getVisibility());
+    }
+
+    @Test
     public void defaultPageLoadsVehicleControl() {
         CarWebPrefs.reset(context);
         CarWebPrefs.setBaseUrl(context, "http://192.168.1.50:8080");

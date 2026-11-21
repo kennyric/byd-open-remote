@@ -67,7 +67,10 @@ public class HuaweiWearP2pTransport implements PeerTransport {
                 if (config.hasFingerprint()) {
                     p2pClient.setPeerFingerPrint(config.getWatchCertFingerprint());
                 } else {
-                    Log.w(TAG, "Watch cert fingerprint is empty. P2P communication is on standby until AppGallery signing.");
+                    Log.w(TAG, "No watch certificate fingerprint for " + config.getWatchPackageName()
+                            + ". P2P is bound to the AGC package identity only; set "
+                            + "byd.watch.store.fingerprint in local.properties (or "
+                            + "BYD_WATCH_STORE_FINGERPRINT) to pin the watch certificate.");
                 }
             }
 

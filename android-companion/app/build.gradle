@@ -49,6 +49,12 @@ def canonicalKeyAlias = System.getenv('BYD_KEY_ALIAS')
 def canonicalKeyPassword = System.getenv('BYD_KEY_PASSWORD')
         ?: localProps.getProperty('byd.key.password') ?: canonicalKeystorePassword
 
+// Optional certificate pin for the "Store" watch target. Without it Wear Engine still binds the
+// peer to the AGC-published package name; the fingerprint adds explicit pinning.
+def storeWatchFingerprint = System.getenv('BYD_WATCH_STORE_FINGERPRINT')
+        ?: localProps.getProperty('byd.watch.store.fingerprint', '')
+storeWatchFingerprint = storeWatchFingerprint != null ? storeWatchFingerprint.trim() : ''
+
 android {
     namespace 'com.bydwatch.companion'
     compileSdk 34
@@ -76,7 +82,7 @@ android {
         buildConfigField "String", "WATCH_PACKAGE_NAME", "\"com.bydwatch.watch\""
         buildConfigField "String", "WATCH_CERT_FINGERPRINT", "\"com.bydwatch.watch_BBG+cmVghVnFoIr3ewR8fzWOe/T1PZKjybLqvtVd6ohc65XSefxD048CQzjWAwDtHJKXGWZeqNc5Qq/Fl8ZWIUI=\""
         buildConfigField "String", "STORE_WATCH_PACKAGE_NAME", "\"com.evwatch.bridge\""
-        buildConfigField "String", "STORE_WATCH_CERT_FINGERPRINT", "\"\""
+        buildConfigField "String", "STORE_WATCH_CERT_FINGERPRINT", "\"${storeWatchFingerprint.replace('\\', '\\\\').replace('"', '\\"')}\""
 
         manifestPlaceholders = [
             HUAWEI_APP_ID: agcAppId,
@@ -213,13 +219,14 @@ tasks.configureEach { task ->
 def apkExportDir = file('E:/Kenny/Huawei/APK')
 
 [
-        ['StandardDebug', 'standard', 'debug', 'BYD-Open-Remote.apk'],
-        ['StandardRelease', 'standard', 'release', 'BYD-Open-Remote.apk'],
-        ['DemoDebug', 'demo', 'debug', 'BYD-Open-Remote-Demo.apk'],
-        ['DemoRelease', 'demo', 'release', 'BYD-Open-Remote-Demo.apk'],
+        ['StandardDebug', 'standard', 'debug', 'BYD-Open-Remote.apk', 'BYD-Open-Remote-debug.apk'],
+        ['StandardRelease', 'standard', 'release', 'BYD-Open-Remote.apk', 'BYD-Open-Remote.apk'],
+        ['DemoDebug', 'demo', 'debug', 'BYD-Open-Remote-Demo.apk', 'BYD-Open-Remote-Demo-debug.apk'],
+        ['DemoRelease', 'demo', 'release', 'BYD-Open-Remote-Demo.apk', 'BYD-Open-Remote-Demo.apk'],
 ].each { spec ->
     def variant = spec[0]
     def apkName = spec[3]
+    def exportName = spec[4]
     def source = layout.buildDirectory.file("outputs/apk/${spec[1]}/${spec[2]}/${apkName}")
     def exportTask = tasks.register("export${variant}Apk") {
         doLast {
@@ -230,7 +237,7 @@ def apkExportDir = file('E:/Kenny/Huawei/APK')
                 logger.warn("APK export skipped: ${apk} does not exist")
                 return
             }
-            def target = new File(apkExportDir, apkName)
+            def target = new File(apkExportDir, exportName)
             target.parentFile.mkdirs()
             java.nio.file.Files.copy(apk.toPath(), target.toPath(),
                     java.nio.file.StandardCopyOption.REPLACE_EXISTING)

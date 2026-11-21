@@ -25,8 +25,8 @@ import com.bydwatch.companion.R;
  * WebView bridge to the car's Overdrive server.
  *
  * <p>The page comes from Advanced (car address + default page). A blank address
- * leaves the screen closed; the URL bar is hidden by default and is only a
- * temporary override when shown.
+ * leaves the screen closed; the URL bar is hidden by default and appears
+ * automatically when a page leaves the configured host.
  */
 public class CarWebActivity extends AppCompatActivity {
 
@@ -39,6 +39,7 @@ public class CarWebActivity extends AppCompatActivity {
     private View rowUrl;
     private View emptyState;
     private String scrollTarget = "";
+    private String configuredHost = "";
 
     public static Intent intent(Context context, String page, String scrollId) {
         Intent intent = new Intent(context, CarWebActivity.class);
@@ -93,22 +94,34 @@ public class CarWebActivity extends AppCompatActivity {
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
-        settings.setDatabaseEnabled(true);
+        settings.setDatabaseEnabled(false);
+        settings.setAllowFileAccess(false);
+        settings.setAllowContentAccess(false);
+        settings.setAllowFileAccessFromFileURLs(false);
+        settings.setAllowUniversalAccessFromFileURLs(false);
         settings.setLoadWithOverviewMode(true);
         settings.setUseWideViewPort(true);
         settings.setBuiltInZoomControls(true);
         settings.setDisplayZoomControls(false);
-        settings.setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
+        settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
+        settings.setSafeBrowsingEnabled(true);
 
         CookieManager cookies = CookieManager.getInstance();
         cookies.setAcceptCookie(true);
-        cookies.setAcceptThirdPartyCookies(webView, true);
+        cookies.setAcceptThirdPartyCookies(webView, false);
 
         webView.setWebViewClient(new WebViewClient() {
             @Override
             public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) {
                 if (progress != null) progress.setVisibility(View.VISIBLE);
                 if (etUrl != null && url != null) etUrl.setText(url);
+                // Navigation is allowed so a changed car address still works, but the origin is
+                // never hidden while a page outside the configured host is on screen.
+                if (rowUrl != null && url != null) {
+                    boolean crossOrigin = !hostOf(url).equalsIgnoreCase(configuredHost);
+                    rowUrl.setVisibility(!CarWebPrefs.hideUrlBar(CarWebActivity.this) || crossOrigin
+                            ? View.VISIBLE : View.GONE);
+                }
             }
 
             @Override
@@ -156,6 +169,7 @@ public class CarWebActivity extends AppCompatActivity {
             url = CarWebUrl.entry(CarWebPrefs.entryUrl(this), CarWebPrefs.defaultPage(this));
         }
         url = CarWebUrl.withFragment(url, scrollTarget);
+        configuredHost = hostOf(CarWebPrefs.baseUrl(this));
         if (url.isEmpty()) {
             if (webView != null) webView.setVisibility(View.GONE);
             if (emptyState != null) emptyState.setVisibility(View.VISIBLE);
@@ -181,6 +195,12 @@ public class CarWebActivity extends AppCompatActivity {
         }
         if (etUrl != null) etUrl.setText(url);
         if (webView != null) webView.loadUrl(url);
+    }
+
+    private static String hostOf(String url) {
+        if (url == null || url.isEmpty()) return "";
+        String host = android.net.Uri.parse(url).getHost();
+        return host != null ? host : "";
     }
 
     private void scrollToTarget() {

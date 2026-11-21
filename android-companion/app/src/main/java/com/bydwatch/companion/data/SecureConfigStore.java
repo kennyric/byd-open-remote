@@ -49,6 +49,10 @@ public class SecureConfigStore implements ConfigStore {
     private static final String PREF_TEMP_UNIT = "byd_temp_unit";
     private static final String PREF_PRES_UNIT = "byd_pres_unit";
     private static final String PREF_WATCH_TARGET = "byd_watch_target";
+    private static final String PREF_OVERDRIVE_ACCESS_CODE = "byd_overdrive_access_code";
+    private static final String PREF_OVERDRIVE_JWT = "byd_overdrive_jwt";
+    private static final String PREF_OVERDRIVE_JWT_EXPIRY = "byd_overdrive_jwt_expiry";
+    private static final String PREF_OVERDRIVE_DEVICE_ID = "byd_overdrive_device_id";
     private static final String PREF_ALERTS_ENABLED = "byd_alerts_enabled";
     private static final String PREF_DISCLAIMER_ACCEPTED = "byd_disclaimer_accepted";
     private static final String PREF_WIDGET_SYNC_MINUTES = "byd_widget_sync_minutes";
@@ -488,6 +492,56 @@ public class SecureConfigStore implements ConfigStore {
     @Override
     public void setWatchTarget(String target) {
         prefs.edit().putString(PREF_WATCH_TARGET, "store".equalsIgnoreCase(target) ? "store" : "dev").apply();
+    }
+
+    @Override
+    public String getOverdriveAccessCode() {
+        return prefs.getString(PREF_OVERDRIVE_ACCESS_CODE, "");
+    }
+
+    @Override
+    public void setOverdriveAccessCode(String code) {
+        prefs.edit().putString(PREF_OVERDRIVE_ACCESS_CODE, code != null ? code : "").apply();
+    }
+
+    @Override
+    public String getOverdriveJwt() {
+        return prefs.getString(PREF_OVERDRIVE_JWT, "");
+    }
+
+    @Override
+    public void setOverdriveJwt(String jwt) {
+        prefs.edit().putString(PREF_OVERDRIVE_JWT, jwt != null ? jwt : "").apply();
+    }
+
+    @Override
+    public long getOverdriveJwtExpiry() {
+        return prefs.getLong(PREF_OVERDRIVE_JWT_EXPIRY, 0L);
+    }
+
+    @Override
+    public void setOverdriveJwtExpiry(long epochMillis) {
+        prefs.edit().putLong(PREF_OVERDRIVE_JWT_EXPIRY, epochMillis).apply();
+    }
+
+    @Override
+    public String getOverdriveDeviceId() {
+        return prefs.getString(PREF_OVERDRIVE_DEVICE_ID, "");
+    }
+
+    @Override
+    public void setOverdriveDeviceId(String deviceId) {
+        prefs.edit().putString(PREF_OVERDRIVE_DEVICE_ID, deviceId != null ? deviceId : "").apply();
+    }
+
+    @Override
+    public void clearOverdriveSession() {
+        prefs.edit()
+                .remove(PREF_OVERDRIVE_ACCESS_CODE)
+                .remove(PREF_OVERDRIVE_JWT)
+                .remove(PREF_OVERDRIVE_JWT_EXPIRY)
+                .remove(PREF_OVERDRIVE_DEVICE_ID)
+                .apply();
     }
 
     @Override

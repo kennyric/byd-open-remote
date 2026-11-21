@@ -461,6 +461,26 @@ public class BydRepositoryTest {
         @Override public String getWatchTarget() { return watchTarget; }
         @Override public void setWatchTarget(String target) { this.watchTarget = "store".equalsIgnoreCase(target) ? "store" : "dev"; }
 
+        private String overdriveAccessCode = "";
+        private String overdriveJwt = "";
+        private long overdriveJwtExpiry = 0L;
+        private String overdriveDeviceId = "";
+
+        @Override public String getOverdriveAccessCode() { return overdriveAccessCode; }
+        @Override public void setOverdriveAccessCode(String code) { this.overdriveAccessCode = code != null ? code : ""; }
+        @Override public String getOverdriveJwt() { return overdriveJwt; }
+        @Override public void setOverdriveJwt(String jwt) { this.overdriveJwt = jwt != null ? jwt : ""; }
+        @Override public long getOverdriveJwtExpiry() { return overdriveJwtExpiry; }
+        @Override public void setOverdriveJwtExpiry(long epochMillis) { this.overdriveJwtExpiry = epochMillis; }
+        @Override public String getOverdriveDeviceId() { return overdriveDeviceId; }
+        @Override public void setOverdriveDeviceId(String deviceId) { this.overdriveDeviceId = deviceId != null ? deviceId : ""; }
+        @Override public void clearOverdriveSession() {
+            overdriveAccessCode = "";
+            overdriveJwt = "";
+            overdriveJwtExpiry = 0L;
+            overdriveDeviceId = "";
+        }
+
         @Override public boolean isAlertsEnabled() { return alertsEnabled; }
         @Override public void setAlertsEnabled(boolean enabled) { this.alertsEnabled = enabled; }
 

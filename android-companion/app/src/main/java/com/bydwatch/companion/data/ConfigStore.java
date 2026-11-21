@@ -135,6 +135,17 @@ public interface ConfigStore {
     default String getWatchTarget() { return "dev"; }
     default void setWatchTarget(String target) {}
 
+    /** Overdrive device secret and session, stored encrypted rather than in plain preferences. */
+    default String getOverdriveAccessCode() { return ""; }
+    default void setOverdriveAccessCode(String code) {}
+    default String getOverdriveJwt() { return ""; }
+    default void setOverdriveJwt(String jwt) {}
+    default long getOverdriveJwtExpiry() { return 0L; }
+    default void setOverdriveJwtExpiry(long epochMillis) {}
+    default String getOverdriveDeviceId() { return ""; }
+    default void setOverdriveDeviceId(String deviceId) {}
+    default void clearOverdriveSession() {}
+
     default boolean isAlertsEnabled() { return false; }
     default void setAlertsEnabled(boolean enabled) {}
 

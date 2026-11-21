@@ -37,6 +37,7 @@ public class OverdriveControlsCardTest {
     @Before
     public void setUp() {
         context = RuntimeEnvironment.getApplication();
+        BydWatchApp.setTestDependencies(new BydRepositoryTest.InMemoryConfigStore(), null, null);
         CarWebPrefs.reset(context);
     }
 

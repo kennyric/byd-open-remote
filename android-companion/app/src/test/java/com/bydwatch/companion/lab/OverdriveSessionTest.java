@@ -2,6 +2,9 @@ package com.bydwatch.companion.lab;
 
 import android.content.Context;
 
+import com.bydwatch.companion.BydWatchApp;
+import com.bydwatch.companion.data.BydRepositoryTest;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -20,16 +23,47 @@ import static org.junit.Assert.assertTrue;
 public class OverdriveSessionTest {
 
     private Context context;
+    private BydRepositoryTest.InMemoryConfigStore configStore;
 
     @Before
     public void setUp() {
         context = RuntimeEnvironment.getApplication();
+        configStore = new BydRepositoryTest.InMemoryConfigStore();
+        BydWatchApp.setTestDependencies(configStore, null, null);
         CarWebPrefs.reset(context);
     }
 
     @After
     public void tearDown() {
         CarWebPrefs.reset(context);
+        BydWatchApp.resetForTesting();
+    }
+
+    @Test
+    public void accessCodeIsStoredEncryptedNotInPlainPrefs() {
+        OverdriveSession.setAccessCode(context, "x7k9m2p5");
+
+        assertEquals("x7k9m2p5", configStore.getOverdriveAccessCode());
+        assertNull(context.getSharedPreferences("car_web", Context.MODE_PRIVATE)
+                .getString("overdrive_access_code", null));
+    }
+
+    @Test
+    public void legacyPlaintextSessionIsMigratedAndRemoved() {
+        context.getSharedPreferences("car_web", Context.MODE_PRIVATE)
+                .edit()
+                .putString("overdrive_access_code", "legacy123")
+                .putString("overdrive_jwt", "legacy-jwt")
+                .putLong("overdrive_jwt_expiry", 1_800_000_000_000L)
+                .putString("overdrive_device_id", "byd-legacy")
+                .apply();
+
+        assertEquals("legacy123", OverdriveSession.accessCode(context));
+        assertEquals("byd-legacy", OverdriveSession.deviceId(context));
+        assertTrue(OverdriveSession.hasJwt(context, 1_700_000_000_000L));
+        assertNull(context.getSharedPreferences("car_web", Context.MODE_PRIVATE)
+                .getString("overdrive_access_code", null));
+        assertEquals("legacy123", configStore.getOverdriveAccessCode());
     }
 
     @Test
