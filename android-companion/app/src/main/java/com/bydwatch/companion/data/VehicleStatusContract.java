@@ -66,6 +66,10 @@ public final class VehicleStatusContract {
      * its own schedule on top.
      */
     public static final long CONSUMER_REFRESH_MIN_GAP_MS = 20L * 1000L;
+    /** Extra on {@code call("refresh")}: distance the consumer has driven since the cached reading. */
+    public static final String EXTRA_DISTANCE_KM = "distance_km";
+    /** A larger reported gap is a bad value, not a drive. */
+    static final double MAX_ESTIMATE_DISTANCE_KM = 500d;
     public static final String MIME_TYPE = "vnd.android.cursor.item/vnd.bydopenremote.vehicle_status";
 
     public static final String COLUMN_SOC = "soc";
@@ -109,12 +113,56 @@ public final class VehicleStatusContract {
      * consumption; falls back to {@code status.rangeKm} when either is unavailable.
      */
     public static Object[] row(VehicleStatus status, float batteryCapacityKwh) {
+        return row(status, batteryCapacityKwh, 0d);
+    }
+
+    /**
+     * The row with a display-only estimate for a reading that is older than the distance driven:
+     * {@code distanceSinceReadingKm} is what the consumer has travelled since this reading was
+     * taken. SoC and range are reduced by that distance at the car's own recent consumption, so a
+     * sparse sync degrades gradually instead of freezing. Never written back into the cache.
+     */
+    public static Object[] row(VehicleStatus status, float batteryCapacityKwh,
+                               double distanceSinceReadingKm) {
         if (status == null) {
             return new Object[]{-1, -1, 0L, DEFAULT_UNIT};
         }
         String unit = status.distanceUnit == null || status.distanceUnit.isEmpty()
                 ? DEFAULT_UNIT : status.distanceUnit;
-        return new Object[]{status.soc, effectiveRangeKm(status, batteryCapacityKwh), toEpochMillis(status.ts), unit};
+        int soc = status.soc;
+        int range = effectiveRangeKm(status, batteryCapacityKwh);
+        if (canEstimate(status, distanceSinceReadingKm)) {
+            double capacity = batteryCapacityKwh > 0f
+                    ? batteryCapacityKwh : derivedCapacityKwh(status);
+            if (capacity > 0d) {
+                double usedKwh = distanceSinceReadingKm * status.recentKwhPer100Km / 100d;
+                int dropPoints = (int) Math.floor(usedKwh / capacity * 100d);
+                soc = Math.max(0, status.soc - dropPoints);
+                range = Math.max(0, range - (int) Math.round(distanceSinceReadingKm));
+            }
+        }
+        return new Object[]{soc, range, toEpochMillis(status.ts), unit};
+    }
+
+    /** Only a positive, plausible distance on a discharging car may move the estimate. */
+    static boolean canEstimate(VehicleStatus status, double distanceKm) {
+        return status != null
+                && distanceKm > 0d
+                && distanceKm <= MAX_ESTIMATE_DISTANCE_KM
+                && status.soc > 0
+                && status.soc <= 100
+                && status.recentKwhPer100Km > 0d
+                && status.chargingState != VehicleStatus.CHARGING_ACTIVE
+                && status.chargingState != VehicleStatus.CHARGING_CONNECTED;
+    }
+
+    /** Pack size inferred from the reading itself when the user has not set the kWh override. */
+    static double derivedCapacityKwh(VehicleStatus status) {
+        if (status == null || status.soc <= 0 || status.rangeKm <= 0
+                || status.recentKwhPer100Km <= 0d) {
+            return 0d;
+        }
+        return status.rangeKm * status.recentKwhPer100Km / status.soc;
     }
 
     static int effectiveRangeKm(VehicleStatus status, float batteryCapacityKwh) {

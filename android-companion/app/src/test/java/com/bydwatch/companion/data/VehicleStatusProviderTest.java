@@ -77,6 +77,57 @@ public class VehicleStatusProviderTest {
     }
 
     @Test
+    public void aReportedDistanceShowsAnEstimateUntilTheNextReading() {
+        ConsumerProgress.resetForTesting();
+        RecordingRepository repository = installRepository();
+        VehicleStatus reading = new VehicleStatus.Builder(50, 200, true, false, null, 22, 1_700_000_000L)
+                .recentKwhPer100Km(15d)
+                .chargingState(0)
+                .build();
+        repository.setCachedStatus(reading);
+
+        android.os.Bundle extras = new android.os.Bundle();
+        extras.putDouble(VehicleStatusContract.EXTRA_DISTANCE_KM, 20d);
+        provider().call("refresh", null, extras);
+
+        Cursor cursor = provider().query(VehicleStatusContract.contentUri(), null, null, null, null);
+        assertTrue(cursor.moveToFirst());
+        assertEquals(45, cursor.getInt(cursor.getColumnIndexOrThrow(VehicleStatusContract.COLUMN_SOC)));
+        assertEquals(180, cursor.getInt(cursor.getColumnIndexOrThrow(VehicleStatusContract.COLUMN_RANGE_KM)));
+        cursor.close();
+    }
+
+    @Test
+    public void aNewReadingDiscardsTheOldEstimate() {
+        ConsumerProgress.resetForTesting();
+        RecordingRepository repository = installRepository();
+        repository.setCachedStatus(new VehicleStatus.Builder(50, 200, true, false, null, 22, 1_700_000_000L)
+                .recentKwhPer100Km(15d)
+                .chargingState(0)
+                .build());
+
+        android.os.Bundle extras = new android.os.Bundle();
+        extras.putDouble(VehicleStatusContract.EXTRA_DISTANCE_KM, 20d);
+        provider().call("refresh", null, extras);
+
+        repository.setCachedStatus(new VehicleStatus.Builder(49, 195, true, false, null, 22, 1_700_000_600L)
+                .recentKwhPer100Km(15d)
+                .chargingState(0)
+                .build());
+
+        Cursor cursor = provider().query(VehicleStatusContract.contentUri(), null, null, null, null);
+        assertTrue(cursor.moveToFirst());
+        assertEquals(49, cursor.getInt(cursor.getColumnIndexOrThrow(VehicleStatusContract.COLUMN_SOC)));
+        cursor.close();
+    }
+
+    @After
+    public void clearConsumerProgress() {
+        ConsumerProgress.resetForTesting();
+        BydWatchApp.resetForTesting();
+    }
+
+    @Test
     public void aConsumerReadAsksTheRepositoryForFresherData() {
         RecordingRepository repository = installRepository();
         repository.setCachedStatus(statusSecondsAgo(90));

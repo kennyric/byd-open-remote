@@ -34,7 +34,8 @@ public final class VehicleStatusProvider extends ContentProvider {
             return new MatrixCursor(VehicleStatusContract.COLUMNS);
         }
         VehicleStatus status = cachedStatus();
-        Object[] row = VehicleStatusContract.row(status, batteryCapacityKwh());
+        double distanceSinceReading = ConsumerProgress.since(status);
+        Object[] row = VehicleStatusContract.row(status, batteryCapacityKwh(), distanceSinceReading);
         refreshForConsumer();
         VehicleStatusContract.log("served row to uid " + Binder.getCallingUid());
         MatrixCursor cursor = new MatrixCursor(VehicleStatusContract.COLUMNS);
@@ -56,6 +57,10 @@ public final class VehicleStatusProvider extends ContentProvider {
         if ("refresh".equals(method)) {
             BydWatchApp app = BydWatchApp.getInstance();
             BydRepository repository = app != null ? app.getRepository() : null;
+            if (extras != null) {
+                ConsumerProgress.report(cachedStatus(),
+                        extras.getDouble(VehicleStatusContract.EXTRA_DISTANCE_KM, 0d));
+            }
             if (repository != null) {
                 repository.refreshNow(VehicleStatusContract.CONSUMER_REFRESH_MIN_GAP_MS);
                 result.putBoolean("requested", true);
