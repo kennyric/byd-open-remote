@@ -33,7 +33,7 @@ It covers three things:
 | Panoramic camera system | Needed for Overdrive's surveillance/camera features |
 | Wireless ADB on the head unit | Overdrive asks for it on first launch |
 | Tailscale account | Free for personal use |
-| BYD Open Remote ≥ 1.3.1 | Earlier builds cannot open `http://` pages in release builds |
+| BYD Open Remote ≥ 1.3.2 | Earlier builds cannot open `http://` pages in release builds |
 | Active data plan on the car | The BYD SIM (or a hotspot) must stay online while parked |
 
 ---
@@ -184,7 +184,7 @@ Do this once, parked, with the car locked:
 - [ ] BYD Open Remote → Advanced shows **Connected**.
 - [ ] Drawer → Overdrive opens the car UI and login sticks.
 - [ ] Lock the car, wait 10–15 minutes, then reload the page from the phone.
-- [ ] No `ERR_CLEARTEXT_NOT_PERMITTED` error (requires BYD Open Remote ≥ 1.3.1).
+- [ ] No `ERR_CLEARTEXT_NOT_PERMITTED` error (requires BYD Open Remote ≥ 1.3.2).
 - [ ] Optional: the main-page AC-current card shows live values while parked.
 
 If the last two checks fail after parking, the Sentry Daemon / surveillance step is not holding the
@@ -202,7 +202,7 @@ car online yet.
 | Worked, stopped after months | Tailscale key expired | Disable key expiry for the car in the Tailscale console |
 | Address no longer answers | Car's Tailscale IP changed | Update the address in Advanced (this clears the session) |
 | Page loads, controls fail | Wrong page preset, or the car does not expose that endpoint | Try `/vehicle-control.html`; check the Overdrive version |
-| `ERR_CLEARTEXT_NOT_PERMITTED` | Old app build | Update BYD Open Remote (1.3.1+) |
+| `ERR_CLEARTEXT_NOT_PERMITTED` | Old app build | Update BYD Open Remote (1.3.2+) |
 | Slow / stuttering | Tailscale is relaying traffic (DERP) instead of a direct path | Check `tailscale status` on the phone; both devices behind hard NAT is normal |
 
 ---
