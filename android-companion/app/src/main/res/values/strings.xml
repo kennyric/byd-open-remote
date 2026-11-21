@@ -502,7 +502,7 @@
     <string name="advanced_overdrive_retry">Retry</string>
     <string name="advanced_overdrive_guide">Remote access &amp; Tailscale guide ›</string>
     <string name="advanced_overdrive_guide_failed">No browser available to open the guide</string>
-    <string name="overdrive_guide_url" translatable="false">https://gist.github.com/kennyric/30569115fec4c9c36fb0c177bf2cacbf</string>
+    <string name="overdrive_guide_url">https://gist.github.com/kennyric/30569115fec4c9c36fb0c177bf2cacbf</string>
     <string name="advanced_overdrive_visibility">Overdrive controls on the main page</string>
     <string name="advanced_overdrive_visibility_always">Always show</string>
     <string name="advanced_overdrive_visibility_connected">Only when connected</string>
