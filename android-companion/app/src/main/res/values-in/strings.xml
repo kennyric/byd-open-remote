@@ -426,4 +426,162 @@
     <string name="advanced_maps_microg">Build microG-RE</string>
     <string name="advanced_maps_microg_helper">Aktifkan jika Maps yang dipatch memakai nama paket microG-RE. Hanya paket yang dipilih yang boleh membaca telemetri kendaraan.</string>
     <string name="secure_store_reset">Login tersimpan tidak dapat dibuka di perangkat ini. Silakan masuk lagi.</string>
+
+    <!-- Battery capacity helper -->
+    <string name="label_battery_capacity_kwh">Kapasitas baterai (kWh, opsional)</string>
+    <string name="helper_battery_capacity_kwh">Dipakai bersama kWh/100km terakhir untuk persentase perkiraan tiba di Maps. Kosongkan untuk memakai estimasi jarak dari mobil.</string>
+
+    <!-- Advanced: action lock -->
+    <string name="label_single_flight_action">Kunci satu aksi (cegah perintah menumpuk)</string>
+
+    <!-- Biometric / PIN security -->
+    <string name="section_biometric_security">Keamanan Biometrik / PIN</string>
+    <string name="biometric_scope_off">Mati</string>
+    <string name="biometric_scope_app">Aplikasi</string>
+    <string name="biometric_scope_widget">Widget</string>
+    <string name="biometric_scope_both">Keduanya</string>
+    <string name="label_biometric_grace">Masa tenggang verifikasi ulang (0 = setiap kali)</string>
+    <string name="hint_biometric_grace_min">0</string>
+    <string name="unit_min">mnt</string>
+    <string name="btn_apply_biometric_grace">Terapkan</string>
+    <string name="biometric_grace_saved">Masa tenggang biometrik disimpan: %1$d mnt</string>
+    <string name="biometric_grace_always">Biometrik diminta setiap kali (0 mnt)</string>
+    <string name="biometric_grace_invalid">Masukkan menit antara 0 dan 1440</string>
+    <string name="btn_biometric_advanced_show">Opsi lanjutan ▾</string>
+    <string name="btn_biometric_advanced_hide">Opsi lanjutan ▴</string>
+    <string name="label_biometric_widget_sync">Wajibkan biometrik untuk segarkan/sinkron widget</string>
+    <string name="biometric_unavailable_toast">Atur sidik jari, buka wajah, atau PIN kunci layar di perangkat Anda terlebih dahulu</string>
+    <string name="biometric_app_prompt_title">Buka BYD Open Remote</string>
+    <string name="biometric_app_prompt_subtitle">Verifikasi identitas Anda untuk mengakses kontrol kendaraan</string>
+    <string name="biometric_widget_prompt_title">Konfirmasi Aksi Kendaraan</string>
+    <string name="biometric_widget_prompt_subtitle">Verifikasi sidik jari, wajah, atau PIN perangkat untuk menjalankan aksi widget</string>
+    <string name="biometric_auth_cancelled">Autentikasi dibatalkan</string>
+    <string name="app_lock_title">Aplikasi Terkunci</string>
+    <string name="app_lock_subtitle">Verifikasi dengan sidik jari, buka wajah, atau PIN perangkat untuk melanjutkan.</string>
+    <string name="btn_unlock_app">Buka Kunci</string>
+
+    <!-- Garage, vehicle cards and vehicle naming -->
+    <string name="garage_title">Garasi</string>
+    <string name="garage_meta_fmt">Diambil %1$s · %2$s aktif</string>
+    <string name="garage_meta_no_time">%1$s aktif</string>
+    <string name="garage_refresh">Segarkan kendaraan</string>
+    <string name="garage_active_badge">AKTIF</string>
+    <string name="garage_row_tap">Ketuk untuk beralih</string>
+    <string name="garage_row_charging">Mengisi daya</string>
+    <string name="garage_empty">Belum ada kendaraan yang diambil</string>
+    <string name="garage_empty_hint">Ketuk Ambil VIN untuk memuat kendaraan yang tertaut ke akun ini.</string>
+    <string name="garage_sheet_title">Garasi Anda</string>
+    <string name="garage_switcher_desc">Ganti kendaraan aktif</string>
+    <string name="garage_rename_desc">Ganti nama mobil ini</string>
+    <string name="controls_section_title">Kontrol</string>
+    <string name="vehicle_card_switch">Ganti ▾</string>
+    <string name="vehicle_swipe_hint">← geser untuk ganti →</string>
+    <string name="vehicle_card_meta_fmt">%1$s · %2$s · %3$s</string>
+    <string name="vehicle_card_meta_short_fmt">%1$s · %2$s</string>
+    <string name="vehicle_card_soc_fmt">%1$d%% · %2$s</string>
+    <string name="vehicle_card_charging_fmt">⚡ %1$s</string>
+    <string name="vehicle_card_plugged">Tersambung</string>
+    <string name="vehicle_card_idle">Siaga</string>
+    <string name="vehicle_card_no_data">Belum ada data</string>
+    <string name="switching_to_fmt">Beralih ke %1$s…</string>
+    <string name="edit_vehicle_sub">Nama dan ikon disimpan hanya untuk mobil ini.</string>
+    <string name="edit_vehicle_title_fmt">Edit %1$s</string>
+    <string name="garage_icon_desc">Ikon mobil</string>
+    <string name="edit_icon_emoji">Emoji</string>
+    <string name="edit_icon_photo">Foto</string>
+    <string name="edit_icon_choose_photo">Pilih dari galeri</string>
+    <string name="edit_icon_photo_hint">JPG/PNG · potong 1:1</string>
+    <string name="edit_icon_saved">Ikon diperbarui</string>
+    <string name="widget_vehicle_picker_title">Widget ini untuk mobil yang mana?</string>
+    <string name="widget_vehicle_picker_sub">Widget ini hanya menampilkan dan mengontrol mobil yang dipilih. Tambahkan widget kedua untuk mobil lain.</string>
+    <string name="widget_vehicle_follow_active">Ikuti mobil aktif</string>
+    <string name="widget_vehicle_follow_active_sub">Ganti mobil lewat aplikasi</string>
+    <string name="widget_vehicle_settings_desc">Pilih mobil untuk widget ini</string>
+    <string name="garage_rename_title_fmt">Ganti nama %1$s</string>
+    <string name="garage_rename_hint">Nama mobil</string>
+    <string name="garage_rename_help">Ditampilkan di header, widget, dan garasi. Atur ulang mengembalikan ke model yang terdeteksi.</string>
+    <string name="garage_rename_reset">Atur ulang</string>
+    <string name="garage_rename_cleared">Nama dikembalikan ke model yang terdeteksi</string>
+    <string name="garage_rename_done_fmt">Diubah menjadi %1$s</string>
+    <plurals name="garage_count">
+        <item quantity="one">%1$d kendaraan</item>
+        <item quantity="other">%1$d kendaraan</item>
+    </plurals>
+    <plurals name="garage_sheet_sub">
+        <item quantity="one">%1$d kendaraan tertaut ke akun ini</item>
+        <item quantity="other">%1$d kendaraan tertaut ke akun ini</item>
+    </plurals>
+
+    <!-- Overdrive access -->
+    <string name="advanced_access_title">Akses</string>
+    <string name="advanced_access_code_label">Kode akses</string>
+    <string name="advanced_access_connect">Hubungkan</string>
+    <string name="advanced_access_disconnect">Putuskan</string>
+    <string name="advanced_access_detail_none">Belum terhubung</string>
+    <string name="advanced_access_help">Temukan di halaman login Overdrive. Hanya disimpan di ponsel ini dan ditukar dengan token sesi 30 hari.</string>
+    <string name="advanced_access_code_invalid">Kode akses itu tampaknya terlalu pendek.</string>
+    <string name="advanced_access_code_saved">Kode akses disimpan — masukkan kode baru untuk menggantinya</string>
+    <string name="advanced_access_connecting">Menghubungkan…</string>
+    <string name="advanced_access_reconnect">Hubungkan ulang</string>
+    <string name="overdrive_access_title">Akses</string>
+    <string name="overdrive_access_code_label">Kode akses</string>
+    <string name="overdrive_access_connect">Hubungkan</string>
+    <string name="overdrive_access_reconnect">Hubungkan ulang</string>
+    <string name="overdrive_access_help">Temukan di halaman login Overdrive. Hanya disimpan di ponsel ini dan ditukar dengan token sesi 30 hari.</string>
+    <string name="overdrive_access_connected">Terhubung</string>
+    <string name="overdrive_access_disconnected">Terputus.</string>
+    <string name="overdrive_access_device">Perangkat: %1$s</string>
+    <string name="overdrive_guide_url">https://github.com/kennyric/byd-open-remote/blob/main/docs/overdrive-remote-access.id.md</string>
+
+    <!-- Overdrive controls: AC current limit and charging schedule -->
+    <string name="overdrive_controls_card_title">Overdrive</string>
+    <string name="overdrive_controls_card_checking">Memeriksa…</string>
+    <string name="overdrive_controls_card_connected">Terhubung</string>
+    <string name="overdrive_controls_card_offline">Belum terhubung</string>
+    <string name="overdrive_controls_summary_current">Arus</string>
+    <string name="overdrive_controls_summary_schedule">Jadwal</string>
+    <string name="overdrive_controls_summary_unknown">—</string>
+    <string name="overdrive_controls_open">Buka kontrol Overdrive ›</string>
+    <string name="overdrive_controls_back">Kembali</string>
+    <string name="overdrive_controls_title">Kontrol Overdrive</string>
+    <string name="overdrive_controls_subtitle">Kontrol Kendaraan · native</string>
+    <string name="overdrive_controls_refresh">Segarkan</string>
+    <string name="overdrive_controls_detail_loading">Membaca mobil…</string>
+    <string name="overdrive_controls_open_login">Buka login Overdrive</string>
+    <string name="overdrive_controls_notice">Batas arus dan jadwal dikirim ke mobil melalui Overdrive. BYD Cloud tidak menyediakan penulisan ini.</string>
+    <string name="overdrive_controls_error_generic">Overdrive tidak menerima perubahan itu.</string>
+    <string name="overdrive_status_checking">Memeriksa Overdrive…</string>
+    <string name="overdrive_status_connected">Terhubung</string>
+    <string name="overdrive_status_login_needed">Perlu login</string>
+    <string name="overdrive_status_unreachable">Tidak dapat dijangkau</string>
+    <string name="overdrive_status_detail_connected">Kode akses diterima. Perubahan langsung dikirim ke mobil.</string>
+    <string name="overdrive_status_detail_login_needed">Sesi Overdrive tersimpan sudah kedaluwarsa. Masukkan kode akses Anda di Lanjutan.</string>
+    <string name="overdrive_status_detail_unreachable">Tidak ada jawaban dari mobil. Periksa alamat Overdrive dan pastikan mobil online.</string>
+    <string name="overdrive_current_title">Batas arus AC</string>
+    <string name="overdrive_current_supported">Didukung: 6 A · 8 A · 10 A · 16 A · Maks</string>
+    <string name="overdrive_current_6a">6 A</string>
+    <string name="overdrive_current_8a">8 A</string>
+    <string name="overdrive_current_10a">10 A</string>
+    <string name="overdrive_current_16a">16 A</string>
+    <string name="overdrive_current_max">Maks</string>
+    <string name="overdrive_current_hint">Berlaku setelah mobil membaca ulang nilainya. Dikirim melalui Overdrive, bukan BYD Cloud.</string>
+    <string name="overdrive_current_unsupported">Mobil tidak melaporkan batas arus AC yang dapat diatur.</string>
+    <string name="overdrive_current_applied">Batas arus diatur ke %1$s.</string>
+    <string name="overdrive_schedule_title">Jadwal pengisian daya</string>
+    <string name="overdrive_schedule_start_empty">Mulai</string>
+    <string name="overdrive_schedule_end_empty">Selesai</string>
+    <string name="overdrive_schedule_repeat">Ulangi</string>
+    <string name="overdrive_repeat_once">Sekali</string>
+    <string name="overdrive_repeat_daily">Setiap hari</string>
+    <string name="overdrive_repeat_weekdays">Hari kerja</string>
+    <string name="overdrive_schedule_save">Simpan jadwal</string>
+    <string name="overdrive_schedule_source_unknown">Terakhir dibaca: tidak diketahui</string>
+    <string name="overdrive_schedule_source">Terakhir dibaca: %1$s · sumber: %2$s</string>
+    <string name="overdrive_schedule_saved">Jadwal disimpan.</string>
+    <string name="overdrive_schedule_unsupported">Mobil ini tidak melaporkan jadwal pengisian daya.</string>
+    <string name="overdrive_schedule_toggle_failed">Tidak dapat mengubah sakelar jadwal.</string>
+    <string name="overdrive_start_charging_title">Mulai pengisian daya sekarang</string>
+    <string name="overdrive_start_charging_subtitle">Memakai endpoint mulai-charging Overdrive, lalu mengonfirmasi.</string>
+    <string name="overdrive_start_charging_action">Mulai mengisi daya</string>
+    <string name="overdrive_start_charging_done">Pengisian daya dimulai.</string>
 </resources>
