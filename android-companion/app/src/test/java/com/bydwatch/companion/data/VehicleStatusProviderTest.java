@@ -3,10 +3,17 @@ package com.bydwatch.companion.data;
 import android.content.ContentValues;
 import android.database.Cursor;
 
+import com.bydwatch.companion.BydWatchApp;
+import com.bydwatch.companion.model.VehicleStatus;
+
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.annotation.Config;
+
+import java.util.concurrent.Executors;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -20,6 +27,16 @@ import static org.junit.Assert.assertTrue;
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = 33)
 public class VehicleStatusProviderTest {
+
+    @Before
+    public void setUp() {
+        BydWatchApp.resetForTesting();
+    }
+
+    @After
+    public void tearDown() {
+        BydWatchApp.resetForTesting();
+    }
 
     private VehicleStatusProvider provider() {
         VehicleStatusProvider provider = new VehicleStatusProvider();
@@ -58,4 +75,54 @@ public class VehicleStatusProviderTest {
                 new ContentValues(), null, null));
         assertEquals(0, provider.delete(VehicleStatusContract.contentUri(), null, null));
     }
+
+    @Test
+    public void aConsumerReadAsksTheRepositoryForFresherData() {
+        RecordingRepository repository = installRepository();
+        repository.setCachedStatus(statusSecondsAgo(90));
+
+        provider().query(VehicleStatusContract.contentUri(), null, null, null, null);
+
+        assertEquals(1, repository.refreshRequests);
+    }
+
+    @Test
+    public void aReadOfRecentDataStillAsksSoTheConsumerOwnsTheCadence() {
+        // The Maps patch polls every N minutes; it must not depend on how old the cache happens
+        // to be, or a short interval would keep serving data the app never refetched.
+        RecordingRepository repository = installRepository();
+        repository.setCachedStatus(statusSecondsAgo(5));
+
+        provider().query(VehicleStatusContract.contentUri(), null, null, null, null);
+
+        assertEquals(1, repository.refreshRequests);
+    }
+
+    private static RecordingRepository installRepository() {
+        BydRepositoryTest.InMemoryConfigStore store = new BydRepositoryTest.InMemoryConfigStore();
+        store.setVin("LC0TESTVIN1234567");
+        RecordingRepository repository = new RecordingRepository(store);
+        BydWatchApp.setTestDependencies(store, repository);
+        return repository;
+    }
+
+    private static VehicleStatus statusSecondsAgo(int seconds) {
+        return new VehicleStatus(62, 310, true, false, null, 22,
+                System.currentTimeMillis() - seconds * 1000L);
+    }
+
+    /** Records refresh requests without reaching the cloud. */
+    static final class RecordingRepository extends BydRepository {
+        int refreshRequests;
+
+        RecordingRepository(ConfigStore store) {
+            super(null, store, Executors.newSingleThreadExecutor());
+        }
+
+        @Override
+        public void refreshNow(long minGapMs) {
+            refreshRequests++;
+        }
+    }
 }
+
