@@ -1,6 +1,6 @@
 # Overdrive remote access: Tailscale + parked surveillance
 
-> Bahasa Indonesia: [Panduan akses jarak jauh Overdrive](overdrive-remote-access.id.md)
+> Bahasa Indonesia: [Panduan akses jarak jauh Overdrive](https://github.com/kennyric/byd-open-remote/blob/main/docs/overdrive-remote-access.id.md)
 
 This guide gets the car's Overdrive server reachable from your phone **from anywhere** — including
 while the car is parked and its screen is off — and then connects BYD Open Remote to it.
