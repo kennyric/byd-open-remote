@@ -49,6 +49,33 @@ public final class CarWebUrl {
         }
     }
 
+    /**
+     * True when the address points at a specific page (a path beyond "/" or a query string),
+     * as opposed to a bare server root.
+     */
+    public static boolean hasPage(String input) {
+        String normalized = normalize(input);
+        if (normalized.isEmpty()) return false;
+        try {
+            URI uri = new URI(normalized);
+            String path = uri.getPath();
+            boolean pagePath = path != null && !path.isEmpty() && !"/".equals(path);
+            return pagePath || uri.getQuery() != null;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * What the WebView should open. A pasted page URL is used exactly as entered; a bare
+     * address is combined with the selected page instead.
+     */
+    public static String entry(String address, String page) {
+        String normalized = normalize(address);
+        if (normalized.isEmpty()) return "";
+        return hasPage(normalized) ? normalized : resolve(normalized, page);
+    }
+
     public static String fromGateway(String gateway) {
         if (gateway == null || gateway.trim().isEmpty()) return "";
         return normalize(gateway.trim() + ":" + DEFAULT_PORT);

@@ -48,17 +48,21 @@ public class CarWebPrefsTest {
 
     @Test
     public void baseUrlKeepsOnlyTheServerRoot() {
-        CarWebPrefs.setBaseUrl(context, "http://100.84.59.94:8080/login.html?redirect=/index.html");
+        String pasted = "http://100.84.59.94:8080/login.html?redirect=/index.html";
+        CarWebPrefs.setBaseUrl(context, pasted);
         assertEquals("http://100.84.59.94:8080/", CarWebPrefs.baseUrl(context));
+        assertEquals(pasted, CarWebPrefs.entryUrl(context));
     }
 
     @Test
     public void legacyBaseWithPagePathReadsAsOrigin() {
+        String pasted = "http://100.84.59.94:8080/login.html?redirect=/index.html";
         context.getSharedPreferences("car_web", android.content.Context.MODE_PRIVATE)
                 .edit()
-                .putString("car_base_url", "http://100.84.59.94:8080/login.html?redirect=/index.html")
+                .putString("car_base_url", pasted)
                 .commit();
         assertEquals("http://100.84.59.94:8080/", CarWebPrefs.baseUrl(context));
+        assertEquals(pasted, CarWebPrefs.entryUrl(context));
     }
 
     @Test

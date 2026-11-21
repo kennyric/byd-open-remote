@@ -323,7 +323,7 @@ public class AdvancedActivity extends AppCompatActivity {
                     ? configStore.getSessionTtlMinutes()
                     : ConfigStore.DEFAULT_SESSION_TTL_MINUTES));
         }
-        etBase.setText(CarWebPrefs.baseUrl(this));
+        etBase.setText(CarWebPrefs.entryUrl(this));
         rgTop.clearCheck();
         rgMore.clearCheck();
         etManual.setText("");
@@ -392,7 +392,7 @@ public class AdvancedActivity extends AppCompatActivity {
         CarWebPrefs.setHideUrlBar(this, switchHideUrl.isChecked());
         CarWebPrefs.setOverdriveControlsVisibility(this, selectedControlsVisibility());
         if (configStore != null) configStore.setSessionTtlMinutes(ttlMinutes);
-        CarWebPrefs.setBaseUrl(this, base);
+        CarWebPrefs.setBaseUrl(this, rawBase);
         CarWebPrefs.setDefaultPage(this, page);
         finish();
     }
@@ -446,7 +446,7 @@ public class AdvancedActivity extends AppCompatActivity {
     private void updatePreview() {
         if (tvPreview == null) return;
         String base = CarWebUrl.normalize(etBase.getText().toString());
-        String resolved = CarWebUrl.resolve(base, selectedPage());
+        String resolved = CarWebUrl.entry(base, selectedPage());
         tvPreview.setText(resolved.isEmpty()
                 ? getString(R.string.advanced_preview_empty) : resolved);
     }

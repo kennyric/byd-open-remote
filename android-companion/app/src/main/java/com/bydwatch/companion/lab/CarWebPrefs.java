@@ -39,12 +39,17 @@ public final class CarWebPrefs {
     }
 
     public static String baseUrl(Context context) {
-        // Stored values may predate origin-only addresses: normalize on read.
+        // Native Overdrive calls (login, status, controls) need the server root only.
         return CarWebUrl.origin(prefs(context).getString(KEY_BASE, ""));
     }
 
+    /** The address exactly as entered, for the WebView entry point. */
+    public static String entryUrl(Context context) {
+        return CarWebUrl.normalize(prefs(context).getString(KEY_BASE, ""));
+    }
+
     public static void setBaseUrl(Context context, String url) {
-        prefs(context).edit().putString(KEY_BASE, CarWebUrl.origin(url)).apply();
+        prefs(context).edit().putString(KEY_BASE, CarWebUrl.normalize(url)).apply();
     }
 
     public static String defaultPage(Context context) {

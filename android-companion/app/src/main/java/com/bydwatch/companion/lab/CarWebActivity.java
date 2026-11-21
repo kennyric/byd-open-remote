@@ -142,16 +142,20 @@ public class CarWebActivity extends AppCompatActivity {
         boolean hideBar = CarWebPrefs.hideUrlBar(this);
         if (rowUrl != null) rowUrl.setVisibility(hideBar ? View.GONE : View.VISIBLE);
 
-        String page = getIntent().getStringExtra(EXTRA_PAGE);
-        if (page == null || page.trim().isEmpty()) {
-            page = CarWebPrefs.defaultPage(this);
-        }
+        String pageExtra = getIntent().getStringExtra(EXTRA_PAGE);
         String rawScroll = getIntent().getStringExtra(EXTRA_SCROLL_ID);
         scrollTarget = rawScroll != null
                 ? rawScroll.replaceAll("[^A-Za-z0-9_-]", "") : "";
 
-        String url = CarWebUrl.withFragment(
-                CarWebUrl.resolve(CarWebPrefs.baseUrl(this), page), scrollTarget);
+        String url;
+        if (pageExtra != null && !pageExtra.trim().isEmpty()) {
+            // Explicit page (for example the login button): resolve it against the server root.
+            url = CarWebUrl.resolve(CarWebPrefs.baseUrl(this), pageExtra);
+        } else {
+            // A pasted page URL opens exactly as entered; a bare address uses the page setting.
+            url = CarWebUrl.entry(CarWebPrefs.entryUrl(this), CarWebPrefs.defaultPage(this));
+        }
+        url = CarWebUrl.withFragment(url, scrollTarget);
         if (url.isEmpty()) {
             if (webView != null) webView.setVisibility(View.GONE);
             if (emptyState != null) emptyState.setVisibility(View.VISIBLE);

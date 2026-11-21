@@ -74,6 +74,19 @@ public class CarWebActivityTest {
     }
 
     @Test
+    public void pastedPageUrlOpensExactlyAsEntered() {
+        String pasted = "http://100.84.59.94:8080/login.html?redirect=/index.html";
+        CarWebPrefs.setBaseUrl(context, pasted);
+        CarWebPrefs.setDefaultPage(context, "/vehicle-control.html");
+
+        CarWebActivity activity = Robolectric.buildActivity(CarWebActivity.class)
+                .setup().get();
+        WebView webView = activity.findViewById(com.bydwatch.companion.R.id.webCar);
+
+        assertEquals(pasted, Shadows.shadowOf(webView).getLastLoadedUrl());
+    }
+
+    @Test
     public void defaultPageLoadsVehicleControl() {
         CarWebPrefs.reset(context);
         CarWebPrefs.setBaseUrl(context, "http://192.168.1.50:8080");

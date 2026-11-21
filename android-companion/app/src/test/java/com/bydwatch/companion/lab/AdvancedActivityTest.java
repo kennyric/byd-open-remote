@@ -361,16 +361,18 @@ public class AdvancedActivityTest {
     }
 
     @Test
-    public void savingAPastedLoginPageUrlStoresTheServerRoot() {
+    public void savingAPastedLoginPageUrlKeepsItForTheWebView() {
+        String pasted = "http://100.84.59.94:8080/login.html?redirect=/index.html";
         AdvancedActivity activity = Robolectric.buildActivity(AdvancedActivity.class)
                 .setup().get();
 
         android.widget.EditText base = activity.findViewById(
                 com.bydwatch.companion.R.id.etAdvBaseUrl);
-        base.setText("http://100.84.59.94:8080/login.html?redirect=/index.html");
+        base.setText(pasted);
         activity.findViewById(com.bydwatch.companion.R.id.btnAdvSave).performClick();
 
         assertEquals("http://100.84.59.94:8080/", CarWebPrefs.baseUrl(context));
+        assertEquals(pasted, CarWebPrefs.entryUrl(context));
     }
 
     @Test
