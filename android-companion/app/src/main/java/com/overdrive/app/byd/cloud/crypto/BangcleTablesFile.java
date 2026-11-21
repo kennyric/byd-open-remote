@@ -131,7 +131,7 @@ public final class BangcleTablesFile {
                 return false;
             }
         }
-        dest.setReadable(true, false);
+        dest.setReadable(true, true);
         return true;
     }
 

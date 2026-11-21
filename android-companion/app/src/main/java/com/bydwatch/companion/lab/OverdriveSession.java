@@ -3,6 +3,8 @@ package com.bydwatch.companion.lab;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.util.Log;
+import android.webkit.CookieManager;
+import android.webkit.WebStorage;
 
 import com.bydwatch.companion.BydWatchApp;
 import com.bydwatch.companion.data.ConfigStore;
@@ -115,6 +117,26 @@ public final class OverdriveSession {
                 .remove(KEY_JWT_EXPIRY)
                 .remove(KEY_DEVICE_ID)
                 .apply();
+        clearWebSession();
+    }
+
+    /**
+     * The car's web UI keeps its own cookie session. Disconnecting must not leave that behind,
+     * or "Disconnect" would only hide the token while the WebView stays signed in.
+     */
+    private static void clearWebSession() {
+        try {
+            CookieManager cookies = CookieManager.getInstance();
+            cookies.removeAllCookies(null);
+            cookies.flush();
+        } catch (Throwable ignored) {
+            // WebView not available (tests); nothing to clear.
+        }
+        try {
+            WebStorage.getInstance().deleteAllData();
+        } catch (Throwable ignored) {
+            // Same.
+        }
     }
 
     static String maskedAccessCode(Context context) {

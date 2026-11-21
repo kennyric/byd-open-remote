@@ -389,13 +389,16 @@ public class BydRepository {
      * Process a watch JSON command synchronously on the current thread.
      */
     public String processWatchJson(String rawJson) {
+        if (rawJson == null || rawJson.length() > 8192 || looksDeeplyNested(rawJson)) {
+            return WatchProtocol.error("unknown", "unknown", "BAD_REQUEST", "Malformed request");
+        }
         WatchCommand cmd;
         try {
             cmd = WatchProtocol.parseCommand(rawJson);
-        } catch (Exception e) {
+        } catch (Throwable e) {
             String id = extractFieldOrFallback(rawJson, "id", "unknown");
             String action = extractFieldOrFallback(rawJson, "action", "unknown");
-            return WatchProtocol.error(id, action, "BAD_REQUEST", "Malformed request or unknown action: " + e.getMessage());
+            return WatchProtocol.error(id, action, "BAD_REQUEST", "Malformed request or unknown action");
         }
 
         if (!configStore.isConfigured()) {
@@ -653,9 +656,36 @@ public class BydRepository {
                 default:
                     return WatchProtocol.error(cmd.id, cmd.action, "BAD_REQUEST", "Unknown action: " + cmd.action);
             }
+        } catch (StackOverflowError nested) {
+            return WatchProtocol.error(cmd.id, cmd.action, "BAD_REQUEST", "Malformed request");
         } catch (Exception e) {
             return mapExceptionToError(cmd.id, cmd.action, e);
         }
+    }
+
+    /** Reject absurd nesting before org.json can throw StackOverflowError on an untrusted frame. */
+    private static boolean looksDeeplyNested(String body) {
+        if (body == null || body.isEmpty()) return false;
+        int depth = 0;
+        boolean inString = false;
+        boolean escaped = false;
+        for (int i = 0; i < body.length(); i++) {
+            char ch = body.charAt(i);
+            if (inString) {
+                if (escaped) escaped = false;
+                else if (ch == '\\') escaped = true;
+                else if (ch == '"') inString = false;
+                continue;
+            }
+            if (ch == '"') {
+                inString = true;
+            } else if (ch == '{' || ch == '[') {
+                if (++depth > 64) return true;
+            } else if ((ch == '}' || ch == ']') && depth > 0) {
+                depth--;
+            }
+        }
+        return false;
     }
 
     private VehicleStatus enrichedStatus(VehicleStatus base) {

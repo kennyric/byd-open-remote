@@ -168,6 +168,11 @@ public class WearEngineBridge {
     }
 
     public void onIncomingBytes(byte[] payload) {
+        if (payload == null || payload.length > 8 * 1024) {
+            String errResponse = WatchProtocol.error("unknown", "unknown", "BAD_REQUEST", "Malformed request");
+            transport.send(errResponse.getBytes(StandardCharsets.UTF_8), null);
+            return;
+        }
         String rawJson = decodeUtf8(payload);
         if (rawJson == null) {
             String errResponse = WatchProtocol.error("unknown", "unknown", "BAD_REQUEST", "Non-UTF-8 or corrupt payload");

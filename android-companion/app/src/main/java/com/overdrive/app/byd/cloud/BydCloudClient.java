@@ -881,9 +881,7 @@ public class BydCloudClient {
         String code = response.optString("code", "");
         if (!"0".equals(code)) {
             String msg = response.optString("message", "");
-            String detail = decodeRespondDataSafe(response, env.contentKey);
-            logger.warn("smartCharge toggle failed: code=" + code + " message=" + msg
-                    + " respondData=" + detail + " fullResponse=" + response.toString());
+            logger.warn("smartCharge toggle failed: code=" + code + " message=" + msg);
             if (CLOUD_CODE_VEHICLE_UNREACHABLE.equals(code)) {
                 throw new SmartChargeVehicleUnreachableException("smartCharge toggle", msg);
             }

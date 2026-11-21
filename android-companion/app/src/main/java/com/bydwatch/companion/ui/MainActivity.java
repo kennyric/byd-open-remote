@@ -951,8 +951,7 @@ public class MainActivity extends AppCompatActivity {
                 : (configured ? R.id.nav_controls : R.id.nav_account);
         showPage(initialPage);
 
-        if (isDemoFlavor() || (com.bydwatch.companion.BuildConfig.DEBUG && getIntent() != null
-                && getIntent().getBooleanExtra("demo_mode", false))) {
+        if (isDemoFlavor()) {
             applyDebugDemoState(getIntent() != null ? getIntent() : new Intent());
         }
     }

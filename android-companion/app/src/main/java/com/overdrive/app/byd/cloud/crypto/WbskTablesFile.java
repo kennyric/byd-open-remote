@@ -102,7 +102,7 @@ public final class WbskTablesFile {
                 return false;
             }
         }
-        dest.setReadable(true, false);
+        dest.setReadable(true, true);
         return true;
     }
 

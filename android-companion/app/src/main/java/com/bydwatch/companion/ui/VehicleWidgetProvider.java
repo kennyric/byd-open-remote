@@ -998,10 +998,15 @@ public class VehicleWidgetProvider extends AppWidgetProvider {
                     .vin("")
                     .vehicles(Collections.emptyList())
                     .build();
+            // Widgets never display coordinates; do not keep the car's position in plain prefs.
+            org.json.JSONObject json = sanitized.toJson();
+            json.remove("lat");
+            json.remove("lng");
+            json.remove("gpsTs");
             SharedPreferences.Editor editor = context
                     .getSharedPreferences(PREFS_WIDGET, Context.MODE_PRIVATE)
                     .edit()
-                    .putString(KEY_STATUS_PREFIX + appWidgetId, sanitized.toJson().toString())
+                    .putString(KEY_STATUS_PREFIX + appWidgetId, json.toString())
                     .putString(KEY_STATUS_VIN_PREFIX + appWidgetId, bound);
             if (updateLastSyncMs) {
                 editor.putLong(KEY_SYNC_PREFIX + appWidgetId, System.currentTimeMillis());

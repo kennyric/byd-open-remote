@@ -18,6 +18,7 @@ public final class CloudLog {
     }
 
     public void info(String msg) {
+        if (!com.bydwatch.companion.BuildConfig.DEBUG) return;
         log("I", tag, msg, null);
     }
 
@@ -26,6 +27,7 @@ public final class CloudLog {
     }
 
     public void debug(String msg) {
+        if (!com.bydwatch.companion.BuildConfig.DEBUG) return;
         log("D", tag, msg, null);
     }
 

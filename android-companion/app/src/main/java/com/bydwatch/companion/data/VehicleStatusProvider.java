@@ -34,7 +34,7 @@ public final class VehicleStatusProvider extends ContentProvider {
             return new MatrixCursor(VehicleStatusContract.COLUMNS);
         }
         Object[] row = VehicleStatusContract.row(cachedStatus(), batteryCapacityKwh());
-        VehicleStatusContract.log("served soc=" + row[0] + "% range=" + row[1] + row[3] + " ts=" + row[2]);
+        VehicleStatusContract.log("served row to uid " + Binder.getCallingUid());
         MatrixCursor cursor = new MatrixCursor(VehicleStatusContract.COLUMNS);
         cursor.addRow(row);
         return cursor;
@@ -113,16 +113,19 @@ public final class VehicleStatusProvider extends ContentProvider {
 
     @Override
     public Uri insert(Uri uri, ContentValues values) {
-        throw new UnsupportedOperationException("Vehicle status is read-only");
+        VehicleStatusContract.log("insert refused");
+        return null;
     }
 
     @Override
     public int update(Uri uri, ContentValues values, String selection, String[] selectionArgs) {
-        throw new UnsupportedOperationException("Vehicle status is read-only");
+        VehicleStatusContract.log("update refused");
+        return 0;
     }
 
     @Override
     public int delete(Uri uri, String selection, String[] selectionArgs) {
-        throw new UnsupportedOperationException("Vehicle status is read-only");
+        VehicleStatusContract.log("delete refused");
+        return 0;
     }
 }
