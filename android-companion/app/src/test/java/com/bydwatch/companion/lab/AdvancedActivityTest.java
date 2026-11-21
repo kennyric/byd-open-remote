@@ -407,6 +407,29 @@ public class AdvancedActivityTest {
     }
 
     @Test
+    public void microgMapsChoiceSurvivesReopeningAdvancedWithTheRealStore() {
+        android.content.SharedPreferences prefs = context.getSharedPreferences(
+                "advanced_real_store_test", Context.MODE_PRIVATE);
+        prefs.edit().clear().commit();
+        com.bydwatch.companion.data.SecureConfigStore realStore =
+                new com.bydwatch.companion.data.SecureConfigStore(prefs);
+        BydWatchApp.setTestDependencies(realStore, null, null);
+
+        AdvancedActivity first = Robolectric.buildActivity(AdvancedActivity.class)
+                .setup().get();
+        SwitchMaterial microg = first.findViewById(
+                com.bydwatch.companion.R.id.switchAdvMicrogMaps);
+        microg.setChecked(true);
+        first.findViewById(com.bydwatch.companion.R.id.btnAdvSave).performClick();
+
+        AdvancedActivity reopened = Robolectric.buildActivity(AdvancedActivity.class)
+                .setup().get();
+        SwitchMaterial reread = reopened.findViewById(
+                com.bydwatch.companion.R.id.switchAdvMicrogMaps);
+        assertTrue("microG choice must survive save and reopen", reread.isChecked());
+    }
+
+    @Test
     public void guideButtonOpensTheRemoteAccessGuide() {
         AdvancedActivity activity = Robolectric.buildActivity(AdvancedActivity.class)
                 .setup().get();

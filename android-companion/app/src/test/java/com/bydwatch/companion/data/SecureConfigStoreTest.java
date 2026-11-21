@@ -73,6 +73,20 @@ public class SecureConfigStoreTest {
         assertEquals(ConfigStore.LANG_SYSTEM, store.getAppLanguage());
     }
 
+    @Test
+    public void vehicleStatusTargetPackagePersists() {
+        assertEquals(VehicleStatusBroadcaster.DEFAULT_TARGET_PACKAGE,
+                store.getVehicleStatusTargetPackage());
+
+        store.setVehicleStatusTargetPackage(VehicleStatusBroadcaster.MICROG_TARGET_PACKAGE);
+        assertEquals(VehicleStatusBroadcaster.MICROG_TARGET_PACKAGE,
+                store.getVehicleStatusTargetPackage());
+
+        store.setVehicleStatusTargetPackage("  ");
+        assertEquals(VehicleStatusBroadcaster.DEFAULT_TARGET_PACKAGE,
+                store.getVehicleStatusTargetPackage());
+    }
+
     @Test(expected = IllegalStateException.class)
     public void contextConstructorFailsWithoutAndroidKeyStoreInJvm() {
         // Must reject without silent plaintext fallback when hardware KeyStore is absent

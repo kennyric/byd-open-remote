@@ -51,6 +51,7 @@ public class SecureConfigStore implements ConfigStore {
     private static final String PREF_TEMP_UNIT = "byd_temp_unit";
     private static final String PREF_PRES_UNIT = "byd_pres_unit";
     private static final String PREF_WATCH_TARGET = "byd_watch_target";
+    private static final String PREF_VEHICLE_STATUS_TARGET = "byd_vehicle_status_target";
     private static final String PREF_OVERDRIVE_ACCESS_CODE = "byd_overdrive_access_code";
     private static final String PREF_OVERDRIVE_JWT = "byd_overdrive_jwt";
     private static final String PREF_OVERDRIVE_JWT_EXPIRY = "byd_overdrive_jwt_expiry";
@@ -531,6 +532,23 @@ public class SecureConfigStore implements ConfigStore {
     @Override
     public void setPressureUnit(String unit) {
         prefs.edit().putString(PREF_PRES_UNIT, UnitPreferences.normalizePressureUnit(unit)).apply();
+    }
+
+    @Override
+    public String getVehicleStatusTargetPackage() {
+        String stored = prefs.getString(PREF_VEHICLE_STATUS_TARGET, "");
+        return stored != null && !stored.trim().isEmpty()
+                ? stored.trim()
+                : VehicleStatusBroadcaster.DEFAULT_TARGET_PACKAGE;
+    }
+
+    @Override
+    public void setVehicleStatusTargetPackage(String targetPackage) {
+        String value = targetPackage != null ? targetPackage.trim() : "";
+        prefs.edit()
+                .putString(PREF_VEHICLE_STATUS_TARGET,
+                        value.isEmpty() ? VehicleStatusBroadcaster.DEFAULT_TARGET_PACKAGE : value)
+                .apply();
     }
 
     @Override
