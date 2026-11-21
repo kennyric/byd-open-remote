@@ -52,6 +52,7 @@ BYD cloud ──► byd-open-remote (com.bydopenremote.app)
 | Columns | `soc` INTEGER 0–100, `-1` unknown · `range_km` INTEGER ≥ 0, `-1` unknown · `ts` INTEGER epoch ms · `distance_unit` TEXT `km`/`mi` · `vin` TEXT nullable |
 | Permission | `com.bydopenremote.app.permission.READ_VEHICLE`, `protectionLevel="normal"` (the patched Maps is re-signed, so `signature` would never be granted) |
 | Broadcast | `com.bydopenremote.app.action.VEHICLE_STATUS_CHANGED`, sent with `setPackage(<target>)` |
+| Refresh request | `ContentResolver.call(content://…/status, "refresh", null, extras)`; `extras.distance_km` carries the distance driven since the reading, used for a display-only SoC/range estimate (`soc − km × recentKwhPer100km / 100 / capacity × 100`). The legacy broadcast cannot identify its sender before Android 14 and is refused. |
 | Target package default | `org.ungoogled.android.apps.maps`, configurable in byd-open-remote |
 
 ## Rules
