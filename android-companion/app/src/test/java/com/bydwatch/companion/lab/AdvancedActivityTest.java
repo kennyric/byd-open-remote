@@ -416,8 +416,8 @@ public class AdvancedActivityTest {
         Intent next = Shadows.shadowOf(activity).getNextStartedActivity();
         assertNotNull(next);
         assertEquals(Intent.ACTION_VIEW, next.getAction());
-        assertTrue(next.getDataString() != null
-                && next.getDataString().startsWith("https://www.overdrive.qd.je/guide"));
+        assertEquals(activity.getString(com.bydwatch.companion.R.string.overdrive_guide_url),
+                next.getDataString());
     }
 
     /** Fake car: /auth/status answers, the token endpoint mints a JWT. */
