@@ -420,4 +420,8 @@
     <string name="advanced_session_ttl_hint">Menit (5–1440)</string>
     <string name="advanced_session_ttl_helper">Default 30 menit. Berlaku pada permintaan BYD Cloud berikutnya.</string>
     <string name="advanced_session_ttl_invalid">Interval token harus antara 5 dan 1440 menit</string>
+    <string name="advanced_maps_section">Integrasi Google Maps</string>
+    <string name="advanced_maps_microg">Build microG-RE</string>
+    <string name="advanced_maps_microg_helper">Aktifkan jika Maps yang dipatch memakai nama paket microG-RE. Hanya paket yang dipilih yang boleh membaca telemetri kendaraan.</string>
+    <string name="secure_store_reset">Login tersimpan tidak dapat dibuka di perangkat ini. Silakan masuk lagi.</string>
 </resources>

@@ -392,6 +392,20 @@ public class AdvancedActivityTest {
                         com.bydwatch.companion.R.id.tvAdvOverdriveStatus)).getText().toString());
     }
 
+    @Test
+    public void microgMapsChoicePersists() {
+        AdvancedActivity activity = Robolectric.buildActivity(AdvancedActivity.class)
+                .setup().get();
+
+        com.google.android.material.switchmaterial.SwitchMaterial microg =
+                activity.findViewById(com.bydwatch.companion.R.id.switchAdvMicrogMaps);
+        microg.setChecked(true);
+        activity.findViewById(com.bydwatch.companion.R.id.btnAdvSave).performClick();
+
+        assertEquals(com.bydwatch.companion.data.VehicleStatusBroadcaster.MICROG_TARGET_PACKAGE,
+                configStore.getVehicleStatusTargetPackage());
+    }
+
     /** Fake car: /auth/status answers, the token endpoint mints a JWT. */
     private static final class RecordingTransport implements OverdriveClient.Transport {
         boolean reachable;

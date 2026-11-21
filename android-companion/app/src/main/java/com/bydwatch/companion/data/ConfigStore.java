@@ -144,6 +144,9 @@ public interface ConfigStore {
     default void setOverdriveJwtExpiry(long epochMillis) {}
     default String getOverdriveDeviceId() { return ""; }
     default void setOverdriveDeviceId(String deviceId) {}
+    /** Origin the session was minted for; changing the address must invalidate it. */
+    default String getOverdriveOrigin() { return ""; }
+    default void setOverdriveOrigin(String origin) {}
     default void clearOverdriveSession() {}
 
     default boolean isAlertsEnabled() { return false; }

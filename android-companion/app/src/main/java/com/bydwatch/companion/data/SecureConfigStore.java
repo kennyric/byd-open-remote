@@ -2,6 +2,7 @@ package com.bydwatch.companion.data;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.util.Log;
 
 import androidx.security.crypto.EncryptedSharedPreferences;
 import androidx.security.crypto.MasterKey;
@@ -12,6 +13,7 @@ import com.bydwatch.companion.model.VehicleSummary;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.File;
 import java.util.List;
 
 /**
@@ -53,6 +55,7 @@ public class SecureConfigStore implements ConfigStore {
     private static final String PREF_OVERDRIVE_JWT = "byd_overdrive_jwt";
     private static final String PREF_OVERDRIVE_JWT_EXPIRY = "byd_overdrive_jwt_expiry";
     private static final String PREF_OVERDRIVE_DEVICE_ID = "byd_overdrive_device_id";
+    private static final String PREF_OVERDRIVE_ORIGIN = "byd_overdrive_origin";
     private static final String PREF_ALERTS_ENABLED = "byd_alerts_enabled";
     private static final String PREF_DISCLAIMER_ACCEPTED = "byd_disclaimer_accepted";
     private static final String PREF_WIDGET_SYNC_MINUTES = "byd_widget_sync_minutes";
@@ -81,22 +84,69 @@ public class SecureConfigStore implements ConfigStore {
     private static final String PREF_BIOMETRIC_LAST_AUTH_BOOT_COUNT = "byd_biometric_last_auth_boot_count";
 
     private final SharedPreferences prefs;
+    private static volatile boolean recoveredFromUnreadableStore;
 
     public SecureConfigStore(Context context) {
+        this.prefs = create(context);
+    }
+
+    private static SharedPreferences create(Context context) {
         try {
-            MasterKey masterKey = new MasterKey.Builder(context)
-                    .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-                    .build();
-            this.prefs = EncryptedSharedPreferences.create(
-                    context,
-                    PREFS_FILE,
-                    masterKey,
-                    EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-                    EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-            );
-        } catch (Exception e) {
-            throw new IllegalStateException("Failed to initialize encrypted config store", e);
+            return build(context);
+        } catch (Exception first) {
+            Log.w("SecureConfigStore", "Encrypted preferences unreadable; recreating", first);
+            recover(context);
+            try {
+                return build(context);
+            } catch (Exception second) {
+                throw new IllegalStateException("Failed to initialize encrypted config store", second);
+            }
         }
+    }
+
+    private static SharedPreferences build(Context context) throws Exception {
+        MasterKey masterKey = new MasterKey.Builder(context)
+                .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+                .build();
+        return EncryptedSharedPreferences.create(
+                context,
+                PREFS_FILE,
+                masterKey,
+                EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+        );
+    }
+
+    /**
+     * The keyset is unrecoverable once Tink or the Keystore entry is damaged. Drop both the
+     * ciphertext and the key, then let the caller start from an empty store; credentials are
+     * re-entered rather than leaving the app in a permanent crash loop.
+     */
+    private static void recover(Context context) {
+        try {
+            File dir = new File(context.getApplicationInfo().dataDir, "shared_prefs");
+            new File(dir, PREFS_FILE + ".xml").delete();
+            new File(dir, PREFS_FILE + ".xml.bak").delete();
+        } catch (RuntimeException ignored) {
+            // Best effort; the retry below will surface anything worse.
+        }
+        try {
+            java.security.KeyStore keyStore =
+                    java.security.KeyStore.getInstance("AndroidKeyStore");
+            keyStore.load(null);
+            String alias = MasterKey.DEFAULT_MASTER_KEY_ALIAS;
+            if (keyStore.containsAlias(alias)) keyStore.deleteEntry(alias);
+        } catch (Exception ignored) {
+            // A missing/broken key entry is exactly the case we are recovering from.
+        }
+        recoveredFromUnreadableStore = true;
+    }
+
+    /** True once, right after an unreadable store was reset, so the UI can ask for a re-login. */
+    public static boolean consumeRecoveryFlag() {
+        boolean recovered = recoveredFromUnreadableStore;
+        recoveredFromUnreadableStore = false;
+        return recovered;
     }
 
     public SecureConfigStore(SharedPreferences prefs) {
@@ -535,12 +585,23 @@ public class SecureConfigStore implements ConfigStore {
     }
 
     @Override
+    public String getOverdriveOrigin() {
+        return prefs.getString(PREF_OVERDRIVE_ORIGIN, "");
+    }
+
+    @Override
+    public void setOverdriveOrigin(String origin) {
+        prefs.edit().putString(PREF_OVERDRIVE_ORIGIN, origin != null ? origin : "").apply();
+    }
+
+    @Override
     public void clearOverdriveSession() {
         prefs.edit()
                 .remove(PREF_OVERDRIVE_ACCESS_CODE)
                 .remove(PREF_OVERDRIVE_JWT)
                 .remove(PREF_OVERDRIVE_JWT_EXPIRY)
                 .remove(PREF_OVERDRIVE_DEVICE_ID)
+                .remove(PREF_OVERDRIVE_ORIGIN)
                 .apply();
     }
 

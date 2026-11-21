@@ -69,7 +69,13 @@ public final class OverdriveClient {
     private static final OkHttpClient CLIENT = new OkHttpClient.Builder()
             .connectTimeout(4, TimeUnit.SECONDS)
             .readTimeout(8, TimeUnit.SECONDS)
+            .callTimeout(12, TimeUnit.SECONDS)
+            .followRedirects(false)
+            .followSslRedirects(false)
             .build();
+
+    /** Upper bound for a car response; the real payloads are a few KB. */
+    private static final int MAX_BODY_BYTES = 256 * 1024;
 
     private static final Transport DEFAULT_TRANSPORT = (method, url, jwt, body) -> {
         Request.Builder builder = new Request.Builder().url(url);
@@ -82,10 +88,56 @@ public final class OverdriveClient {
             builder.get();
         }
         try (okhttp3.Response response = CLIENT.newCall(builder.build()).execute()) {
-            return new Response(response.code(),
-                    response.body() != null ? response.body().string() : "");
+            return new Response(response.code(), readBody(response.body()));
         }
     };
+
+    private static String readBody(okhttp3.ResponseBody body) throws java.io.IOException {
+        if (body == null) return "";
+        long declared = body.contentLength();
+        if (declared > MAX_BODY_BYTES) {
+            throw new java.io.IOException("Overdrive response too large");
+        }
+        try (java.io.InputStream in = body.byteStream();
+             java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream()) {
+            byte[] buffer = new byte[8192];
+            int read;
+            int total = 0;
+            while ((read = in.read(buffer)) != -1) {
+                total += read;
+                if (total > MAX_BODY_BYTES) {
+                    throw new java.io.IOException("Overdrive response too large");
+                }
+                out.write(buffer, 0, read);
+            }
+            return out.toString("UTF-8");
+        }
+    }
+
+    /** Reject absurd nesting before org.json can throw StackOverflowError on it. */
+    private static boolean looksDeeplyNested(String body) {
+        if (body == null || body.isEmpty()) return false;
+        int depth = 0;
+        boolean inString = false;
+        boolean escaped = false;
+        for (int i = 0; i < body.length(); i++) {
+            char ch = body.charAt(i);
+            if (inString) {
+                if (escaped) escaped = false;
+                else if (ch == '\\') escaped = true;
+                else if (ch == '"') inString = false;
+                continue;
+            }
+            if (ch == '"') {
+                inString = true;
+            } else if (ch == '{' || ch == '[') {
+                if (++depth > 64) return true;
+            } else if ((ch == '}' || ch == ']') && depth > 0) {
+                depth--;
+            }
+        }
+        return false;
+    }
 
     private static volatile Transport transport;
 
@@ -108,8 +160,11 @@ public final class OverdriveClient {
         }
         try {
             Response response = transport().execute(method, url, jwt, body);
+            if (looksDeeplyNested(response.body)) {
+                return new Outcome<>(null, 0, "Invalid Overdrive response");
+            }
             return new Outcome<>(response, response.code, null);
-        } catch (IOException | RuntimeException e) {
+        } catch (Throwable e) {
             String message = e.getMessage();
             return new Outcome<>(null, 0, message != null ? message : "Connection failed");
         }

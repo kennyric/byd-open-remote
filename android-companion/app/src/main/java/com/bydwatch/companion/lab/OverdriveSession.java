@@ -40,13 +40,15 @@ public final class OverdriveSession {
     public static String accessCode(Context context) {
         migrateLegacy(context);
         ConfigStore store = store(context);
-        return store != null ? trimOrNull(store.getOverdriveAccessCode()) : null;
+        if (store == null || !originMatches(context, store)) return null;
+        return trimOrNull(store.getOverdriveAccessCode());
     }
 
     public static void setAccessCode(Context context, String code) {
         migrateLegacy(context);
         ConfigStore store = store(context);
         if (store != null) {
+            store.setOverdriveOrigin(currentOrigin(context));
             store.setOverdriveAccessCode(code != null ? code.trim() : "");
         }
     }
@@ -59,13 +61,15 @@ public final class OverdriveSession {
     public static String jwt(Context context) {
         migrateLegacy(context);
         ConfigStore store = store(context);
-        return store != null ? trimOrNull(store.getOverdriveJwt()) : null;
+        if (store == null || !originMatches(context, store)) return null;
+        return trimOrNull(store.getOverdriveJwt());
     }
 
     public static void setJwt(Context context, String jwt, long expiresInSeconds, long nowMs) {
         ConfigStore store = store(context);
         if (store == null) return;
         long seconds = expiresInSeconds > 0 ? expiresInSeconds : 30L * 24 * 60 * 60;
+        store.setOverdriveOrigin(currentOrigin(context));
         store.setOverdriveJwt(jwt != null ? jwt : "");
         store.setOverdriveJwtExpiry(nowMs + seconds * 1000L);
     }
@@ -73,7 +77,7 @@ public final class OverdriveSession {
     public static boolean hasJwt(Context context, long nowMs) {
         migrateLegacy(context);
         ConfigStore store = store(context);
-        if (store == null) return false;
+        if (store == null || !originMatches(context, store)) return false;
         if (trimOrNull(store.getOverdriveJwt()) == null) return false;
         return store.getOverdriveJwtExpiry() > nowMs;
     }
@@ -88,13 +92,15 @@ public final class OverdriveSession {
     public static String deviceId(Context context) {
         migrateLegacy(context);
         ConfigStore store = store(context);
-        return store != null ? trimOrNull(store.getOverdriveDeviceId()) : null;
+        if (store == null || !originMatches(context, store)) return null;
+        return trimOrNull(store.getOverdriveDeviceId());
     }
 
     public static void setDeviceId(Context context, String deviceId) {
         migrateLegacy(context);
         ConfigStore store = store(context);
         if (store != null) {
+            store.setOverdriveOrigin(currentOrigin(context));
             store.setOverdriveDeviceId(deviceId != null ? deviceId.trim() : "");
         }
     }
@@ -141,6 +147,9 @@ public final class OverdriveSession {
         if (isBlank(store.getOverdriveDeviceId()) && !isBlank(device)) {
             store.setOverdriveDeviceId(device.trim());
         }
+        if (isBlank(store.getOverdriveOrigin())) {
+            store.setOverdriveOrigin(currentOrigin(context));
+        }
         legacy.edit()
                 .remove(KEY_ACCESS_CODE)
                 .remove(KEY_JWT)
@@ -157,6 +166,16 @@ public final class OverdriveSession {
             Log.w(TAG, "Encrypted config store unavailable; Overdrive session disabled", unavailable);
             return null;
         }
+    }
+
+    private static boolean originMatches(Context context, ConfigStore store) {
+        String stored = trimOrNull(store.getOverdriveOrigin());
+        if (stored == null) return true;
+        return stored.equalsIgnoreCase(currentOrigin(context));
+    }
+
+    private static String currentOrigin(Context context) {
+        return CarWebUrl.origin(CarWebPrefs.baseUrl(context));
     }
 
     private static SharedPreferences legacy(Context context) {

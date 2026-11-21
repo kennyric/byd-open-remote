@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    BYD Cloud (and the self-updater) are HTTPS-only. The experimental Overdrive feature talks to a
+    user-supplied car address on the local network or through Tailscale, which serves plain HTTP,
+    so cleartext has to stay allowed for that feature to work in a release build. Trust anchors are
+    the system store only; nothing here weakens TLS verification.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

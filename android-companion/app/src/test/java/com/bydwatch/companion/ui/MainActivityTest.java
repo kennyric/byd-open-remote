@@ -124,6 +124,7 @@ public class MainActivityTest {
     @After
     public void tearDown() {
         BiometricLockHelper.resetTestHooks();
+        com.bydwatch.companion.update.AppUpdateChecker.setSignatureCheckForTesting(null);
         if (controller != null) {
             try {
                 controller.destroy();
@@ -1633,6 +1634,64 @@ public class MainActivityTest {
     }
 
     @Test
+    public void inAppUpdaterRefusesApkWithoutCanonicalSignature() throws Exception {
+        com.bydwatch.companion.update.AppUpdateInfo newer =
+                new com.bydwatch.companion.update.AppUpdateInfo(
+                        "v9.9.9", "9.9.9", "v9.9.9", "## Highlights",
+                        "https://github.com/kennyric/byd-open-remote/releases/tag/v9.9.9",
+                        "BYD-Open-Remote-v9.9.9.apk",
+                        "https://github.com/kennyric/byd-open-remote/releases/download/v9.9.9/BYD-Open-Remote-v9.9.9.apk",
+                        1024L, "");
+        com.bydwatch.companion.update.AppUpdateChecker fakeChecker =
+                new com.bydwatch.companion.update.AppUpdateChecker() {
+                    @Override
+                    public com.bydwatch.companion.update.AppUpdateInfo fetchLatestRelease() {
+                        return newer;
+                    }
+
+                    @Override
+                    public java.io.File downloadApk(
+                            android.content.Context context,
+                            com.bydwatch.companion.update.AppUpdateInfo info,
+                            DownloadProgressListener progressListener,
+                            java.util.concurrent.atomic.AtomicBoolean cancelled) throws java.io.IOException {
+                        java.io.File dir = new java.io.File(context.getCacheDir(), "updates");
+                        //noinspection ResultOfMethodCallIgnored
+                        dir.mkdirs();
+                        java.io.File apk = new java.io.File(dir, info.apkName);
+                        try (java.io.FileOutputStream out = new java.io.FileOutputStream(apk)) {
+                            out.write(new byte[1024]);
+                        }
+                        return apk;
+                    }
+                };
+
+        BydWatchApp.setTestAppUpdateChecker(fakeChecker);
+        com.bydwatch.companion.update.AppUpdateChecker.setSignatureCheckForTesting(false);
+        controller.destroy();
+        controller = Robolectric.buildActivity(MainActivity.class).setup();
+        activity = controller.get();
+        activity.getUpdateUiHelperForTesting().awaitActiveTaskForTesting();
+        ShadowLooper.idleMainLooper();
+
+        activity.findViewById(R.id.bannerAppUpdate).performClick();
+        ShadowLooper.idleMainLooper();
+        AlertDialog dialog = (AlertDialog) ShadowDialog.getLatestDialog();
+        assertNotNull(dialog);
+        Button btnDownload = dialog.findViewById(R.id.btnUpdateDownload);
+        Shadows.shadowOf(activity.getPackageManager()).setCanRequestPackageInstalls(true);
+        btnDownload.performClick();
+        activity.getUpdateUiHelperForTesting().awaitActiveTaskForTesting();
+        ShadowLooper.idleMainLooper();
+
+        org.junit.Assert.assertNull(Shadows.shadowOf(activity).getNextStartedActivity());
+        String toast = ShadowToast.getTextOfLatestToast();
+        assertNotNull(toast);
+        assertTrue(toast.contains("signed"));
+        dialog.dismiss();
+    }
+
+    @Test
     public void inAppUpdaterShowsBannerDialogDownloadsAndLaunchesInstaller() throws Exception {
         com.bydwatch.companion.update.AppUpdateInfo newer =
                 new com.bydwatch.companion.update.AppUpdateInfo(
@@ -1674,6 +1733,7 @@ public class MainActivityTest {
                 };
 
         BydWatchApp.setTestAppUpdateChecker(fakeChecker);
+        com.bydwatch.companion.update.AppUpdateChecker.setSignatureCheckForTesting(true);
         controller.destroy();
         controller = Robolectric.buildActivity(MainActivity.class).setup();
         activity = controller.get();

@@ -509,6 +509,10 @@
     <string name="advanced_session_ttl_hint">Minutes (5–1440)</string>
     <string name="advanced_session_ttl_helper">Default 30 minutes. Applies to the next BYD Cloud request.</string>
     <string name="advanced_session_ttl_invalid">Token refresh must be between 5 and 1440 minutes</string>
+    <string name="advanced_maps_section">Google Maps integration</string>
+    <string name="advanced_maps_microg">microG-RE build</string>
+    <string name="advanced_maps_microg_helper">Enable when the patched Maps uses the microG-RE package name. Only the selected package may read vehicle telemetry.</string>
+    <string name="secure_store_reset">Saved login couldn\'t be opened on this device. Please sign in again.</string>
     <string name="overdrive_controls_card_title">Overdrive</string>
     <string name="overdrive_controls_card_checking">Checking…</string>
     <string name="overdrive_controls_card_connected">Connected</string>

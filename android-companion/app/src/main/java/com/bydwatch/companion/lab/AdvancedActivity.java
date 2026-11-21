@@ -19,6 +19,7 @@ import com.bydwatch.companion.BuildConfig;
 import com.bydwatch.companion.BydWatchApp;
 import com.bydwatch.companion.R;
 import com.bydwatch.companion.data.ConfigStore;
+import com.bydwatch.companion.data.VehicleStatusBroadcaster;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.color.MaterialColors;
 import com.google.android.material.switchmaterial.SwitchMaterial;
@@ -31,6 +32,7 @@ public class AdvancedActivity extends AppCompatActivity {
 
     private SwitchMaterial switchShow;
     private SwitchMaterial switchHideUrl;
+    private SwitchMaterial switchMicrogMaps;
     private RadioGroup rgControlsVisibility;
     private EditText etBase;
     private RadioGroup rgTop;
@@ -65,6 +67,7 @@ public class AdvancedActivity extends AppCompatActivity {
 
         switchShow = findViewById(R.id.switchAdvShowOverdrive);
         switchHideUrl = findViewById(R.id.switchAdvHideUrlBar);
+        switchMicrogMaps = findViewById(R.id.switchAdvMicrogMaps);
         rgControlsVisibility = findViewById(R.id.rgAdvControlsVisibility);
         etBase = findViewById(R.id.etAdvBaseUrl);
         rgTop = findViewById(R.id.rgAdvTopPages);
@@ -317,6 +320,11 @@ public class AdvancedActivity extends AppCompatActivity {
         binding = true;
         switchShow.setChecked(CarWebPrefs.showOverdrive(this));
         switchHideUrl.setChecked(CarWebPrefs.hideUrlBar(this));
+        if (switchMicrogMaps != null) {
+            switchMicrogMaps.setChecked(configStore != null
+                    && VehicleStatusBroadcaster.MICROG_TARGET_PACKAGE.equals(
+                            configStore.getVehicleStatusTargetPackage()));
+        }
         checkControlsVisibility(CarWebPrefs.overdriveControlsVisibility(this));
         if (etSessionTtl != null) {
             etSessionTtl.setText(String.valueOf(configStore != null
@@ -355,6 +363,7 @@ public class AdvancedActivity extends AppCompatActivity {
         binding = true;
         switchShow.setChecked(false);
         switchHideUrl.setChecked(true);
+        if (switchMicrogMaps != null) switchMicrogMaps.setChecked(false);
         checkControlsVisibility(CarWebPrefs.CONTROLS_HIDDEN);
         if (etSessionTtl != null) {
             etSessionTtl.setText(String.valueOf(ConfigStore.DEFAULT_SESSION_TTL_MINUTES));
@@ -391,7 +400,13 @@ public class AdvancedActivity extends AppCompatActivity {
         CarWebPrefs.setShowOverdrive(this, switchShow.isChecked());
         CarWebPrefs.setHideUrlBar(this, switchHideUrl.isChecked());
         CarWebPrefs.setOverdriveControlsVisibility(this, selectedControlsVisibility());
-        if (configStore != null) configStore.setSessionTtlMinutes(ttlMinutes);
+        if (configStore != null) {
+            configStore.setSessionTtlMinutes(ttlMinutes);
+            configStore.setVehicleStatusTargetPackage(switchMicrogMaps != null
+                    && switchMicrogMaps.isChecked()
+                    ? VehicleStatusBroadcaster.MICROG_TARGET_PACKAGE
+                    : VehicleStatusBroadcaster.DEFAULT_TARGET_PACKAGE);
+        }
         CarWebPrefs.setBaseUrl(this, rawBase);
         CarWebPrefs.setDefaultPage(this, page);
         finish();

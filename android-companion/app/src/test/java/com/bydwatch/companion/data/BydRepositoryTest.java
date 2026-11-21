@@ -452,6 +452,13 @@ public class BydRepositoryTest {
         @Override public String getDistanceUnit() { return distanceUnit; }
         @Override public void setDistanceUnit(String unit) { this.distanceUnit = com.bydwatch.companion.model.UnitPreferences.normalizeDistanceUnit(unit); }
 
+        private String vehicleStatusTargetPackage = VehicleStatusBroadcaster.DEFAULT_TARGET_PACKAGE;
+        @Override public String getVehicleStatusTargetPackage() { return vehicleStatusTargetPackage; }
+        @Override public void setVehicleStatusTargetPackage(String targetPackage) {
+            this.vehicleStatusTargetPackage = targetPackage != null && !targetPackage.trim().isEmpty()
+                    ? targetPackage.trim() : VehicleStatusBroadcaster.DEFAULT_TARGET_PACKAGE;
+        }
+
         @Override public String getTempUnit() { return tempUnit; }
         @Override public void setTempUnit(String unit) { this.tempUnit = com.bydwatch.companion.model.UnitPreferences.normalizeTempUnit(unit); }
 
@@ -465,6 +472,7 @@ public class BydRepositoryTest {
         private String overdriveJwt = "";
         private long overdriveJwtExpiry = 0L;
         private String overdriveDeviceId = "";
+        private String overdriveOrigin = "";
 
         @Override public String getOverdriveAccessCode() { return overdriveAccessCode; }
         @Override public void setOverdriveAccessCode(String code) { this.overdriveAccessCode = code != null ? code : ""; }
@@ -474,11 +482,14 @@ public class BydRepositoryTest {
         @Override public void setOverdriveJwtExpiry(long epochMillis) { this.overdriveJwtExpiry = epochMillis; }
         @Override public String getOverdriveDeviceId() { return overdriveDeviceId; }
         @Override public void setOverdriveDeviceId(String deviceId) { this.overdriveDeviceId = deviceId != null ? deviceId : ""; }
+        @Override public String getOverdriveOrigin() { return overdriveOrigin; }
+        @Override public void setOverdriveOrigin(String origin) { this.overdriveOrigin = origin != null ? origin : ""; }
         @Override public void clearOverdriveSession() {
             overdriveAccessCode = "";
             overdriveJwt = "";
             overdriveJwtExpiry = 0L;
             overdriveDeviceId = "";
+            overdriveOrigin = "";
         }
 
         @Override public boolean isAlertsEnabled() { return alertsEnabled; }

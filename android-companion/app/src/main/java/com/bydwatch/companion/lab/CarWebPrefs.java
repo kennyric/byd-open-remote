@@ -49,7 +49,14 @@ public final class CarWebPrefs {
     }
 
     public static void setBaseUrl(Context context, String url) {
-        prefs(context).edit().putString(KEY_BASE, CarWebUrl.normalize(url)).apply();
+        String previous = baseUrl(context);
+        String normalized = CarWebUrl.normalize(url);
+        prefs(context).edit().putString(KEY_BASE, normalized).apply();
+        String next = CarWebUrl.origin(normalized);
+        if (!previous.isEmpty() && !previous.equalsIgnoreCase(next)) {
+            // The session was minted for the old host; never carry it to a new one.
+            OverdriveSession.clear(context);
+        }
     }
 
     public static String defaultPage(Context context) {

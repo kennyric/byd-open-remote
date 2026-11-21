@@ -1,6 +1,10 @@
 package com.bydwatch.companion.update;
 
 import android.content.Context;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
+import android.content.pm.Signature;
+import android.os.Build;
 
 import com.bydwatch.companion.BuildConfig;
 
@@ -330,6 +334,58 @@ public class AppUpdateChecker {
                 || host.endsWith(".github.com")
                 || "githubusercontent.com".equals(host)
                 || host.endsWith(".githubusercontent.com");
+    }
+
+    private static volatile Boolean signatureCheckOverride;
+
+    @androidx.annotation.VisibleForTesting
+    public static void setSignatureCheckForTesting(Boolean value) {
+        if (!BuildConfig.DEBUG) return;
+        signatureCheckOverride = value;
+    }
+
+    /**
+     * True only when the archive is a real APK signed with the project's canonical certificate.
+     * The download digest comes from the same GitHub API as the asset, so this is the check that
+     * actually prevents a compromised release from installing a different app.
+     */
+    public static boolean hasCanonicalSignature(Context context, File apk) {
+        if (signatureCheckOverride != null) return signatureCheckOverride;
+        if (context == null || apk == null || !apk.isFile() || apk.length() <= 0L) return false;
+        try {
+            PackageManager pm = context.getPackageManager();
+            Signature[] signers;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                PackageInfo info = pm.getPackageArchiveInfo(apk.getAbsolutePath(),
+                        PackageManager.GET_SIGNING_CERTIFICATES);
+                if (info == null || info.signingInfo == null) return false;
+                signers = info.signingInfo.getApkContentsSigners();
+            } else {
+                PackageInfo info = pm.getPackageArchiveInfo(apk.getAbsolutePath(),
+                        PackageManager.GET_SIGNATURES);
+                signers = info != null ? info.signatures : null;
+            }
+            if (signers == null) return false;
+            for (Signature signature : signers) {
+                if (BuildConfig.CANONICAL_CERT_SHA256
+                        .equalsIgnoreCase(sha256Hex(signature.toByteArray()))) {
+                    return true;
+                }
+            }
+            return false;
+        } catch (Throwable invalidArchive) {
+            return false;
+        }
+    }
+
+    static String sha256Hex(byte[] bytes) throws NoSuchAlgorithmException {
+        MessageDigest md = MessageDigest.getInstance("SHA-256");
+        byte[] digest = md.digest(bytes);
+        StringBuilder sb = new StringBuilder(digest.length * 2);
+        for (byte b : digest) {
+            sb.append(String.format(Locale.US, "%02X", b));
+        }
+        return sb.toString();
     }
 
     static String computeSha256Hex(File file) throws IOException {

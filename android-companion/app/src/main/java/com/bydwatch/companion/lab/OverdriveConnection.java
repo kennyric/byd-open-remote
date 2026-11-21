@@ -37,6 +37,9 @@ public final class OverdriveConnection {
     private static final OkHttpClient CLIENT = new OkHttpClient.Builder()
             .connectTimeout(3, TimeUnit.SECONDS)
             .readTimeout(3, TimeUnit.SECONDS)
+            .callTimeout(6, TimeUnit.SECONDS)
+            .followRedirects(false)
+            .followSslRedirects(false)
             .build();
 
     private static volatile Status testStatus;

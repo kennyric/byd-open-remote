@@ -44,8 +44,29 @@ public class LocationWidgetProvider extends AppWidgetProvider {
 
     @Override
     public void onUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
+        int[] owned = ownedIds(context, appWidgetManager, appWidgetIds);
+        if (owned.length == 0) return;
         WidgetSyncJobService.ensurePeriodicSyncScheduled(context);
-        updateLocationWidgets(context, appWidgetManager, appWidgetIds);
+        updateLocationWidgets(context, appWidgetManager, owned);
+    }
+
+    private static int[] ownedIds(Context context, AppWidgetManager manager, int[] candidates) {
+        if (context == null || manager == null || candidates == null) return new int[0];
+        int[] owned = manager.getAppWidgetIds(
+                new ComponentName(context, LocationWidgetProvider.class));
+        if (owned == null || owned.length == 0) return new int[0];
+        java.util.ArrayList<Integer> keep = new java.util.ArrayList<>();
+        for (int candidate : candidates) {
+            for (int id : owned) {
+                if (id == candidate) {
+                    keep.add(candidate);
+                    break;
+                }
+            }
+        }
+        int[] result = new int[keep.size()];
+        for (int i = 0; i < result.length; i++) result[i] = keep.get(i);
+        return result;
     }
 
     @Override

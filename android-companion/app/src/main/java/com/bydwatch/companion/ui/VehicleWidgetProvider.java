@@ -192,8 +192,10 @@ public class VehicleWidgetProvider extends AppWidgetProvider {
 
     @Override
     public void onUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
+        int[] owned = ownedIds(context, appWidgetManager, appWidgetIds);
+        if (owned.length == 0) return;
         WidgetSyncJobService.ensurePeriodicSyncScheduled(context);
-        updateAllWidgets(context, appWidgetManager, appWidgetIds);
+        updateAllWidgets(context, appWidgetManager, owned);
 
         if (isAutoSyncNeeded(context)) {
             executeActionAsync(this, context, WatchProtocol.ACTION_STATUS, false);
@@ -204,17 +206,39 @@ public class VehicleWidgetProvider extends AppWidgetProvider {
     public void onDeleted(Context context, int[] appWidgetIds) {
         super.onDeleted(context, appWidgetIds);
         if (context == null || appWidgetIds == null) return;
+        int[] owned = ownedIds(context, AppWidgetManager.getInstance(context), appWidgetIds);
+        if (owned.length == 0) return;
         BydWatchApp app = resolveApp(context);
         ConfigStore cfg = app != null ? app.getConfigStore() : null;
         SharedPreferences.Editor prefs = context
                 .getSharedPreferences(PREFS_WIDGET, Context.MODE_PRIVATE).edit();
-        for (int id : appWidgetIds) {
+        for (int id : owned) {
             if (cfg != null) cfg.setWidgetVehicle(id, "");
             prefs.remove(KEY_STATUS_PREFIX + id)
                     .remove(KEY_STATUS_VIN_PREFIX + id)
                     .remove(KEY_SYNC_PREFIX + id);
         }
         prefs.apply();
+    }
+
+    /** Only IDs this provider actually owns: spoofed broadcasts must not drive syncs or unbind cars. */
+    private static int[] ownedIds(Context context, AppWidgetManager manager, int[] candidates) {
+        if (context == null || manager == null || candidates == null) return new int[0];
+        int[] owned = manager.getAppWidgetIds(
+                new ComponentName(context, VehicleWidgetProvider.class));
+        if (owned == null || owned.length == 0) return new int[0];
+        java.util.ArrayList<Integer> keep = new java.util.ArrayList<>();
+        for (int candidate : candidates) {
+            for (int id : owned) {
+                if (id == candidate) {
+                    keep.add(candidate);
+                    break;
+                }
+            }
+        }
+        int[] result = new int[keep.size()];
+        for (int i = 0; i < result.length; i++) result[i] = keep.get(i);
+        return result;
     }
 
     @Override

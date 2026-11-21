@@ -20,8 +20,10 @@ public final class VehicleRefreshRequestReceiver extends BroadcastReceiver {
         if (app == null) return;
         String allowed = app.getConfigStore().getVehicleStatusTargetPackage();
         String sender = senderPackage();
-        if (sender != null && !VehicleStatusBroadcaster.isAllowedPackage(allowed, sender)) {
-            VehicleStatusContract.log("refresh refused from " + sender);
+        if (sender == null || !VehicleStatusBroadcaster.isAllowedPackage(allowed, sender)) {
+            // API 34+ reports the sender package; older releases cannot prove who sent this, so
+            // they are refused. The Maps patch also has ContentResolver.call(), which is checked.
+            VehicleStatusContract.log("refresh refused from " + (sender != null ? sender : "unknown sender"));
             return;
         }
         BydRepository repository = app.getRepository();

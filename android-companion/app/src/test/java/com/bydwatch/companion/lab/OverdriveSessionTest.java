@@ -40,6 +40,18 @@ public class OverdriveSessionTest {
     }
 
     @Test
+    public void changingTheAddressInvalidatesTheSession() {
+        CarWebPrefs.setBaseUrl(context, "http://192.168.1.50:8080");
+        OverdriveSession.setAccessCode(context, "x7k9m2p5");
+        OverdriveSession.setJwt(context, "jwt-1", 3600L, System.currentTimeMillis());
+
+        CarWebPrefs.setBaseUrl(context, "http://10.0.0.9:8080");
+
+        assertNull(OverdriveSession.accessCode(context));
+        assertFalse(OverdriveSession.hasJwt(context, System.currentTimeMillis()));
+    }
+
+    @Test
     public void accessCodeIsStoredEncryptedNotInPlainPrefs() {
         OverdriveSession.setAccessCode(context, "x7k9m2p5");
 

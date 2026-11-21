@@ -320,6 +320,13 @@ public final class AppUpdateUiHelper {
                     true);
             return;
         }
+        if (!AppUpdateChecker.hasCanonicalSignature(activity, apkFile)) {
+            host.showToast(
+                    activity.getString(R.string.update_install_failed_fmt,
+                            "APK is not signed with the project key"),
+                    true);
+            return;
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
                 && !activity.getPackageManager().canRequestPackageInstalls()) {
             pendingInstallApkFile = apkFile;

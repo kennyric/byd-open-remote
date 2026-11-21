@@ -407,6 +407,9 @@ public class MainActivity extends AppCompatActivity {
 
         initAppUpdater(app);
         enforceAppLockIfNeeded(false);
+        if (SecureConfigStore.consumeRecoveryFlag()) {
+            Toast.makeText(this, R.string.secure_store_reset, Toast.LENGTH_LONG).show();
+        }
     }
 
     @Override
