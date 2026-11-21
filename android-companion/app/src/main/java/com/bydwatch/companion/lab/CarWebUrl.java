@@ -50,6 +50,17 @@ public final class CarWebUrl {
     }
 
     /**
+     * True when both addresses point at the same scheme, host and port. Used to decide whether a
+     * navigated page still belongs to the configured car, so a different port or a switch between
+     * plain HTTP and HTTPS counts as another origin.
+     */
+    public static boolean sameOrigin(String first, String second) {
+        String left = origin(first);
+        if (left.isEmpty()) return false;
+        return left.equalsIgnoreCase(origin(second));
+    }
+
+    /**
      * True when the address points at a specific page (a path beyond "/" or a query string),
      * as opposed to a bare server root.
      */

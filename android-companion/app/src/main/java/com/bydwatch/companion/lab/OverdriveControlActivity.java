@@ -51,6 +51,8 @@ public class OverdriveControlActivity extends AppCompatActivity {
     private String endTime = "";
     private boolean binding;
     private int generation;
+    /** onCreate already refreshes; later resumes re-read the session (login done elsewhere). */
+    private boolean firstResume = true;
 
     public static Intent intent(Context context) {
         return new Intent(context, OverdriveControlActivity.class);
@@ -90,6 +92,17 @@ public class OverdriveControlActivity extends AppCompatActivity {
         bindCurrentLimit();
         bindScheduleWindow();
         bindScheduleActions();
+        refresh(false);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (firstResume) {
+            // onCreate's refresh covers the first entry; only later resumes need a re-read.
+            firstResume = false;
+            return;
+        }
         refresh(false);
     }
 
@@ -165,6 +178,9 @@ public class OverdriveControlActivity extends AppCompatActivity {
             }
             String jwt = OverdriveSession.jwt(app);
             long now = System.currentTimeMillis();
+            // jwt() keeps an expired token around for the record; only a still-valid one may be
+            // used, or the car answers 401 and a saved access code never gets re-minted.
+            if (!OverdriveSession.hasJwt(app, now)) jwt = null;
             if (jwt == null) {
                 String code = OverdriveSession.accessCode(app);
                 if (code == null) {

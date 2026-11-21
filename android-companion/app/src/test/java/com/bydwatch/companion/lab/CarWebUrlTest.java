@@ -83,6 +83,21 @@ public class CarWebUrlTest {
     }
 
     @Test
+    public void sameOriginRequiresSchemeHostAndPort() {
+        assertTrue(CarWebUrl.sameOrigin(
+                "http://192.168.1.50:8080/vehicle-control.html", "192.168.1.50:8080"));
+        assertTrue(CarWebUrl.sameOrigin(
+                "http://192.168.1.50:8080/a?b=c", "http://192.168.1.50:8080/login.html"));
+        assertFalse(CarWebUrl.sameOrigin(
+                "http://192.168.1.50:9999/login", "http://192.168.1.50:8080"));
+        assertFalse(CarWebUrl.sameOrigin(
+                "https://192.168.1.50:8080/login", "http://192.168.1.50:8080"));
+        assertFalse(CarWebUrl.sameOrigin("http://evil.example/login", "192.168.1.50:8080"));
+        assertFalse(CarWebUrl.sameOrigin("", "192.168.1.50:8080"));
+        assertFalse(CarWebUrl.sameOrigin("http://192.168.1.50:8080", ""));
+    }
+
+    @Test
     public void appendsSafeFragmentOnlyOnce() {
         assertEquals("http://x:8080/vehicle-control.html#panelCharging",
                 CarWebUrl.withFragment("http://x:8080/vehicle-control.html", "panelCharging"));

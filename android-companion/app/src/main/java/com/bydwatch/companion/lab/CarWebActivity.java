@@ -26,7 +26,7 @@ import com.bydwatch.companion.R;
  *
  * <p>The page comes from Advanced (car address + default page). A blank address
  * leaves the screen closed; the URL bar is hidden by default and appears
- * automatically when a page leaves the configured host.
+ * automatically when a page leaves the configured origin.
  */
 public class CarWebActivity extends AppCompatActivity {
 
@@ -39,7 +39,6 @@ public class CarWebActivity extends AppCompatActivity {
     private View rowUrl;
     private View emptyState;
     private String scrollTarget = "";
-    private String configuredHost = "";
 
     public static Intent intent(Context context, String page, String scrollId) {
         Intent intent = new Intent(context, CarWebActivity.class);
@@ -116,9 +115,10 @@ public class CarWebActivity extends AppCompatActivity {
                 if (progress != null) progress.setVisibility(View.VISIBLE);
                 if (etUrl != null && url != null) etUrl.setText(url);
                 // Navigation is allowed so a changed car address still works, but the origin is
-                // never hidden while a page outside the configured host is on screen.
+                // never hidden while a page outside the configured scheme/host/port is on screen.
                 if (rowUrl != null && url != null) {
-                    boolean crossOrigin = !hostOf(url).equalsIgnoreCase(configuredHost);
+                    boolean crossOrigin =
+                            !CarWebUrl.sameOrigin(url, CarWebPrefs.baseUrl(CarWebActivity.this));
                     rowUrl.setVisibility(!CarWebPrefs.hideUrlBar(CarWebActivity.this) || crossOrigin
                             ? View.VISIBLE : View.GONE);
                 }
@@ -169,7 +169,6 @@ public class CarWebActivity extends AppCompatActivity {
             url = CarWebUrl.entry(CarWebPrefs.entryUrl(this), CarWebPrefs.defaultPage(this));
         }
         url = CarWebUrl.withFragment(url, scrollTarget);
-        configuredHost = hostOf(CarWebPrefs.baseUrl(this));
         if (url.isEmpty()) {
             if (webView != null) webView.setVisibility(View.GONE);
             if (emptyState != null) emptyState.setVisibility(View.VISIBLE);
@@ -195,12 +194,6 @@ public class CarWebActivity extends AppCompatActivity {
         }
         if (etUrl != null) etUrl.setText(url);
         if (webView != null) webView.loadUrl(url);
-    }
-
-    private static String hostOf(String url) {
-        if (url == null || url.isEmpty()) return "";
-        String host = android.net.Uri.parse(url).getHost();
-        return host != null ? host : "";
     }
 
     private void scrollToTarget() {

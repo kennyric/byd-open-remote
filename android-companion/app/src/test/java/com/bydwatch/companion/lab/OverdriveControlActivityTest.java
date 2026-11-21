@@ -74,6 +74,11 @@ public class OverdriveControlActivityTest {
                 lastPostPath = url;
                 lastPostBody = body;
             }
+            // Behave like the car: only the freshly minted token is accepted, so an expired
+            // (or otherwise stale) token comes back as 401.
+            if (isApiUrl(url) && jwt != null && !"jwt-1".equals(jwt)) {
+                return new OverdriveClient.Response(401, "{\"error\":\"unauthorized\"}");
+            }
             if (url.equals(AUTH_STATUS_URL)) {
                 return new OverdriveClient.Response(200, "{\"deviceId\":\"byd-a1b2c3d4\"}");
             }
@@ -92,6 +97,10 @@ public class OverdriveControlActivityTest {
             }
             if (url.equals(START_URL)) return new OverdriveClient.Response(startCode, start);
             return new OverdriveClient.Response(404, "{}");
+        }
+
+        private static boolean isApiUrl(String url) {
+            return CURRENT_URL.equals(url) || SCHEDULE_URL.equals(url) || START_URL.equals(url);
         }
 
         private static String echoCurrent(String body) {
@@ -273,6 +282,36 @@ public class OverdriveControlActivityTest {
         OverdriveControlActivity activity = open();
 
         assertTrue(transport.calls.stream().anyMatch(c -> c.equals("POST " + TOKEN_URL)));
+        assertNotNull(OverdriveSession.jwt(context));
+        assertEquals("Connected", text(activity, R.id.tvOverdriveControlStatus));
+    }
+
+    @Test
+    public void expiredJwtIsRemintedFromTheStoredAccessCode() {
+        OverdriveSession.setAccessCode(context, "x7k9m2p5");
+        // Minted an hour ago with a one-minute lifetime: still stored, but no longer valid.
+        OverdriveSession.setJwt(context, "stale-token", 60L,
+                System.currentTimeMillis() - 3_600_000L);
+
+        OverdriveControlActivity activity = open();
+
+        assertTrue("expired token must be re-minted, calls=" + transport.calls,
+                transport.calls.stream().anyMatch(c -> c.equals("POST " + TOKEN_URL)));
+        assertEquals("jwt-1", OverdriveSession.jwt(context));
+        assertEquals("Connected", text(activity, R.id.tvOverdriveControlStatus));
+    }
+
+    @Test
+    public void returningToTheScreenRefreshesTheSession() {
+        org.robolectric.android.controller.ActivityController<OverdriveControlActivity> controller =
+                Robolectric.buildActivity(OverdriveControlActivity.class).setup();
+        OverdriveControlActivity activity = controller.get();
+        assertEquals("Login needed", text(activity, R.id.tvOverdriveControlStatus));
+
+        // The user connects Overdrive elsewhere (Advanced) and comes back.
+        OverdriveSession.setAccessCode(context, "x7k9m2p5");
+        controller.pause().stop().start().resume();
+
         assertNotNull(OverdriveSession.jwt(context));
         assertEquals("Connected", text(activity, R.id.tvOverdriveControlStatus));
     }
