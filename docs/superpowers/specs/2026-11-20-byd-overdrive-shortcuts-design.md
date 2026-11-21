@@ -181,4 +181,4 @@ normal Overdrive open and the AC current shortcut land on the same page.
 | SPA renders after `onPageFinished` | Append `#id` and retry `scrollIntoView` once after 300 ms |
 | Schedule section hidden on unsupported trims | Open Vehicle Control anyway; no false success |
 | Card appears on other pages | Gate visibility on `nav_controls` |
-| Cleartext HTTP blocked | Existing debug-only cleartext manifest overlay |
+| Cleartext HTTP blocked | `network_security_config.xml` allows cleartext app-wide — Overdrive is a user-supplied LAN/Tailscale address |

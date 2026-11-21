@@ -159,7 +159,9 @@ Excluded because they are not direct server routes: `widget-builder.html`,
 - If no URL resolves: do not load anything; show an empty state with
   "Set the car address in Advanced" and a button that opens `AdvancedActivity`.
 - Back navigates WebView history; reload stays in the toolbar.
-- Cleartext HTTP remains allowed in the debug manifest only.
+- Cleartext HTTP is allowed app-wide by `android-companion/app/src/main/res/xml/network_security_config.xml`.
+  The car address is typed by the user (LAN or Tailscale), so it cannot be scoped to a host list;
+  trust anchors stay the system store.
 
 ## Lab removal
 
@@ -199,6 +201,6 @@ Delete in the same execution:
 | Blank car address leaves Overdrive closed | Advanced helper explains that an address is required; the empty state links to Advanced |
 | Overdrive hidden by default | Advanced remains visible; one switch restores it |
 | Overdrive not installed/not reachable | WebView error toast; user checks IP/Overdrive |
-| Cleartext HTTP blocked | Debug-only `usesCleartextTraffic` manifest overlay |
+| Cleartext HTTP blocked in release builds | `network_security_config.xml` allows cleartext app-wide (base config, system trust anchors); HTTPS-only endpoints stay HTTPS and the updater still rejects non-HTTPS URLs in code |
 | Preset path differs by Overdrive version | Manual URL fallback + documented path list |
 | Lab deletion breaks references | Remove in one task, run full suite, grep `nav_lab`/`LabGate` |
