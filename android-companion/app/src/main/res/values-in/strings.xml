@@ -411,6 +411,8 @@
     <string name="advanced_overdrive_unreachable">Tidak dapat dijangkau</string>
     <string name="advanced_overdrive_login_button">Buka login Overdrive</string>
     <string name="advanced_overdrive_retry">Coba lagi</string>
+    <string name="advanced_overdrive_guide">Panduan akses jarak jauh &amp; Tailscale ›</string>
+    <string name="advanced_overdrive_guide_failed">Tidak ada browser untuk membuka panduan</string>
     <string name="advanced_overdrive_visibility">Kontrol Overdrive di halaman utama</string>
     <string name="advanced_overdrive_visibility_always">Selalu tampilkan</string>
     <string name="advanced_overdrive_visibility_connected">Hanya saat terhubung</string>

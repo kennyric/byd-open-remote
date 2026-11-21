@@ -145,6 +145,18 @@
                             android:visibility="gone"
                             app:cornerRadius="999dp" />
                     </LinearLayout>
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnAdvOverdriveGuide"
+                        style="@style/Widget.Material3.Button.TextButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:minHeight="0dp"
+                        android:paddingHorizontal="0dp"
+                        android:paddingVertical="4dp"
+                        android:text="@string/advanced_overdrive_guide"
+                        android:textAllCaps="false"
+                        android:textSize="11sp" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 

@@ -500,6 +500,9 @@
     <string name="advanced_overdrive_unreachable">Not reachable</string>
     <string name="advanced_overdrive_login_button">Open Overdrive login</string>
     <string name="advanced_overdrive_retry">Retry</string>
+    <string name="advanced_overdrive_guide">Remote access &amp; Tailscale guide ›</string>
+    <string name="advanced_overdrive_guide_failed">No browser available to open the guide</string>
+    <string name="overdrive_guide_url" translatable="false">https://www.overdrive.qd.je/guide/</string>
     <string name="advanced_overdrive_visibility">Overdrive controls on the main page</string>
     <string name="advanced_overdrive_visibility_always">Always show</string>
     <string name="advanced_overdrive_visibility_connected">Only when connected</string>

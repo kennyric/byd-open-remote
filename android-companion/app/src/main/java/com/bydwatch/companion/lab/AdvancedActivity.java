@@ -1,6 +1,8 @@
 package com.bydwatch.companion.lab;
 
 import android.content.Context;
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -81,6 +83,10 @@ public class AdvancedActivity extends AppCompatActivity {
         btnOverdriveRetry = findViewById(R.id.btnAdvOverdriveRetry);
         if (btnOverdriveRetry != null) {
             btnOverdriveRetry.setOnClickListener(v -> refreshOverdriveStatus());
+        }
+        View guide = findViewById(R.id.btnAdvOverdriveGuide);
+        if (guide != null) {
+            guide.setOnClickListener(v -> openOverdriveGuide());
         }
 
         ImageButton back = findViewById(R.id.btnAdvBack);
@@ -412,8 +418,17 @@ public class AdvancedActivity extends AppCompatActivity {
         finish();
     }
 
-    private ConfigStore resolveConfigStore() {
+    private void openOverdriveGuide() {
         try {
+            startActivity(new Intent(Intent.ACTION_VIEW,
+                    Uri.parse(getString(R.string.overdrive_guide_url))));
+        } catch (RuntimeException unavailable) {
+            Toast.makeText(this, R.string.advanced_overdrive_guide_failed,
+                    Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private ConfigStore resolveConfigStore() {        try {
             BydWatchApp app = BydWatchApp.getInstance();
             return app != null ? app.getConfigStore() : null;
         } catch (RuntimeException unavailable) {

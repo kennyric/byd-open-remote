@@ -406,6 +406,20 @@ public class AdvancedActivityTest {
                 configStore.getVehicleStatusTargetPackage());
     }
 
+    @Test
+    public void guideButtonOpensTheRemoteAccessGuide() {
+        AdvancedActivity activity = Robolectric.buildActivity(AdvancedActivity.class)
+                .setup().get();
+
+        activity.findViewById(com.bydwatch.companion.R.id.btnAdvOverdriveGuide).performClick();
+
+        Intent next = Shadows.shadowOf(activity).getNextStartedActivity();
+        assertNotNull(next);
+        assertEquals(Intent.ACTION_VIEW, next.getAction());
+        assertTrue(next.getDataString() != null
+                && next.getDataString().startsWith("https://www.overdrive.qd.je/guide"));
+    }
+
     /** Fake car: /auth/status answers, the token endpoint mints a JWT. */
     private static final class RecordingTransport implements OverdriveClient.Transport {
         boolean reachable;
