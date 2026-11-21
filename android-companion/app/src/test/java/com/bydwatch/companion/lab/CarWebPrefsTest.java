@@ -42,8 +42,23 @@ public class CarWebPrefsTest {
 
         assertTrue(CarWebPrefs.showOverdrive(context));
         assertFalse(CarWebPrefs.hideUrlBar(context));
-        assertEquals("http://192.168.1.50:8080", CarWebPrefs.baseUrl(context));
+        assertEquals("http://192.168.1.50:8080/", CarWebPrefs.baseUrl(context));
         assertEquals("/vehicle-control.html", CarWebPrefs.defaultPage(context));
+    }
+
+    @Test
+    public void baseUrlKeepsOnlyTheServerRoot() {
+        CarWebPrefs.setBaseUrl(context, "http://100.84.59.94:8080/login.html?redirect=/index.html");
+        assertEquals("http://100.84.59.94:8080/", CarWebPrefs.baseUrl(context));
+    }
+
+    @Test
+    public void legacyBaseWithPagePathReadsAsOrigin() {
+        context.getSharedPreferences("car_web", android.content.Context.MODE_PRIVATE)
+                .edit()
+                .putString("car_base_url", "http://100.84.59.94:8080/login.html?redirect=/index.html")
+                .commit();
+        assertEquals("http://100.84.59.94:8080/", CarWebPrefs.baseUrl(context));
     }
 
     @Test

@@ -370,7 +370,7 @@ public class AdvancedActivity extends AppCompatActivity {
 
     private void save() {
         String rawBase = etBase.getText().toString().trim();
-        String base = CarWebUrl.normalize(rawBase);
+        String base = CarWebUrl.origin(rawBase);
         if (!rawBase.isEmpty() && base.isEmpty()) {
             Toast.makeText(this, R.string.advanced_invalid_address, Toast.LENGTH_SHORT).show();
             return;

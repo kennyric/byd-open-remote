@@ -360,10 +360,41 @@ public class AdvancedActivityTest {
         assertFalse(activity.isFinishing());
     }
 
+    @Test
+    public void savingAPastedLoginPageUrlStoresTheServerRoot() {
+        AdvancedActivity activity = Robolectric.buildActivity(AdvancedActivity.class)
+                .setup().get();
+
+        android.widget.EditText base = activity.findViewById(
+                com.bydwatch.companion.R.id.etAdvBaseUrl);
+        base.setText("http://100.84.59.94:8080/login.html?redirect=/index.html");
+        activity.findViewById(com.bydwatch.companion.R.id.btnAdvSave).performClick();
+
+        assertEquals("http://100.84.59.94:8080/", CarWebPrefs.baseUrl(context));
+    }
+
+    @Test
+    public void pageUrlInPrefsIsProbedAtTheServerRoot() {
+        context.getSharedPreferences("car_web", android.content.Context.MODE_PRIVATE)
+                .edit()
+                .putString("car_base_url", "http://100.84.59.94:8080/login.html?redirect=/index.html")
+                .commit();
+        RecordingTransport transport = withTransport(true);
+
+        AdvancedActivity activity = Robolectric.buildActivity(AdvancedActivity.class)
+                .setup().get();
+
+        assertEquals("http://100.84.59.94:8080/auth/status", transport.lastStatusUrl);
+        assertEquals("Login needed",
+                ((android.widget.TextView) activity.findViewById(
+                        com.bydwatch.companion.R.id.tvAdvOverdriveStatus)).getText().toString());
+    }
+
     /** Fake car: /auth/status answers, the token endpoint mints a JWT. */
     private static final class RecordingTransport implements OverdriveClient.Transport {
         boolean reachable;
         int tokenCalls;
+        String lastStatusUrl;
         String token = "{\"success\":true,\"jwt\":\"jwt-1\",\"expiresIn\":2592000}";
 
         @Override
@@ -371,6 +402,7 @@ public class AdvancedActivityTest {
                 throws java.io.IOException {
             if (!reachable) throw new java.io.IOException("no route");
             if (url.endsWith("/auth/status")) {
+                lastStatusUrl = url;
                 return new OverdriveClient.Response(200, "{\"deviceId\":\"byd-a1b2c3d4\"}");
             }
             if (url.endsWith("/auth/token")) {

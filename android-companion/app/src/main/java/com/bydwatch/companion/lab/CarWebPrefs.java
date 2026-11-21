@@ -39,11 +39,12 @@ public final class CarWebPrefs {
     }
 
     public static String baseUrl(Context context) {
-        return prefs(context).getString(KEY_BASE, "");
+        // Stored values may predate origin-only addresses: normalize on read.
+        return CarWebUrl.origin(prefs(context).getString(KEY_BASE, ""));
     }
 
     public static void setBaseUrl(Context context, String url) {
-        prefs(context).edit().putString(KEY_BASE, url != null ? url : "").apply();
+        prefs(context).edit().putString(KEY_BASE, CarWebUrl.origin(url)).apply();
     }
 
     public static String defaultPage(Context context) {

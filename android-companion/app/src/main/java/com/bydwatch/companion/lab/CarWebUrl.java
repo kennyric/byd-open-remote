@@ -32,6 +32,23 @@ public final class CarWebUrl {
         }
     }
 
+    /**
+     * The server root: scheme, host and port only. The Advanced field is an address, but people
+     * paste a page URL from the browser (for example {@code /login.html?redirect=/index.html});
+     * keeping that path would turn API calls into {@code …/login.html?redirect=/index.html/auth/status}.
+     */
+    public static String origin(String input) {
+        String normalized = normalize(input);
+        if (normalized.isEmpty()) return "";
+        try {
+            URI uri = new URI(normalized);
+            return new URI(uri.getScheme(), null, uri.getHost(), uri.getPort(),
+                    "/", null, null).toString();
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
     public static String fromGateway(String gateway) {
         if (gateway == null || gateway.trim().isEmpty()) return "";
         return normalize(gateway.trim() + ":" + DEFAULT_PORT);

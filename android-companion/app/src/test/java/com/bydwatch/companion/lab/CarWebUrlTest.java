@@ -28,6 +28,19 @@ public class CarWebUrlTest {
     }
 
     @Test
+    public void originDropsPagePathAndQuery() {
+        assertEquals("http://100.84.59.94:8080/",
+                CarWebUrl.origin("http://100.84.59.94:8080/login.html?redirect=/index.html"));
+        assertEquals("http://100.84.59.94:8080/",
+                CarWebUrl.origin("100.84.59.94:8080/login.html?redirect=/index.html"));
+        assertEquals("http://192.168.1.50:8080/",
+                CarWebUrl.origin("192.168.1.50:8080/vehicle-control.html"));
+        assertEquals("http://192.168.1.50:8080/", CarWebUrl.origin("192.168.1.50"));
+        assertEquals("", CarWebUrl.origin(""));
+        assertEquals("", CarWebUrl.origin("not a host"));
+    }
+
+    @Test
     public void buildsFromGateway() {
         assertEquals("http://192.168.43.1:8080/", CarWebUrl.fromGateway("192.168.43.1"));
         assertEquals("", CarWebUrl.fromGateway(null));
