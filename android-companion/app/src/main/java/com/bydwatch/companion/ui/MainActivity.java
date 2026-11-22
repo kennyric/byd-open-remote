@@ -189,6 +189,7 @@ public class MainActivity extends AppCompatActivity {
     private TextView tvControlsTitle;
     private TextView tvSoc;
     private ProgressBar pbBatterySoc;
+    private int socTintColor;
     private TextView tvRange;
     private TextView tvChargingBadge;
     private TextView tvOpeningBadge;
@@ -2567,9 +2568,6 @@ public class MainActivity extends AppCompatActivity {
 
         int clampedSoc = Math.max(0, Math.min(100, status.soc));
         tvSoc.setText(status.soc + "%");
-        if (pbBatterySoc != null) {
-            pbBatterySoc.setProgress(clampedSoc);
-        }
         int socColorRes = status.isCharging()
                 ? R.color.accent_emerald
                 : (clampedSoc >= 30
@@ -2577,8 +2575,15 @@ public class MainActivity extends AppCompatActivity {
                         : (clampedSoc >= 15 ? R.color.accent_amber : R.color.accent_rose));
         tvSoc.setTextColor(ContextCompat.getColor(this, socColorRes));
         if (pbBatterySoc != null) {
-            pbBatterySoc.setProgressTintList(
-                    android.content.res.ColorStateList.valueOf(ContextCompat.getColor(this, socColorRes)));
+            // Re-tinting replaces the progress drawable, which can leave the drawn level behind.
+            // Only touch the tint when the colour changes; otherwise just move the progress.
+            int socColor = ContextCompat.getColor(this, socColorRes);
+            if (socTintColor != socColor) {
+                socTintColor = socColor;
+                pbBatterySoc.setProgressTintList(
+                        android.content.res.ColorStateList.valueOf(socColor));
+            }
+            pbBatterySoc.setProgress(clampedSoc);
         }
 
         tvRange.setText(UnitPreferences.formatDistance(status.rangeKm, distUnit));
