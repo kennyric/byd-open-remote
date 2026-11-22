@@ -425,6 +425,7 @@
     <string name="advanced_maps_section">Integrasi Google Maps</string>
     <string name="advanced_maps_microg">Build microG-RE</string>
     <string name="advanced_maps_microg_helper">Aktifkan jika Maps yang dipatch memakai nama paket microG-RE. Hanya paket yang dipilih yang boleh membaca telemetri kendaraan.</string>
+    <string name="advanced_battery_capacity_invalid">Kapasitas baterai harus antara 1 dan 200 kWh</string>
     <string name="secure_store_reset">Login tersimpan tidak dapat dibuka di perangkat ini. Silakan masuk lagi.</string>
 
     <!-- Battery capacity helper -->
