@@ -51,6 +51,7 @@ public class AdvancedActivity extends AppCompatActivity {
     private MaterialButton btnAccessConnect;
     private MaterialButton btnAccessDisconnect;
     private EditText etSessionTtl;
+    private EditText etBatteryCapacity;
     private ConfigStore configStore;
     private int statusGeneration;
 
@@ -111,6 +112,7 @@ public class AdvancedActivity extends AppCompatActivity {
         }
 
         etSessionTtl = findViewById(R.id.etAdvSessionTtl);
+        etBatteryCapacity = findViewById(R.id.etAdvBatteryCapacity);
         configStore = resolveConfigStore();
 
         populateMorePages();
@@ -337,6 +339,10 @@ public class AdvancedActivity extends AppCompatActivity {
                     ? configStore.getSessionTtlMinutes()
                     : ConfigStore.DEFAULT_SESSION_TTL_MINUTES));
         }
+        if (etBatteryCapacity != null) {
+            etBatteryCapacity.setText(formatBatteryCapacity(
+                    configStore != null ? configStore.getBatteryCapacityKwh() : 0f));
+        }
         etBase.setText(CarWebPrefs.entryUrl(this));
         rgTop.clearCheck();
         rgMore.clearCheck();
@@ -374,6 +380,7 @@ public class AdvancedActivity extends AppCompatActivity {
         if (etSessionTtl != null) {
             etSessionTtl.setText(String.valueOf(ConfigStore.DEFAULT_SESSION_TTL_MINUTES));
         }
+        if (etBatteryCapacity != null) etBatteryCapacity.setText("");
         etBase.setText("");
         rgTop.clearCheck();
         rgMore.clearCheck();
@@ -403,11 +410,21 @@ public class AdvancedActivity extends AppCompatActivity {
             Toast.makeText(this, R.string.advanced_session_ttl_invalid, Toast.LENGTH_SHORT).show();
             return;
         }
+        float capacityKwh = 0f;
+        if (etBatteryCapacity != null) {
+            capacityKwh = parseBatteryCapacity(etBatteryCapacity.getText().toString());
+            if (capacityKwh < 0f) {
+                Toast.makeText(this, R.string.advanced_battery_capacity_invalid,
+                        Toast.LENGTH_SHORT).show();
+                return;
+            }
+        }
         CarWebPrefs.setShowOverdrive(this, switchShow.isChecked());
         CarWebPrefs.setHideUrlBar(this, switchHideUrl.isChecked());
         CarWebPrefs.setOverdriveControlsVisibility(this, selectedControlsVisibility());
         if (configStore != null) {
             configStore.setSessionTtlMinutes(ttlMinutes);
+            configStore.setBatteryCapacityKwh(capacityKwh);
             configStore.setVehicleStatusTargetPackage(switchMicrogMaps != null
                     && switchMicrogMaps.isChecked()
                     ? VehicleStatusBroadcaster.MICROG_TARGET_PACKAGE
@@ -497,6 +514,27 @@ public class AdvancedActivity extends AppCompatActivity {
         if (id == R.id.rbAdvTrips) return "/trips.html";
         if (id == R.id.rbAdvLiveView) return "/live-view.html";
         return null;
+    }
+
+    /** 0 for blank (unset), -1 for a value outside the plausible pack range. */
+    private static float parseBatteryCapacity(String raw) {
+        String clean = raw == null ? "" : raw.trim().replace(',', '.');
+        if (clean.isEmpty()) return 0f;
+        try {
+            float kwh = Float.parseFloat(clean);
+            return Float.isFinite(kwh) && kwh >= 1f && kwh <= 200f ? kwh : -1f;
+        } catch (NumberFormatException invalid) {
+            return -1f;
+        }
+    }
+
+    private static String formatBatteryCapacity(float kwh) {
+        if (kwh <= 0f) return "";
+        if (Math.abs(kwh - Math.round(kwh)) < 0.005f) {
+            return String.valueOf(Math.round(kwh));
+        }
+        return String.format(java.util.Locale.US, "%.2f", kwh)
+                .replaceAll("0+$", "").replaceAll("\\.$", "");
     }
 
     private abstract static class SimpleTextWatcher implements TextWatcher {

@@ -430,6 +430,44 @@ public class AdvancedActivityTest {
     }
 
     @Test
+    public void batteryCapacityIsEditableInAdvanced() {
+        AdvancedActivity activity = Robolectric.buildActivity(AdvancedActivity.class)
+                .setup().get();
+
+        android.widget.EditText capacity = activity.findViewById(
+                com.bydwatch.companion.R.id.etAdvBatteryCapacity);
+        capacity.setText("30.08");
+        activity.findViewById(com.bydwatch.companion.R.id.btnAdvSave).performClick();
+
+        assertEquals(30.08f, configStore.getBatteryCapacityKwh(), 0.001f);
+    }
+
+    @Test
+    public void invalidBatteryCapacityIsRejected() {
+        AdvancedActivity activity = Robolectric.buildActivity(AdvancedActivity.class)
+                .setup().get();
+
+        android.widget.EditText capacity = activity.findViewById(
+                com.bydwatch.companion.R.id.etAdvBatteryCapacity);
+        capacity.setText("0");
+        activity.findViewById(com.bydwatch.companion.R.id.btnAdvSave).performClick();
+
+        assertFalse("invalid capacity must not save and close", activity.isFinishing());
+        assertEquals(0f, configStore.getBatteryCapacityKwh(), 0.001f);
+    }
+
+    @Test
+    public void batteryCapacityLoadsIntoTheField() {
+        configStore.setBatteryCapacityKwh(44.9f);
+        AdvancedActivity activity = Robolectric.buildActivity(AdvancedActivity.class)
+                .setup().get();
+
+        android.widget.EditText capacity = activity.findViewById(
+                com.bydwatch.companion.R.id.etAdvBatteryCapacity);
+        assertEquals("44.9", capacity.getText().toString());
+    }
+
+    @Test
     public void guideButtonOpensTheRemoteAccessGuide() {
         AdvancedActivity activity = Robolectric.buildActivity(AdvancedActivity.class)
                 .setup().get();

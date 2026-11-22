@@ -515,6 +515,7 @@
     <string name="advanced_maps_section">Google Maps integration</string>
     <string name="advanced_maps_microg">microG-RE build</string>
     <string name="advanced_maps_microg_helper">Enable when the patched Maps uses the microG-RE package name. Only the selected package may read vehicle telemetry.</string>
+    <string name="advanced_battery_capacity_invalid">Battery capacity must be between 1 and 200 kWh</string>
     <string name="secure_store_reset">Saved login couldn\'t be opened on this device. Please sign in again.</string>
     <string name="overdrive_controls_card_title">Overdrive</string>
     <string name="overdrive_controls_card_checking">Checking…</string>

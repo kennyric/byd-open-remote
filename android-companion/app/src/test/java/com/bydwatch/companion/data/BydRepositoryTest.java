@@ -459,6 +459,12 @@ public class BydRepositoryTest {
                     ? targetPackage.trim() : VehicleStatusBroadcaster.DEFAULT_TARGET_PACKAGE;
         }
 
+        private float batteryCapacityKwh;
+        @Override public float getBatteryCapacityKwh() { return batteryCapacityKwh; }
+        @Override public void setBatteryCapacityKwh(float kwh) {
+            this.batteryCapacityKwh = Float.isFinite(kwh) && kwh > 0f ? kwh : 0f;
+        }
+
         @Override public String getTempUnit() { return tempUnit; }
         @Override public void setTempUnit(String unit) { this.tempUnit = com.bydwatch.companion.model.UnitPreferences.normalizeTempUnit(unit); }
 
