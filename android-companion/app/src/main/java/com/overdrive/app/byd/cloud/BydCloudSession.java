@@ -11,7 +11,7 @@ import com.overdrive.app.byd.cloud.crypto.BydCryptoUtils;
  */
 public final class BydCloudSession {
 
-    public static final long DEFAULT_TTL_MS = 30 * 60 * 1000; // 30 minutes
+    public static final long DEFAULT_TTL_MS = 120 * 60 * 1000; // 120 minutes
     /** Shortest accepted TTL: below this the app would re-login on almost every request. */
     public static final long MIN_TTL_MS = 60 * 1000L;
     /** Longest accepted TTL: BYD's server may drop a token long before this. */

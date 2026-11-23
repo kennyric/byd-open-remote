@@ -332,13 +332,13 @@ public class AdvancedActivityTest {
     }
 
     @Test
-    public void sessionTtlDefaultsToThirtyAndPersists() {
+    public void sessionTtlDefaultsToOneTwentyAndPersists() {
         AdvancedActivity activity = Robolectric.buildActivity(AdvancedActivity.class)
                 .setup().get();
 
         android.widget.EditText ttl = activity.findViewById(
                 com.bydwatch.companion.R.id.etAdvSessionTtl);
-        assertEquals("30", ttl.getText().toString());
+        assertEquals("120", ttl.getText().toString());
 
         ttl.setText("90");
         activity.findViewById(com.bydwatch.companion.R.id.btnAdvSave).performClick();
@@ -356,7 +356,7 @@ public class AdvancedActivityTest {
         ttl.setText("1");
         activity.findViewById(com.bydwatch.companion.R.id.btnAdvSave).performClick();
 
-        assertEquals(30, configStore.getSessionTtlMinutes());
+        assertEquals(120, configStore.getSessionTtlMinutes());
         assertFalse(activity.isFinishing());
     }
 

@@ -510,7 +510,7 @@
     <string name="advanced_session_section">BYD Cloud session</string>
     <string name="advanced_session_help">How long the app reuses a login before fetching new tokens from BYD Cloud. Longer means fewer logins.</string>
     <string name="advanced_session_ttl_hint">Minutes (5–1440)</string>
-    <string name="advanced_session_ttl_helper">Default 30 minutes. Applies to the next BYD Cloud request.</string>
+    <string name="advanced_session_ttl_helper">Default 120 minutes. Applies to the next BYD Cloud request.</string>
     <string name="advanced_session_ttl_invalid">Token refresh must be between 5 and 1440 minutes</string>
     <string name="advanced_maps_section">Google Maps integration</string>
     <string name="advanced_maps_microg">microG-RE build</string>

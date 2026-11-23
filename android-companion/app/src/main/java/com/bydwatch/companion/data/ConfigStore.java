@@ -162,7 +162,7 @@ public interface ConfigStore {
     int MAX_WIDGET_SYNC_MINUTES = 1440;
 
     /** How long a BYD Cloud login is reused before fresh tokens are fetched. */
-    int DEFAULT_SESSION_TTL_MINUTES = 30;
+    int DEFAULT_SESSION_TTL_MINUTES = 120;
     int MIN_SESSION_TTL_MINUTES = 5;
     int MAX_SESSION_TTL_MINUTES = 1440;
 

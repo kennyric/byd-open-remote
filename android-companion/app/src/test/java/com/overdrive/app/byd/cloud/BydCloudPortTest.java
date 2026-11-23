@@ -156,6 +156,49 @@ public class BydCloudPortTest {
     }
 
     @Test
+    public void defaultSessionTtlIs120Minutes() {
+        assertEquals(120L * 60L * 1000L, BydCloudSession.DEFAULT_TTL_MS);
+    }
+
+    @Test
+    public void sessionRejectionRecognizesTokenFailures() throws Exception {
+        assertTrue(BydCloudClient.isSessionRejection(new JSONObject().put("code", "401")));
+        assertTrue(BydCloudClient.isSessionRejection(new JSONObject().put("code", "1003")));
+        assertTrue(BydCloudClient.isSessionRejection(new JSONObject()
+                .put("code", "9999").put("message", "token expired")));
+        assertTrue(BydCloudClient.isSessionRejection(new JSONObject()
+                .put("code", "7777").put("message", "Please login again")));
+        assertTrue(BydCloudClient.isSessionRejection(new JSONObject()
+                .put("code", "8888").put("msg", "session invalid")));
+    }
+
+    @Test
+    public void sessionRejectionIgnoresNonAuthFailures() throws Exception {
+        assertFalse(BydCloudClient.isSessionRejection(null));
+        assertFalse(BydCloudClient.isSessionRejection(new JSONObject().put("code", "0")));
+        // 1001 drives the guest/owner fallback, not re-login.
+        assertFalse(BydCloudClient.isSessionRejection(new JSONObject().put("code", "1001")));
+        // 1009 is "cloud temporarily busy" — logging in again would not help.
+        assertFalse(BydCloudClient.isSessionRejection(new JSONObject().put("code", "1009")));
+        // 2003 is "vehicle not bound to this account".
+        assertFalse(BydCloudClient.isSessionRejection(new JSONObject().put("code", "2003")));
+        assertFalse(BydCloudClient.isSessionRejection(new JSONObject()
+                .put("code", "5001").put("message", "vehicle offline")));
+    }
+
+    @Test
+    public void mutatingEndpointsAreNeverRetried() {
+        assertTrue(BydCloudClient.isMutatingEndpoint("/control/remoteControl"));
+        assertTrue(BydCloudClient.isMutatingEndpoint("/control/smartCharge/changeChargeStatue"));
+        assertTrue(BydCloudClient.isMutatingEndpoint("/control/smartCharge/saveOrUpdate"));
+        assertFalse(BydCloudClient.isMutatingEndpoint(
+                "/vehicle/vehicleswitch/verifyControlPassword"));
+        assertFalse(BydCloudClient.isMutatingEndpoint("/vehicle/realtime"));
+        assertFalse(BydCloudClient.isMutatingEndpoint("/control/getBookingList"));
+        assertFalse(BydCloudClient.isMutatingEndpoint(null));
+    }
+
+    @Test
     public void tokenEnvelopeSignsUserTypeOnlyWhenProvided() throws Exception {
         BydCloudConfig config = new BydCloudConfig("id", "ID", "en");
         config.setUsername("guest@example.com");

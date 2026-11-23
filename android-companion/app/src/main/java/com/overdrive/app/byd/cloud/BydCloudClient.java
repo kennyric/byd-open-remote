@@ -29,8 +29,8 @@ public class BydCloudClient {
     private final BydCloudConfig config;
     private final EnvelopeCodec codec;
     private BydCloudTransport transport;
-    private BydCloudSession session;
-    private boolean commandsVerified = false;
+    private volatile BydCloudSession session;
+    private volatile boolean commandsVerified = false;
     private final java.util.Map<String, Boolean> guestVinMap = new java.util.concurrent.ConcurrentHashMap<>();
 
     private static final long CAPABILITY_CACHE_TTL_MS = 30L * 60L * 1000L;
@@ -182,6 +182,69 @@ public class BydCloudClient {
         }
     }
 
+    // ── Session rejection (token no longer accepted by BYD) ──────────────
+
+    /**
+     * BYD answers a request with a non-zero code when the token minted at login
+     * is no longer accepted: it expired server-side, or another client signed
+     * into the same account and rotated it. The login response carries no
+     * expiry, so a rejection is the only signal available.
+     *
+     * <p>Codes are a heuristic and deliberately narrow: 1001 drives the
+     * guest/owner fallback, 1009 means "cloud busy", and 2003 means "vehicle not
+     * bound" — signing in again fixes none of those.
+     */
+    private static final java.util.Set<String> SESSION_REJECT_CODES =
+            new java.util.HashSet<>(java.util.Arrays.asList("401", "1003", "1005"));
+
+    /** True when {@code response} means "this token is dead, log in again". */
+    static boolean isSessionRejection(JSONObject response) {
+        if (response == null) return false;
+        String code = response.optString("code", "").trim();
+        if (code.isEmpty() || "0".equals(code)) return false;
+        if (SESSION_REJECT_CODES.contains(code)) return true;
+
+        String text = (response.optString("message", "") + " "
+                + response.optString("msg", "") + " "
+                + response.optString("messageInfo", "")).trim().toLowerCase(java.util.Locale.US);
+        if (text.isEmpty()) return false;
+        return text.contains("token")
+                || text.contains("expire")
+                || text.contains("unauthorized")
+                || text.contains("not login")
+                || text.contains("login again")
+                || text.contains("re-login")
+                || text.contains("relogin")
+                || text.contains("session invalid")
+                || text.contains("invalid session");
+    }
+
+    /**
+     * Endpoints that change vehicle state. A rejection on one of these is
+     * reported, never retried: the command may already have reached the car, so
+     * re-sending could double-execute a lock, unlock or climate start.
+     */
+    static boolean isMutatingEndpoint(String endpoint) {
+        if (endpoint == null) return false;
+        return endpoint.contains("/control/remoteControl")
+                || endpoint.contains("/control/smartCharge/change")
+                || endpoint.contains("/control/smartCharge/saveOrUpdate");
+    }
+
+    /**
+     * Stop trusting the current tokens. The next {@link #ensureSession()} mints
+     * new ones, so recovery no longer waits for the configured TTL to elapse.
+     */
+    private void invalidateSession(String reason) {
+        boolean hadSession = session != null;
+        session = null;
+        commandsVerified = false;
+        if (hadSession) {
+            logger.warn("BYD Cloud rejected the session token (" + reason
+                    + ") — signing in again on the next request");
+        }
+    }
+
     // ── Vehicle List ────────────────────────────────────────────────────
 
     /**
@@ -216,17 +279,16 @@ public class BydCloudClient {
 
     public JSONArray fetchVehicleList() throws IOException {
         BydCloudSession s = ensureSession();
-        long nowMs = System.currentTimeMillis();
-
         boolean cn = config.isChinaRegion();
-        JSONObject inner = buildInner(nowMs);
-        if (cn) {
-            // CN vehicle-list inner adds appUiName (cn_envelope.build_cn_vehicle_list_inner)
-            try { inner.put("appUiName", ""); } catch (Exception ignored) {}
+        String endpoint = cn ? "/app/auth/getAllListByUserId" : "/app/account/getAllListByUserId";
+
+        JSONObject response = postVehicleList(endpoint, System.currentTimeMillis(), s, cn);
+        if (isSessionRejection(response)) {
+            // postVehicleList already dropped the dead tokens; the list read is
+            // safe to repeat with a token minted just now.
+            s = ensureSession();
+            response = postVehicleList(endpoint, System.currentTimeMillis(), s, cn);
         }
-        TokenEnvelope env = buildTokenOuterEnvelope(nowMs, s, inner);
-        JSONObject response = transport.postSecure(
-                cn ? "/app/auth/getAllListByUserId" : "/app/account/getAllListByUserId", env.outer);
 
         String code = response.optString("code", "");
         if (!"0".equals(code)) {
@@ -238,7 +300,9 @@ public class BydCloudClient {
             throw new IOException("Vehicle list: empty respondData");
         }
 
-        String plain = BydCryptoUtils.aesDecryptUtf8(respondDataHex, env.contentKey);
+        // respondData is encrypted with MD5(encryToken) of the session that sent
+        // the request, so keep using the one that produced this response.
+        String plain = BydCryptoUtils.aesDecryptUtf8(respondDataHex, s.contentKey());
         plain = plain.trim();
 
         JSONArray list = null;
@@ -325,7 +389,7 @@ public class BydCloudClient {
             throw new IOException("Failed to build latest-config request", e);
         }
         TokenEnvelope env = buildTokenOuterEnvelope(nowMs, s, inner);
-        JSONObject response = transport.postSecure("/vehicle/vehicleswitch/getLatestConfig", env.outer);
+        JSONObject response = postAccountSecure("/vehicle/vehicleswitch/getLatestConfig", env.outer);
         String code = response.optString("code", "");
         if (!"0".equals(code)) {
             throw new IOException("Latest-config fetch failed: code=" + code + " "
@@ -359,7 +423,26 @@ public class BydCloudClient {
         // /control/remoteControl call piggybacks on the same verification flag.
         // Re-posting wastes a round-trip and adds 2-4s of latency to every command.
         if (commandsVerified) return;
-        BydCloudSession s = ensureSession();
+
+        JSONObject response = postVerifyControlPassword(vin, ensureSession());
+        if (isSessionRejection(response)) {
+            // A PIN check changes nothing on the car, so absorbing a dead token
+            // here is safe: the command that follows runs with a fresh session.
+            invalidateSession("verifyControlPassword code=" + response.optString("code", "?"));
+            response = postVerifyControlPassword(vin, ensureSession());
+        }
+
+        String code = response.optString("code", "");
+        if (!"0".equals(code)) {
+            String msg = response.optString("message", "");
+            throw new IOException("Control PIN verification failed: code=" + code + " " + msg);
+        }
+
+        commandsVerified = true;
+        logger.info("Control PIN verified for VIN=***" + vin.substring(Math.max(0, vin.length() - 4)));
+    }
+
+    private JSONObject postVerifyControlPassword(String vin, BydCloudSession s) throws IOException {
         long nowMs = System.currentTimeMillis();
 
         JSONObject inner = new JSONObject();
@@ -378,17 +461,8 @@ public class BydCloudClient {
         }
 
         TokenEnvelope env = buildTokenOuterEnvelope(nowMs, s, inner);
-        JSONObject response = transport.postSecure(
+        return transport.postSecure(
                 "/vehicle/vehicleswitch/verifyControlPassword", env.outer);
-
-        String code = response.optString("code", "");
-        if (!"0".equals(code)) {
-            String msg = response.optString("message", "");
-            throw new IOException("Control PIN verification failed: code=" + code + " " + msg);
-        }
-
-        commandsVerified = true;
-        logger.info("Control PIN verified for VIN=***" + vin.substring(Math.max(0, vin.length() - 4)));
     }
 
     // ── Remote Commands ─────────────────────────────────────────────────
@@ -688,7 +762,7 @@ public class BydCloudClient {
             throw new IOException("Failed to build BOOKINGAIR list request", e);
         }
         TokenEnvelope env = buildTokenOuterEnvelope(nowMs, session, inner);
-        JSONObject response = transport.postSecure("/control/getBookingList", env.outer);
+        JSONObject response = postAccountSecure("/control/getBookingList", env.outer);
         String code = response.optString("code", "");
         if (!"0".equals(code)) {
             throw new IOException("BOOKINGAIR list failed: code=" + code
@@ -877,7 +951,7 @@ public class BydCloudClient {
         }
         logger.info("smartCharge toggle request inner=" + redactVin(inner));
         TokenEnvelope env = buildTokenOuterEnvelope(nowMs, s, inner);
-        JSONObject response = transport.postSecure("/control/smartCharge/changeChargeStatue", env.outer);
+        JSONObject response = postAccountSecure("/control/smartCharge/changeChargeStatue", env.outer);
         String code = response.optString("code", "");
         if (!"0".equals(code)) {
             String msg = response.optString("message", "");
@@ -937,7 +1011,7 @@ public class BydCloudClient {
             throw new IOException("Failed to build immediate-charge request", e);
         }
         TokenEnvelope env = buildTokenOuterEnvelope(nowMs, s, inner);
-        JSONObject response = transport.postSecure("/control/smartCharge/changeChargeStatue", env.outer);
+        JSONObject response = postAccountSecure("/control/smartCharge/changeChargeStatue", env.outer);
         String code = response.optString("code", "");
         if (!"0".equals(code)) {
             String msg = response.optString("message", "");
@@ -1045,7 +1119,7 @@ public class BydCloudClient {
         }
         logger.info("smartCharge save request inner=" + redactVin(inner));
         TokenEnvelope env = buildTokenOuterEnvelope(nowMs, s, inner);
-        JSONObject response = transport.postSecure("/control/smartCharge/saveOrUpdate", env.outer);
+        JSONObject response = postAccountSecure("/control/smartCharge/saveOrUpdate", env.outer);
         String code = response.optString("code", "");
         if (!"0".equals(code)) {
             String msg = response.optString("message", "");
@@ -1119,7 +1193,7 @@ public class BydCloudClient {
                 throw new IOException("Failed to build changeResult request", e);
             }
             TokenEnvelope env = buildTokenOuterEnvelope(nowMs, s, inner);
-            JSONObject response = transport.postSecure("/control/smartCharge/changeResult", env.outer);
+            JSONObject response = postAccountSecure("/control/smartCharge/changeResult", env.outer);
             String code = response.optString("code", "");
             if (!"0".equals(code)) {
                 String msg = response.optString("message", "");
@@ -1182,7 +1256,7 @@ public class BydCloudClient {
         try { inner.put("vin", vin); }
         catch (Exception e) { throw new IOException("Failed to build smartCharge fetch request", e); }
         TokenEnvelope env = buildTokenOuterEnvelope(nowMs, s, inner);
-        JSONObject response = transport.postSecure("/control/smartCharge/homePage", env.outer);
+        JSONObject response = postAccountSecure("/control/smartCharge/homePage", env.outer);
         String code = response.optString("code", "");
         if (!"0".equals(code)) {
             String msg = response.optString("message", "");
@@ -1825,6 +1899,27 @@ public class BydCloudClient {
             long callTimeoutMs,
             InnerSupplier innerBuilder,
             boolean declareGuest) throws IOException {
+        VehicleResponse first = postVehicleCallOnce(
+                endpoint, s, callTimeoutMs, innerBuilder, declareGuest);
+        if (!isSessionRejection(first.response)) {
+            return first;
+        }
+        invalidateSession(endpoint + " code=" + first.response.optString("code", "?"));
+        if (isMutatingEndpoint(endpoint)) {
+            // Report the rejection as-is; the next tap signs in and succeeds.
+            return first;
+        }
+        // Read-only calls are safe to repeat once with tokens minted just now.
+        return postVehicleCallOnce(
+                endpoint, ensureSession(), callTimeoutMs, innerBuilder, declareGuest);
+    }
+
+    private VehicleResponse postVehicleCallOnce(
+            String endpoint,
+            BydCloudSession s,
+            long callTimeoutMs,
+            InnerSupplier innerBuilder,
+            boolean declareGuest) throws IOException {
         long nowMs = System.currentTimeMillis();
         JSONObject inner = innerBuilder.build(nowMs);
         TokenEnvelope env = buildTokenOuterEnvelope(nowMs, s, inner, declareGuest ? "1" : null);
@@ -1839,6 +1934,34 @@ public class BydCloudClient {
         return callTimeoutMs > 0L
                 ? transport.postSecure(endpoint, outer, callTimeoutMs)
                 : transport.postSecure(endpoint, outer);
+    }
+
+    /** Build and post the account-scoped vehicle-list request for one session. */
+    private JSONObject postVehicleList(
+            String endpoint,
+            long nowMs,
+            BydCloudSession s,
+            boolean cn) throws IOException {
+        JSONObject inner = buildInner(nowMs);
+        if (cn) {
+            // CN vehicle-list inner adds appUiName (cn_envelope.build_cn_vehicle_list_inner)
+            try { inner.put("appUiName", ""); } catch (Exception ignored) {}
+        }
+        TokenEnvelope env = buildTokenOuterEnvelope(nowMs, s, inner);
+        return postAccountSecure(endpoint, env.outer);
+    }
+
+    /**
+     * Post an account-scoped request, dropping the session when BYD rejects the
+     * token. The response is returned untouched, so every caller keeps its
+     * existing error handling and message.
+     */
+    private JSONObject postAccountSecure(String endpoint, JSONObject outer) throws IOException {
+        JSONObject response = transport.postSecure(endpoint, outer);
+        if (isSessionRejection(response)) {
+            invalidateSession(endpoint + " code=" + response.optString("code", "?"));
+        }
+        return response;
     }
 
     private static boolean hasUsefulTelemetry(JSONObject vi) {
@@ -1885,7 +2008,7 @@ public class BydCloudClient {
 
         JSONObject inner = buildInner(nowMs);
         TokenEnvelope env = buildTokenOuterEnvelope(nowMs, s, inner);
-        JSONObject response = transport.postSecure("/app/emqAuth/getEmqBrokerIp", env.outer);
+        JSONObject response = postAccountSecure("/app/emqAuth/getEmqBrokerIp", env.outer);
 
         String code = response.optString("code", "");
         if (!"0".equals(code)) {
