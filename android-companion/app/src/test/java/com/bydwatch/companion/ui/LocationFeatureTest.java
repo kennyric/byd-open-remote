@@ -16,6 +16,7 @@ import com.bydwatch.companion.data.BydGateway;
 import com.bydwatch.companion.data.BydRepository;
 import com.bydwatch.companion.data.BydRepositoryTest;
 import com.bydwatch.companion.model.VehicleStatus;
+import com.bydwatch.companion.model.VehicleSummary;
 import com.bydwatch.companion.protocol.WatchProtocol;
 import com.overdrive.app.byd.cloud.BydCloudClient;
 
@@ -33,6 +34,10 @@ import org.robolectric.shadows.ShadowAlertDialog;
 import org.robolectric.shadows.ShadowAppWidgetManager;
 import org.robolectric.shadows.ShadowLooper;
 
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
@@ -201,6 +206,113 @@ public class LocationFeatureTest {
             assertTrue(innerTarget.getDataString().contains("-6.208800"));
             assertTrue(innerTarget.getDataString().contains("106.845600"));
         }
+    }
+
+    @Test
+    public void locationRefreshAdvancesSyncTimestampsEvenWhenGpsFixIsOlder() throws Exception {
+        long gpsMs = 1700000000000L;
+        long syncMs = 1700003600000L;
+        configStore.setWidgetLastSyncMs(syncMs);
+
+        VehicleStatus withLocation = new VehicleStatus.Builder(82, 330, true, false, 24, 18, 1700000000L)
+                .vin("LGX_LOC_VIN")
+                .modelName("Atto 1")
+                .location(-6.2088, 106.8456, gpsMs / 1000L)
+                .build();
+        repository.setCachedStatus(withLocation);
+
+        AppWidgetManager mgr = AppWidgetManager.getInstance(app);
+        new LocationWidgetProvider().onUpdate(app, mgr, new int[]{locationWidgetId});
+        ShadowLooper.idleMainLooper();
+
+        View view = Shadows.shadowOf(mgr).getViewFor(locationWidgetId);
+        String title = ((TextView) view.findViewById(R.id.tvLocationTitle)).getText().toString();
+        SimpleDateFormat clock = new SimpleDateFormat("HH:mm", Locale.US);
+        String expected = clock.format(new Date(syncMs));
+        String stale = clock.format(new Date(gpsMs));
+        assertTrue("title must show the newer sync clock: " + title, title.contains(expected));
+        assertFalse("title must not show the older GPS clock: " + title, title.contains(stale));
+    }
+
+    @Test
+    public void statusTransitionToParkedCapturesParkedArrivalGps() throws Exception {
+        VehicleStatus driving = new VehicleStatus.Builder(82, 330, true, false, 24, 18, 1700000000L)
+                .vin("LGX_LOC_VIN")
+                .modelName("Atto 1")
+                .vehicleOn(true)
+                .build();
+        repository.setCachedStatus(driving);
+
+        fakeGateway.currentStatus = new VehicleStatus.Builder(81, 329, true, false, 24, 18, 1700000600L)
+                .vin("LGX_LOC_VIN")
+                .modelName("Atto 1")
+                .vehicleOn(false)
+                .build();
+        fakeGateway.currentLocation = new BydGateway.VehicleLocation(
+                -6.2111, 106.8477, 1700000610L, 123.4);
+
+        String response = repository.processWatchJson(
+                "{\"id\":\"parked1\",\"action\":\"" + WatchProtocol.ACTION_STATUS + "\"}");
+        assertTrue(response.contains("\"ok\":true"));
+
+        VehicleStatus cached = repository.getCachedStatus();
+        assertNotNull(cached);
+        assertTrue(cached.hasLocation());
+        assertEquals(-6.2111, cached.latitude, 1e-5);
+        assertEquals(106.8477, cached.longitude, 1e-5);
+        assertEquals(Double.valueOf(123.4), cached.gpsHeading);
+        assertEquals(1, fakeGateway.fetchGpsCalls.get());
+    }
+
+    @Test
+    public void autoRefreshPreservesKnownLocationAndSecondaryWidgetPersistsSync() throws Exception {
+        VehicleStatus known = new VehicleStatus.Builder(82, 330, true, false, 24, 18, 1700000000L)
+                .vin("LGX_LOC_VIN")
+                .modelName("Atto 1")
+                .vehicleOn(true)
+                .location(-6.2088, 106.8456, 1700000200L)
+                .build();
+        repository.setCachedStatus(known);
+        fakeGateway.currentStatus = new VehicleStatus.Builder(82, 330, true, false, 24, 18, 1700000700L)
+                .vin("LGX_LOC_VIN")
+                .modelName("Atto 1")
+                .vehicleOn(false)
+                .build();
+
+        String lockResponse = repository.processWatchJson(
+                "{\"id\":\"lock1\",\"action\":\"" + WatchProtocol.ACTION_LOCK + "\"}");
+        assertTrue(lockResponse.contains("\"ok\":true"));
+        VehicleStatus afterLock = repository.getCachedStatus();
+        assertNotNull(afterLock);
+        assertTrue(afterLock.hasLocation());
+        assertEquals(-6.2088, afterLock.latitude, 1e-5);
+        assertEquals(106.8456, afterLock.longitude, 1e-5);
+
+        List<VehicleSummary> cars = new ArrayList<>();
+        cars.add(new VehicleSummary("LGX_LOC_VIN", "Atto 1", "", "EV"));
+        cars.add(new VehicleSummary("LGX_SECOND_VIN", "Seal", "", "EV"));
+        configStore.setVehicles(cars);
+
+        AppWidgetManager mgr = AppWidgetManager.getInstance(app);
+        int vehicleWidgetId = Shadows.shadowOf(mgr)
+                .createWidget(VehicleWidgetProvider.class, R.layout.widget_vehicle_2x2);
+        configStore.setWidgetVehicle(vehicleWidgetId, "LGX_SECOND_VIN");
+
+        fakeGateway.currentStatus = new VehicleStatus.Builder(64, 352, true, false, 23, 21, 1700000800L)
+                .vin("LGX_SECOND_VIN")
+                .modelName("Seal")
+                .build();
+
+        VehicleWidgetProvider.refreshVehicleAsync(app, "LGX_SECOND_VIN");
+        awaitRepo();
+
+        android.content.SharedPreferences prefs = app.getSharedPreferences(
+                "byd_widget_prefs", Context.MODE_PRIVATE);
+        assertTrue("secondary widget sync timestamp must be recorded",
+                prefs.getLong("widget_sync_ms_" + vehicleWidgetId, 0L) > 0L);
+        String persisted = prefs.getString("widget_status_" + vehicleWidgetId, null);
+        assertNotNull(persisted);
+        assertTrue("secondary widget must persist its own car telemetry", persisted.contains("\"soc\":64"));
     }
 
     @Test

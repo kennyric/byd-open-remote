@@ -1,6 +1,10 @@
 package com.bydwatch.companion;
 
 import android.app.Application;
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
+import android.os.Build;
 
 import androidx.annotation.VisibleForTesting;
 
@@ -17,7 +21,10 @@ import com.bydwatch.companion.wear.WearEngineBridge;
 import com.bydwatch.companion.wear.WearEngineConfig;
 
 import com.google.android.material.color.DynamicColors;
+import java.io.File;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 
 /**
  * Android Application singleton providing access to repository, gateway, and secure config store.
@@ -50,10 +57,43 @@ public class BydWatchApp extends Application {
     public void onCreate() {
         super.onCreate();
         instance = this;
+        installCrashRecorder();
         DynamicColors.applyToActivitiesIfAvailable(this);
         // NOTE: Hardware keystore-backed SecureConfigStore and network gateway are
         // initialized lazily upon first getter access so JVM tests without hardware
         // KeyStore do not crash Application.onCreate().
+    }
+
+    private void installCrashRecorder() {
+        if ("robolectric".equalsIgnoreCase(Build.FINGERPRINT)
+                || "robolectric".equalsIgnoreCase(Build.BRAND)) {
+            return;
+        }
+        final Thread.UncaughtExceptionHandler previous = Thread.getDefaultUncaughtExceptionHandler();
+        Thread.setDefaultUncaughtExceptionHandler((thread, throwable) -> {
+            try {
+                StringWriter stack = new StringWriter();
+                throwable.printStackTrace(new PrintWriter(stack));
+                File crashFile = new File(getFilesDir(), "last-crash.txt");
+                try (java.io.FileWriter writer = new java.io.FileWriter(crashFile, false)) {
+                    writer.write(stack.toString());
+                }
+                if (BuildConfig.DEBUG) {
+                    try {
+                        ClipboardManager cm = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+                        if (cm != null) {
+                            cm.setPrimaryClip(ClipData.newPlainText("BYD crash log", stack.toString()));
+                        }
+                    } catch (Exception ignored) {
+                    }
+                }
+            } catch (Exception ignored) {
+            } finally {
+                if (previous != null) {
+                    previous.uncaughtException(thread, throwable);
+                }
+            }
+        });
     }
 
     public synchronized ConfigStore getConfigStore() {

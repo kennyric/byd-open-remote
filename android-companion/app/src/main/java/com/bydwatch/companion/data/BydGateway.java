@@ -92,11 +92,17 @@ public interface BydGateway {
         public final double latitude;
         public final double longitude;
         public final long timestampSec;
+        public final Double headingDeg;
 
         public VehicleLocation(double latitude, double longitude, long timestampSec) {
+            this(latitude, longitude, timestampSec, null);
+        }
+
+        public VehicleLocation(double latitude, double longitude, long timestampSec, Double headingDeg) {
             this.latitude = latitude;
             this.longitude = longitude;
             this.timestampSec = timestampSec;
+            this.headingDeg = headingDeg;
         }
     }
 

@@ -460,6 +460,49 @@ public class CloudBydGatewayTest {
         assertEquals(22, autoLive.targetTempC);
     }
 
+    @Test
+    public void parseGpsPayloadCarriesHeadingFromDirection() throws Exception {
+        JSONObject gps = new JSONObject()
+                .put("latitude", -6.2088)
+                .put("longitude", 106.8456)
+                .put("direction", 452.34)
+                .put("gpsTimeStamp", 1700000000000L);
+
+        BydGateway.VehicleLocation location = CloudBydGateway.parseGpsPayload(gps);
+
+        assertNotNull(location);
+        assertNotNull(location.headingDeg);
+        assertEquals(92.3, location.headingDeg, 1e-6);
+    }
+
+    @Test
+    public void parseGpsPayloadLeavesHeadingNullWhenTheCarOmitsIt() throws Exception {
+        JSONObject gps = new JSONObject()
+                .put("latitude", -6.2088)
+                .put("longitude", 106.8456)
+                .put("gpsTimeStamp", 1700000000000L);
+
+        BydGateway.VehicleLocation location = CloudBydGateway.parseGpsPayload(gps);
+
+        assertNotNull(location);
+        assertNull(location.headingDeg);
+    }
+
+    @Test
+    public void parseVehicleStatusCarriesTheHeadingFromTheGpsPayload() throws Exception {
+        CloudBydGateway gateway = new CloudBydGateway(null, null, configStore);
+        JSONObject gps = new JSONObject()
+                .put("latitude", -6.2088)
+                .put("longitude", 106.8456)
+                .put("direction", 452.34);
+        BydGateway.VehicleLocation location = CloudBydGateway.parseGpsPayload(gps);
+
+        JSONObject vi = new JSONObject().put("elecPercent", 70);
+        VehicleStatus status = gateway.parseVehicleStatus(vi, "VIN1234567890", null, location);
+
+        assertEquals(Double.valueOf(92.3), status.gpsHeading);
+    }
+
     // ── Fake BydCloudClient ───────────────────────────────────────────────
 
     private static class FakeClient extends BydCloudClient {

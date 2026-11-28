@@ -428,6 +428,8 @@ public class BydRepository {
                     this.lastStatusDiag = (fresh != null && fresh.diagSummary != null)
                             ? fresh.diagSummary : "";
                     if (fresh != null) {
+                        fresh = withParkedArrivalGpsIfMissing(vin, fresh,
+                                backgroundTarget ? prevFor(vin) : cachedStatus.get());
                         fresh = enrichedStatus(fresh);
                         if (backgroundTarget) {
                             // A widget bound to another car: cache it only, never hijack the app's view.
@@ -688,6 +690,25 @@ public class BydRepository {
         return false;
     }
 
+    private VehicleStatus withParkedArrivalGpsIfMissing(String vin, VehicleStatus fresh, VehicleStatus previous) {
+        if (fresh != null && !fresh.hasLocation()
+                && previous != null && previous.vehicleOn && !fresh.vehicleOn) {
+            try {
+                BydGateway.VehicleLocation location = gateway.fetchGpsInfo(vin);
+                if (location != null
+                        && VehicleStatus.isValidCoordinates(location.latitude, location.longitude)) {
+                    return fresh.toBuilder()
+                            .location(location.latitude, location.longitude, location.timestampSec)
+                            .gpsHeading(location.headingDeg)
+                            .build();
+                }
+            } catch (Exception ignored) {
+                // Best-effort arrival GPS capture must never break the status refresh.
+            }
+        }
+        return fresh;
+    }
+
     private VehicleStatus enrichedStatus(VehicleStatus base) {
         if (base == null || configStore == null) {
             return base;
@@ -786,7 +807,10 @@ public class BydRepository {
         try {
             VehicleStatus fresh = gateway.fetchVehicleRealtime(vin);
             if (fresh != null) {
+                fresh = withParkedArrivalGpsIfMissing(vin, fresh, prevFor(vin));
+                fresh = enrichedStatus(fresh);
                 if (active) {
+                    syncConfigStoreFromLiveAc(fresh);
                     setCachedStatus(fresh);
                 } else if (fresh.vin != null && !fresh.vin.isEmpty()) {
                     // Another car: keep the app on its active car.
@@ -808,6 +832,10 @@ public class BydRepository {
                 if (enriched != null) {
                     syncConfigStoreFromLiveAc(enriched);
                     setCachedStatus(enrichedStatus(enriched));
+                    BydWatchApp app = BydWatchApp.getInstance();
+                    if (app != null) {
+                        com.bydwatch.companion.ui.VehicleWidgetProvider.refreshWidgets(app);
+                    }
                 }
             } catch (Exception ignored) {
                 // Silent best-effort background enrichment

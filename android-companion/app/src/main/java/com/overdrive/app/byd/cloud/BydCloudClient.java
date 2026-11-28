@@ -1666,7 +1666,7 @@ public class BydCloudClient {
      * Bounded GPS lookup suitable as a best-effort companion call during status refresh.
      */
     public JSONObject fetchGpsInfoFast(String vin) throws IOException {
-        return fetchGpsInfo(vin, 2, 5_000L);
+        return fetchGpsInfo(vin, 4, 5_000L);
     }
 
     /**
@@ -1827,6 +1827,29 @@ public class BydCloudClient {
                     tsSec = System.currentTimeMillis() / 1000L;
                 }
                 return new double[]{lat, lng, (double) tsSec};
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Extracts a compass heading in degrees [0, 360) from decoded BYD GPS payloads.
+     */
+    public static Double extractGpsHeading(JSONObject root) {
+        if (root == null) return null;
+        JSONObject[] candidates = new JSONObject[]{
+                root,
+                root.optJSONObject("data"),
+                root.optJSONObject("gpsInfo"),
+                root.optJSONObject("resData")
+        };
+        for (JSONObject candidate : candidates) {
+            if (candidate == null) continue;
+            Double raw = readCoord(candidate, "direction", "heading", "course", "angle");
+            if (raw != null) {
+                double wrapped = ((raw % 360d) + 360d) % 360d;
+                double rounded = Math.round(wrapped * 10d) / 10d;
+                return rounded >= 360d ? 0d : rounded;
             }
         }
         return null;

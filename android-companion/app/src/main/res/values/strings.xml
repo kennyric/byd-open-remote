@@ -144,6 +144,7 @@
     <string name="card_preferences_title">Preferences</string>
     <string name="btn_copy_log">Copy</string>
     <string name="log_copied_toast">Logs copied to clipboard</string>
+    <string name="crash_log_copied">Crash log copied to clipboard</string>
 
     <string name="card_bridge_title">Watch Bridge &amp; Event Log</string>
     <string name="watch_integration_notice">Notice: Huawei Watch integration is currently not working. Phone app controls and home-screen widgets continue to work normally.</string>

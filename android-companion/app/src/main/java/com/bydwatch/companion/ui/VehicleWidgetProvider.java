@@ -284,7 +284,7 @@ public class VehicleWidgetProvider extends AppWidgetProvider {
         int appWidgetId = parseWidgetId(rawAct);
         if (ACTION_WIDGET_AUTO_SYNC.equals(act)) {
             if (WidgetSyncJobService.hasAnyActiveWidgets(context)) {
-                syncEveryWidgetVehicle(receiver, context);
+                syncEveryWidgetVehicle(receiver, context, null);
                 WidgetSyncJobService.rescheduleShortAlarmIfNeeded(context);
             } else {
                 WidgetSyncJobService.cancelPeriodicSync(context);
@@ -474,6 +474,17 @@ public class VehicleWidgetProvider extends AppWidgetProvider {
             boolean showProgressBanner,
             int appWidgetId
     ) {
+        executeActionAsync(receiver, context, watchAction, showProgressBanner, appWidgetId, null);
+    }
+
+    static void executeActionAsync(
+            @Nullable BroadcastReceiver receiver,
+            Context context,
+            String watchAction,
+            boolean showProgressBanner,
+            int appWidgetId,
+            @Nullable Runnable onAfterComplete
+    ) {
         PendingResult pendingResult = receiver != null ? receiver.goAsync() : null;
         AtomicBoolean finished = new AtomicBoolean(false);
         Runnable finishOnce = () -> {
@@ -489,6 +500,9 @@ public class VehicleWidgetProvider extends AppWidgetProvider {
 
         boolean started = executeWidgetAction(context, watchAction, showProgressBanner, appWidgetId, () -> {
             mainHandler.removeCallbacks(finishOnce);
+            if (onAfterComplete != null) {
+                onAfterComplete.run();
+            }
             finishOnce.run();
         });
         if (!started) {
@@ -1132,8 +1146,9 @@ public class VehicleWidgetProvider extends AppWidgetProvider {
     }
 
     /** Periodic sync: refresh the active car plus every car a widget is pinned to. */
-    private static void syncEveryWidgetVehicle(@Nullable BroadcastReceiver receiver, Context context) {
-        executeActionAsync(receiver, context, WatchProtocol.ACTION_STATUS, false, -1);
+    private static void syncEveryWidgetVehicle(@Nullable BroadcastReceiver receiver, Context context,
+                                               @Nullable Runnable onAfterPrimary) {
+        executeActionAsync(receiver, context, WatchProtocol.ACTION_STATUS, false, -1, onAfterPrimary);
 
         BydWatchApp app = resolveApp(context);
         ConfigStore cfg = app != null ? app.getConfigStore() : null;
@@ -1168,7 +1183,26 @@ public class VehicleWidgetProvider extends AppWidgetProvider {
             cmd.put("id", "wdv_" + System.currentTimeMillis() + "_" + CMD_SEQ.incrementAndGet());
             cmd.put("action", WatchProtocol.ACTION_STATUS);
             cmd.put("vin", vin.trim());
-            repo.handleWatchJson(cmd.toString(), resp -> refreshWidgets(context));
+            repo.handleWatchJson(cmd.toString(), respStr -> {
+                try {
+                    WatchResponse resp = WatchResponse.fromJson(new JSONObject(respStr));
+                    if (resp != null && resp.ok && resp.state != null) {
+                        String targetVin = vin.trim();
+                        AppWidgetManager mgr = AppWidgetManager.getInstance(context);
+                        int[] ids = mgr.getAppWidgetIds(
+                                new ComponentName(context, VehicleWidgetProvider.class));
+                        if (ids != null) {
+                            for (int appWidgetId : ids) {
+                                if (targetVin.equals(boundVinFor(context, appWidgetId))) {
+                                    persistStatus(context, resp.state, true, appWidgetId);
+                                }
+                            }
+                        }
+                    }
+                } catch (Exception ignored) {
+                }
+                refreshWidgets(context);
+            });
         } catch (Exception ignored) {
         }
     }

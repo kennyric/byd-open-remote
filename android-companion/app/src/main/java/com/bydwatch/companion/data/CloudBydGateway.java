@@ -242,7 +242,7 @@ public class CloudBydGateway implements BydGateway {
 
         VehicleLocation location = null;
         try {
-            location = gpsFuture.get(6, java.util.concurrent.TimeUnit.SECONDS);
+            location = gpsFuture.get(8, java.util.concurrent.TimeUnit.SECONDS);
         } catch (Exception ignored) {}
 
         JSONObject hvac = null;
@@ -372,7 +372,8 @@ public class CloudBydGateway implements BydGateway {
         if (coords == null) {
             return null;
         }
-        return new VehicleLocation(coords[0], coords[1], (long) coords[2]);
+        return new VehicleLocation(coords[0], coords[1], (long) coords[2],
+                BydCloudClient.extractGpsHeading(gpsJson));
     }
 
     @Override
@@ -831,10 +832,12 @@ public class CloudBydGateway implements BydGateway {
         Double lat = null;
         Double lng = null;
         Long gpsTs = null;
+        Double heading = null;
         if (location != null && VehicleStatus.isValidCoordinates(location.latitude, location.longitude)) {
             lat = location.latitude;
             lng = location.longitude;
             gpsTs = location.timestampSec > 0 ? location.timestampSec : null;
+            heading = location.headingDeg;
         } else {
             double[] inlineCoords = BydCloudClient.extractGpsCoordinates(vi);
             if (inlineCoords != null) {
@@ -842,6 +845,9 @@ public class CloudBydGateway implements BydGateway {
                 lng = inlineCoords[1];
                 gpsTs = (long) inlineCoords[2];
             }
+        }
+        if (heading == null) {
+            heading = BydCloudClient.extractGpsHeading(vi);
         }
 
         boolean verboseLogs = configStore != null && configStore.isVerboseLogsEnabled();
@@ -879,6 +885,7 @@ public class CloudBydGateway implements BydGateway {
                 .acPreset(liveTempGear, liveFanLevel, liveWindMode)
                 .units(uDist, uTemp, uPres)
                 .location(lat, lng, gpsTs)
+                .gpsHeading(heading)
                 .recentKwhPer100Km(extractRecentKwhPer100Km(vi))
                 .vehicles(cars)
                 .build();

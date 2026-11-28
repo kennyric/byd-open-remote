@@ -28,6 +28,8 @@ public class WidgetSyncJobService extends JobService {
     public static final int MIN_JOB_SCHEDULER_MINUTES = 15;
     public static final long PERIOD_MS = ConfigStore.DEFAULT_WIDGET_SYNC_MINUTES * 60L * 1000L;
 
+    private static volatile long lastShortIntervalMs = 0L;
+
     public static int getConfiguredIntervalMinutes(Context context) {
         BydWatchApp app = BydWatchApp.getInstance();
         if (app == null && context != null && context.getApplicationContext() instanceof BydWatchApp) {
@@ -113,7 +115,7 @@ public class WidgetSyncJobService extends JobService {
         Intent intent = new Intent(context, WidgetActionReceiver.class)
                 .setAction(VehicleWidgetProvider.ACTION_WIDGET_AUTO_SYNC);
         PendingIntent existing = PendingIntent.getBroadcast(context, ALARM_REQ_AUTO_SYNC, intent, noCreateFlags);
-        if (!forceReschedule && existing != null) {
+        if (!forceReschedule && existing != null && lastShortIntervalMs == intervalMs) {
             return;
         }
 
@@ -123,13 +125,23 @@ public class WidgetSyncJobService extends JobService {
         PendingIntent pi = PendingIntent.getBroadcast(context, ALARM_REQ_AUTO_SYNC, intent, updateFlags);
         long triggerAt = SystemClock.elapsedRealtime() + intervalMs;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            am.setAndAllowWhileIdle(AlarmManager.ELAPSED_REALTIME_WAKEUP, triggerAt, pi);
+            try {
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S || am.canScheduleExactAlarms()) {
+                    am.setExactAndAllowWhileIdle(AlarmManager.ELAPSED_REALTIME_WAKEUP, triggerAt, pi);
+                } else {
+                    am.setAndAllowWhileIdle(AlarmManager.ELAPSED_REALTIME_WAKEUP, triggerAt, pi);
+                }
+            } catch (SecurityException e) {
+                am.setAndAllowWhileIdle(AlarmManager.ELAPSED_REALTIME_WAKEUP, triggerAt, pi);
+            }
         } else {
             am.set(AlarmManager.ELAPSED_REALTIME_WAKEUP, triggerAt, pi);
         }
+        lastShortIntervalMs = intervalMs;
     }
 
     private static void cancelShortIntervalAlarm(Context context) {
+        lastShortIntervalMs = 0L;
         AlarmManager am = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
         int noCreateFlags = Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
                 ? PendingIntent.FLAG_NO_CREATE | PendingIntent.FLAG_IMMUTABLE

@@ -127,9 +127,14 @@ public class LocationWidgetProvider extends AppWidgetProvider {
             titleText = banner;
         } else if (st != null && st.hasLocation()) {
             String timeSuffix = "";
+            long lastSyncMs = cfg != null ? cfg.getWidgetLastSyncMs() : 0L;
+            long gpsMs = 0L;
             if (st.gpsTs != null && st.gpsTs > 0) {
-                long ms = st.gpsTs > 1_000_000_000_000L ? st.gpsTs : st.gpsTs * 1000L;
-                timeSuffix = " · " + new SimpleDateFormat("HH:mm", Locale.US).format(new Date(ms));
+                gpsMs = st.gpsTs > 1_000_000_000_000L ? st.gpsTs : st.gpsTs * 1000L;
+            }
+            long displayMs = Math.max(lastSyncMs, gpsMs);
+            if (displayMs > 0) {
+                timeSuffix = " · " + new SimpleDateFormat("HH:mm", Locale.US).format(new Date(displayMs));
             }
             String preferred = VehicleWidgetProvider.resolvePreferredModelName(cfg);
             String name = preferred != null

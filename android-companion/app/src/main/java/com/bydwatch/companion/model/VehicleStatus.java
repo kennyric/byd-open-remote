@@ -61,6 +61,7 @@ public final class VehicleStatus {
     public final Double latitude;
     public final Double longitude;
     public final Long gpsTs;
+    public final Double gpsHeading;
     public final double recentKwhPer100Km;
     public final List<VehicleSummary> vehicles;
 
@@ -116,6 +117,7 @@ public final class VehicleStatus {
         this.latitude = b.latitude;
         this.longitude = b.longitude;
         this.gpsTs = b.gpsTs;
+        this.gpsHeading = b.gpsHeading;
         this.recentKwhPer100Km = b.recentKwhPer100Km;
         this.vehicles = b.vehicles != null
                 ? Collections.unmodifiableList(new ArrayList<>(b.vehicles))
@@ -180,6 +182,7 @@ public final class VehicleStatus {
                 .acPreset(targetTempGear, fanLevel, windMode)
                 .units(distanceUnit, tempUnit, pressureUnit)
                 .location(latitude, longitude, gpsTs)
+                .gpsHeading(gpsHeading)
                 .recentKwhPer100Km(recentKwhPer100Km)
                 .vehicles(vehicles);
     }
@@ -237,6 +240,9 @@ public final class VehicleStatus {
                 obj.put("lng", longitude);
                 if (gpsTs != null && gpsTs > 0) {
                     obj.put("gpsTs", gpsTs);
+                }
+                if (gpsHeading != null) {
+                    obj.put("gpsHeading", gpsHeading);
                 }
             }
             if (recentKwhPer100Km > 0d) obj.put("recentKwh", recentKwhPer100Km);
@@ -326,6 +332,9 @@ public final class VehicleStatus {
             double lng = json.optDouble("lng", Double.NaN);
             Long gTs = (json.has("gpsTs") && !json.isNull("gpsTs")) ? json.optLong("gpsTs", 0L) : null;
             b.location(lat, lng, gTs);
+        }
+        if (json.has("gpsHeading") && !json.isNull("gpsHeading")) {
+            b.gpsHeading(json.optDouble("gpsHeading", Double.NaN));
         }
 
         JSONArray carsArr = json.optJSONArray("cars");
@@ -455,6 +464,7 @@ public final class VehicleStatus {
         private Double latitude;
         private Double longitude;
         private Long gpsTs;
+        private Double gpsHeading;
         private double recentKwhPer100Km = -1d;
         private List<VehicleSummary> vehicles;
 
@@ -539,6 +549,16 @@ public final class VehicleStatus {
                 this.latitude = null;
                 this.longitude = null;
                 this.gpsTs = null;
+            }
+            return this;
+        }
+        public Builder gpsHeading(Double headingDeg) {
+            if (headingDeg != null && !headingDeg.isNaN() && !headingDeg.isInfinite()) {
+                double wrapped = ((headingDeg % 360d) + 360d) % 360d;
+                double rounded = Math.round(wrapped * 10d) / 10d;
+                this.gpsHeading = rounded >= 360d ? 0d : rounded;
+            } else {
+                this.gpsHeading = null;
             }
             return this;
         }

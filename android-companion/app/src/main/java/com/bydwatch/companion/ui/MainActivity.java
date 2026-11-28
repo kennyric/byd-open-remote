@@ -57,6 +57,7 @@ import android.widget.HorizontalScrollView;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
+import com.bydwatch.companion.BuildConfig;
 import com.bydwatch.companion.BydWatchApp;
 import com.bydwatch.companion.R;
 import com.bydwatch.companion.data.BydGateway;
@@ -375,6 +376,7 @@ public class MainActivity extends AppCompatActivity {
         bridge = app.getWearEngineBridge();
 
         bindViews();
+        replayLastCrash();
         vehiclePhotoPicker = registerForActivityResult(
                 new ActivityResultContracts.OpenDocument(), uri -> {
                     if (uri == null || editVehicleVin == null) return;
@@ -426,6 +428,10 @@ public class MainActivity extends AppCompatActivity {
         super.onStart();
         if (repository != null) {
             repository.addStatusListener(backgroundStatusListener);
+            VehicleStatus cached = repository.getCachedStatus();
+            if (cached != null && !cached.equals(lastStatus)) {
+                updateTelemetryUi(cached, true);
+            }
         }
         enforceAppLockIfNeeded(true);
     }
@@ -2536,7 +2542,6 @@ public class MainActivity extends AppCompatActivity {
 
     private void updateTelemetryUi(VehicleStatus status) {
         updateTelemetryUi(status, true);
-        VehicleWidgetProvider.refreshWidgets(this);
     }
 
     private void updateTelemetryUi(VehicleStatus status, boolean syncActiveClimatePreset) {
@@ -4156,6 +4161,37 @@ public class MainActivity extends AppCompatActivity {
     @VisibleForTesting
     AppUpdateUiHelper getUpdateUiHelperForTesting() {
         return updateUiHelper;
+    }
+
+    private void replayLastCrash() {
+        java.io.File crashFile = new java.io.File(getFilesDir(), "last-crash.txt");
+        if (!crashFile.exists()) return;
+        StringBuilder content = new StringBuilder();
+        try (java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.FileReader(crashFile))) {
+            String line;
+            int lines = 0;
+            while (lines < 30 && (line = reader.readLine()) != null) {
+                content.append(line).append('\n');
+                lines++;
+            }
+        } catch (Exception ignored) {
+            crashFile.delete();
+            return;
+        }
+        crashFile.delete();
+        if (content.length() == 0) return;
+        for (String line : content.toString().split("\n")) {
+            if (!line.isEmpty()) {
+                logMessage("[crash] " + line);
+            }
+        }
+        if (BuildConfig.DEBUG) {
+            ClipboardManager cm = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+            if (cm != null) {
+                cm.setPrimaryClip(ClipData.newPlainText("BYD crash log", content.toString()));
+                showToast(getString(R.string.crash_log_copied), false);
+            }
+        }
     }
 
     private void copyEventLog() {

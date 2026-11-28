@@ -143,6 +143,7 @@
     <string name="card_preferences_title">Preferensi</string>
     <string name="btn_copy_log">Salin</string>
     <string name="log_copied_toast">Log disalin ke papan klip</string>
+    <string name="crash_log_copied">Log crash disalin ke clipboard</string>
 
     <string name="card_bridge_title">Bridge Jam &amp; Log Aktivitas</string>
     <string name="watch_integration_notice">Pemberitahuan: Integrasi Huawei Watch saat ini belum berfungsi. Kontrol aplikasi ponsel dan widget layar utama tetap berjalan normal.</string>
